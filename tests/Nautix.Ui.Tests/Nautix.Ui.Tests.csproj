@@ -12,6 +12,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Shouldly" />
     <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nautix.Ui\Nautix.Ui.csproj" />
+    <ProjectReference Include="..\..\src\Nautix.Ui.Generators\Nautix.Ui.Generators.csproj" OutputItemType="Analyzer" />
     <ProjectReference Include="..\Nautix.TestKit\Nautix.TestKit.csproj" />
   </ItemGroup>
 
