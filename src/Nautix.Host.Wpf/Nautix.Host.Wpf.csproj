@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nautix.SharedKernel\Nautix.SharedKernel.csproj" />
+    <ProjectReference Include="..\Nautix.Ui\Nautix.Ui.csproj" />
+    <ProjectReference Include="..\Modules\Containers\Nautix.Containers.Infrastructure\Nautix.Containers.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Images\Nautix.Images.Infrastructure\Nautix.Images.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Networks\Nautix.Networks.Infrastructure\Nautix.Networks.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Volumes\Nautix.Volumes.Infrastructure\Nautix.Volumes.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Compose\Nautix.Compose.Infrastructure\Nautix.Compose.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Dockerfile\Nautix.Dockerfile.Infrastructure\Nautix.Dockerfile.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Builds\Nautix.Builds.Infrastructure\Nautix.Builds.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Registries\Nautix.Registries.Infrastructure\Nautix.Registries.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Swarm\Nautix.Swarm.Infrastructure\Nautix.Swarm.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\EngineHost\Nautix.EngineHost.Infrastructure\Nautix.EngineHost.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\System\Nautix.System.Infrastructure\Nautix.System.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Terminal\Nautix.Terminal.Infrastructure\Nautix.Terminal.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Settings\Nautix.Settings.Infrastructure\Nautix.Settings.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
