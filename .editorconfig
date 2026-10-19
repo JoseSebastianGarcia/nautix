@@ -76,6 +76,8 @@ dotnet_diagnostic.CA1014.severity = none
 dotnet_diagnostic.CA1305.severity = warning
 # Public surface is by module layer, not by assembly boundary: we use 'sealed' + public contracts.
 dotnet_diagnostic.CA1515.severity = none
+# 'Error' is the type name mandated by the spec; the VB keyword clash is irrelevant (C# only).
+dotnet_diagnostic.CA1716.severity = none
 # Documentation comments are not required on every member.
 dotnet_diagnostic.CS1591.severity = none
 
