@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="../Nautix.SharedKernel/Nautix.SharedKernel.csproj" />
-  </ItemGroup></Project>
+    <ProjectReference Include="..\Nautix.SharedKernel\Nautix.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>
