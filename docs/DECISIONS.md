@@ -21,11 +21,11 @@ New entries go at the end; never edit an accepted ADR, supersede it.
 
 ## ADR-003 — WiX Toolset v5 is MS-RL; Installer project deferred
 
-- **Status:** Proposed — **needs owner decision.**
+- **Status:** Accepted — owner approved option (a) on 2026-10-19; WiX is allowed as a build-time-only exception.
 - **Context:** `CLAUDE.md` allows only MIT / Apache-2.0 / BSD / MS-PL dependencies. `WixToolset.Sdk` 5.0.2 declares `MS-RL` in its nuspec (Microsoft Reciprocal License, file-level copyleft). `01-architecture.md` and `06-...` mandate WiX v5 for the MSI. WiX is a build-time tool and its output (MSI) is not a derivative work, but the rule as written excludes it.
 - **Options:** (a) approve MS-RL as a build-time-only exception (nothing from WiX is redistributed in the app; record in `THIRD_PARTY_NOTICES.md` under "Build tools"); (b) switch to another packager (MSIX needs signing/trust story; Inno Setup is not MSI and has its own license; `dotnet`-based zip + winget portable).
 - **Recommendation:** (a). It is the standard path for MSI on Windows and the exception is narrow.
-- **Consequences until decided:** `src/Nautix.Installer/` contains only a README; it is not in `Nautix.sln` and no WiX package is referenced.
+- **Consequences:** WiX may be added in M1 (installer task) as a build-only dependency, listed under "Build tools" in `THIRD_PARTY_NOTICES.md`; nothing from it ships inside the app. Until then `src/Nautix.Installer/` contains only a README and is not in `Nautix.sln`.
 
 ## ADR-004 — Test dependency licenses and pins
 

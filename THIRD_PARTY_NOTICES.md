@@ -17,6 +17,8 @@ Nautix is MIT licensed. Dependencies must be MIT, Apache-2.0, BSD or MS-PL (see 
 
 None yet.
 
-## Pending decision
+## Build tools (approved exception, not redistributed)
 
-WiX Toolset v5 (MS-RL) — see ADR-003.
+| Tool | License | Status |
+|---|---|---|
+| WiX Toolset v5 | MS-RL | Approved build-time-only (ADR-003); added at M1 |
