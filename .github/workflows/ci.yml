@@ -1,0 +1,64 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 5 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - name: Restore (locked)
+        run: dotnet restore --locked-mode
+      - name: Build
+        run: dotnet build --no-restore -warnaserror
+      - name: Format
+        run: dotnet format Nautix.sln --verify-no-changes --no-restore
+      - name: Unit + architecture + resource tests
+        run: dotnet test --no-build --filter "Category!=Integration" --logger "trx;LogFileName=unit.trx" --results-directory TestResults
+      - name: Vulnerable packages (fail on High/Critical)
+        shell: pwsh
+        run: |
+          $out = dotnet list Nautix.sln package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $out
+          if ($out -match '\b(High|Critical)\b') { throw 'High/Critical vulnerable package found' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: TestResults
+
+  # Needs a self-hosted Windows runner with WSL2 and the nautix-engine distro.
+  # Enable by setting the repository variable HAS_WSL_RUNNER=true.
+  integration:
+    if: ${{ vars.HAS_WSL_RUNNER == 'true' && (github.event_name == 'schedule' || github.ref == 'refs/heads/main') }}
+    needs: build
+    runs-on: [self-hosted, windows, wsl2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet test --filter "Category=Integration" --logger "trx;LogFileName=integration.trx" --results-directory TestResults
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-results
+          path: TestResults
+
+  # package (MSI + zip, signing gated on secrets) and release (tag) are added with the installer (ADR-003).
