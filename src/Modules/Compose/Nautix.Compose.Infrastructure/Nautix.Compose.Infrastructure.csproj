@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../Nautix.Compose.Application/Nautix.Compose.Application.csproj" />
+    <ProjectReference Include="../Nautix.Compose.Domain/Nautix.Compose.Domain.csproj" />
+    <ProjectReference Include="../Nautix.Compose.Contracts/Nautix.Compose.Contracts.csproj" />
+    <ProjectReference Include="../../../Nautix.SharedKernel/Nautix.SharedKernel.csproj" />
+  </ItemGroup></Project>
