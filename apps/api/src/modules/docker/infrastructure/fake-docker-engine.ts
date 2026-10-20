@@ -229,6 +229,12 @@ export class FakeDockerEngine extends DockerEngine {
     const [state, status] = next[action];
     c.state = state;
     c.status = status;
+    if (action === "start" && c.image.startsWith("curlimages/curl")) {
+      // One-shot helper: finishes immediately and prints what Kong would answer.
+      c.state = "exited";
+      c.status = "Exited (0) just now";
+      this.logs.set(id, '{"services":{},"routes":{}}');
+    }
     this.logs.set(id, `${this.logs.get(id) ?? ""}${new Date().toISOString()} ${action}\n`);
   }
 

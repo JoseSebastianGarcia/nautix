@@ -4,6 +4,7 @@ import { HealthController } from "./modules/auth/presentation/health.controller.
 import { CatalogModule } from "./modules/catalog/catalog.module.js";
 import { ComposeModule } from "./modules/compose/compose.module.js";
 import { DockerModule } from "./modules/docker/docker.module.js";
+import { GatewayModule } from "./modules/gateway/gateway.module.js";
 import { LayoutModule } from "./modules/layout/layout.module.js";
 import { TerminalModule } from "./modules/terminal/terminal.module.js";
 import type { AppConfig } from "./shared/config.js";
@@ -20,6 +21,7 @@ export class AppModule {
         LayoutModule.register(config),
         ComposeModule.register(config),
         CatalogModule.register(config),
+        GatewayModule.register(config),
       ],
       controllers: [HealthController],
     };

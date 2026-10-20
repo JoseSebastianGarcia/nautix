@@ -770,3 +770,50 @@ describe("image tools and system commands", () => {
     expect((await call("GET", "/system/prune/preview?kind=bogus")).res.status).toBe(422);
   });
 });
+
+describe("gateway (Kong) routes", () => {
+  const route = {
+    name: "hola",
+    path: "/hola",
+    upstream: "http://tunnel-extranet-to-intranet-80:80",
+    stripPath: true,
+  };
+
+  it("detects Kong, stores the mappings and applies them with a throw-away helper", async () => {
+    const gateways = (await call("GET", "/gateways")).json as { name: string }[];
+    expect(gateways.map((g) => g.name)).toContain("kong");
+
+    expect((await call("PUT", "/gateways/kong/routes", { routes: [route] })).res.status).toBe(204);
+    expect((await call("GET", "/gateways/kong/routes")).json).toEqual([route]);
+
+    const applied = await call("POST", "/gateways/kong/apply");
+    expect(applied.res.status).toBe(200);
+    expect(applied.json).toMatchObject({ ok: true });
+
+    const leftovers = ((await call("GET", "/containers")).json as { name: string }[]).filter((c) =>
+      c.name.startsWith("nautix-apply-"),
+    );
+    expect(leftovers).toEqual([]);
+  });
+
+  it("rejects bad routes and things that are not gateways", async () => {
+    expect(
+      (await call("PUT", "/gateways/kong/routes", { routes: [{ ...route, upstream: "ftp://x" }] }))
+        .res.status,
+    ).toBe(422);
+    expect(
+      (await call("PUT", "/gateways/kong/routes", { routes: [route, route] })).res.status,
+    ).toBe(422);
+    expect(
+      (
+        await call("PUT", "/gateways/kong/routes", {
+          routes: [{ name: "x", upstream: "http://a:1" }],
+        })
+      ).res.status,
+    ).toBe(422);
+    await call("PUT", "/gateways/postgres/routes", { routes: [] });
+    const notKong = await call("POST", "/gateways/postgres/apply");
+    expect(notKong.res.status).toBe(422);
+    expect(notKong.json.hintKey).toBe("errors.notGateway");
+  });
+});

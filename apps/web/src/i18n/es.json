@@ -11,7 +11,8 @@
     "networks": "Redes",
     "settings": "Ajustes",
     "compose": "Compose",
-    "system": "Sistema"
+    "system": "Sistema",
+    "gateway": "Gateway"
   },
   "common": {
     "cancel": "Cancelar",
@@ -260,7 +261,10 @@
     "uploadTooLarge": "La subida es demasiado grande (máx. 256 MB)",
     "pushFailed": "Falló el push",
     "loginFailed": "Falló el login en el registro",
-    "imageOperationFailed": "Falló la operación sobre la imagen"
+    "imageOperationFailed": "Falló la operación sobre la imagen",
+    "notGateway": "Ese contenedor no es un gateway Kong",
+    "gatewayNotRunning": "El gateway no está en ejecución",
+    "gatewayNoNetwork": "El gateway no está en una red definida por el usuario"
   },
   "terminal": {
     "title": "Terminal",
@@ -489,5 +493,27 @@
     "type": "Tipo",
     "action": "Acción",
     "waitingEvents": "Esperando eventos del motor…"
+  },
+  "gateway": {
+    "title": "API gateway",
+    "none": "No se encontró ningún gateway Kong. Arrastrá “Kong” desde la paleta a una caja de red (publicá 8000 y 8001 en el host) y aparecerá acá.",
+    "intro": "Asociá una ruta y/o un dominio con un servicio. Nautix guarda los mapeos y los aplica en Kong por vos; sin archivos de configuración ni curl. Elegí un servicio al que el gateway llegue (misma red, o un túnel) o escribí cualquier URL.",
+    "path": "Ruta",
+    "host": "Dominio (opcional)",
+    "destination": "Destino",
+    "pick": "Elegir un servicio…",
+    "strip": "Quitar ruta",
+    "duplicate": "Los nombres de ruta deben ser únicos",
+    "addRoute": "Agregar ruta",
+    "saveApply": "Guardar y aplicar",
+    "reapply": "Aplicar de nuevo",
+    "noRoutes": "Todavía no hay rutas.",
+    "restartNote": "Kong guarda las rutas en memoria: si el gateway se reinicia, apretá “Aplicar de nuevo”.",
+    "applying": "Aplicando rutas en {{name}}…",
+    "applied": "Aplicado en el gateway",
+    "failed": "El gateway no aceptó las rutas",
+    "failedHint": "Verificá que el contenedor esté en ejecución, en una red definida por el usuario y que su API de administración escuche en 0.0.0.0:8001 (la plantilla de Kong lo hace).",
+    "noProxyPort": "Publicá el puerto 8000 del gateway en el host para obtener un comando de prueba listo.",
+    "notRunning": "El gateway no está en ejecución."
   }
 }

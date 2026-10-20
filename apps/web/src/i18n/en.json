@@ -11,7 +11,8 @@
     "networks": "Networks",
     "settings": "Settings",
     "compose": "Compose",
-    "system": "System"
+    "system": "System",
+    "gateway": "Gateway"
   },
   "common": {
     "cancel": "Cancel",
@@ -260,7 +261,10 @@
     "uploadTooLarge": "The upload is too large (max 256 MB)",
     "pushFailed": "The push failed",
     "loginFailed": "Registry login failed",
-    "imageOperationFailed": "The image operation failed"
+    "imageOperationFailed": "The image operation failed",
+    "notGateway": "That container is not a Kong gateway",
+    "gatewayNotRunning": "The gateway is not running",
+    "gatewayNoNetwork": "The gateway is not on a user-defined network"
   },
   "terminal": {
     "title": "Terminal",
@@ -489,5 +493,27 @@
     "type": "Type",
     "action": "Action",
     "waitingEvents": "Waiting for engine events…"
+  },
+  "gateway": {
+    "title": "API gateway",
+    "none": "No Kong gateway found. Drag “Kong” from the palette into a network box (publish 8000 and 8001 on the host) and it will show up here.",
+    "intro": "Map a path and/or a domain to a service. Nautix saves the mappings and applies them to Kong for you; no config files or curl needed. Pick a service the gateway can reach (same network, or a tunnel) or type any URL.",
+    "path": "Path",
+    "host": "Domain (optional)",
+    "destination": "Destination",
+    "pick": "Pick a service…",
+    "strip": "Strip path",
+    "duplicate": "Route names must be unique",
+    "addRoute": "Add route",
+    "saveApply": "Save and apply",
+    "reapply": "Apply again",
+    "noRoutes": "No routes yet.",
+    "restartNote": "Kong keeps routes in memory: after the gateway restarts, press “Apply again”.",
+    "applying": "Applying routes to {{name}}…",
+    "applied": "Applied to the gateway",
+    "failed": "The gateway did not accept the routes",
+    "failedHint": "Check that the container is running, that it is on a user-defined network and that its admin API listens on 0.0.0.0:8001 (the Kong template does).",
+    "noProxyPort": "Publish port 8000 of the gateway on the host to get a ready-to-use test command.",
+    "notRunning": "The gateway is not running."
   }
 }

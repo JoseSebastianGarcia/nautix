@@ -5,6 +5,7 @@ import { Toaster } from "../components/ui.js";
 import { AuthPage } from "../features/auth/auth-page.js";
 import { ComposeProjectsPage } from "../features/compose/compose-projects-page.js";
 import { ContainerPage } from "../features/containers/container-page.js";
+import { GatewayPage } from "../features/gateway/gateway-page.js";
 import { ContainersPage } from "../features/resources/containers-page.js";
 import { ImagesPage } from "../features/resources/images-page.js";
 import { NetworksPage } from "../features/resources/networks-page.js";
@@ -69,6 +70,7 @@ export function App() {
                 </Suspense>
               }
             />
+            <Route path="gateway" element={<GatewayPage />} />
             <Route path="system" element={<SystemPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

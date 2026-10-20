@@ -2,6 +2,7 @@ import { hostname } from "node:os";
 import { type DynamicModule, Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 import { APP_CONFIG, type AppConfig } from "../../shared/config.js";
+import { ApplyGatewayHandler } from "./application/commands/apply-gateway.handler.js";
 import { CommitContainerHandler } from "./application/commands/commit-container.handler.js";
 import { ConnectNetworkHandler } from "./application/commands/connect-network.handler.js";
 import { ContainerActionHandler } from "./application/commands/container-action.handler.js";
@@ -79,6 +80,7 @@ const HANDLERS = [
   WatchEventsHandler,
   ExportComposeHandler,
   CreateTunnelHandler,
+  ApplyGatewayHandler,
   GetImageHistoryHandler,
   SaveImageHandler,
   SearchImagesHandler,

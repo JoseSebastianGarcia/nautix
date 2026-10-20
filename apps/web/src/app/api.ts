@@ -18,6 +18,8 @@ import type {
   DiskUsage,
   EngineInfo,
   FsChange,
+  GatewayApplyResult,
+  GatewayRoute,
   Image,
   ImageHistoryEntry,
   ImageSearchResult,
@@ -91,6 +93,11 @@ export const api = {
     action: ComposeAction,
     opts: { acknowledgeRisks?: boolean; removeVolumes?: boolean } = {},
   ) => request<ComposeRunResult>("POST", `/compose/projects/${name}/${action}`, opts),
+
+  gatewayRoutes: (name: string) => request<GatewayRoute[]>("GET", `/gateways/${name}/routes`),
+  saveGatewayRoutes: (name: string, routes: GatewayRoute[]) =>
+    request<void>("PUT", `/gateways/${name}/routes`, { routes }),
+  applyGateway: (name: string) => request<GatewayApplyResult>("POST", `/gateways/${name}/apply`),
 
   engine: () => request<EngineInfo>("GET", "/engine"),
   catalog: () => request<Template[]>("GET", "/catalog"),

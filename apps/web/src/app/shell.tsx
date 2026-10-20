@@ -6,6 +6,7 @@ import {
   Layers,
   LogOut,
   Network as NetworkIcon,
+  Route,
   Settings,
   Workflow,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const NAV = [
   { to: "/volumes", key: "nav.volumes", icon: HardDrive },
   { to: "/networks", key: "nav.networks", icon: NetworkIcon },
   { to: "/compose", key: "nav.compose", icon: Layers },
+  { to: "/gateway", key: "nav.gateway", icon: Route },
   { to: "/system", key: "nav.system", icon: Activity },
   { to: "/settings", key: "nav.settings", icon: Settings, adminOnly: true },
 ] as const;
