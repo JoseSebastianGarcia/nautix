@@ -1,6 +1,6 @@
 // Fails when an installed dependency is under a license the project does not accept (GPL, AGPL, SSPL, BUSL).
 // Allowed: MIT, Apache-2.0, BSD, ISC, MPL and similar permissive licenses. See CLAUDE.md rule 8.
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const store = join(process.cwd(), "node_modules", ".pnpm");
@@ -42,7 +42,8 @@ for (const entry of readdirSync(store)) {
       checked++;
       const license = licenseOf(pkg);
       const choices = license.split(/\s+OR\s+|\s*\/\s*/i).map((s) => s.replace(/[()]/g, "").trim());
-      const allForbidden = choices.length > 0 && license !== "" && choices.every((c) => FORBIDDEN.test(c));
+      const allForbidden =
+        choices.length > 0 && license !== "" && choices.every((c) => FORBIDDEN.test(c));
       if (allForbidden) bad.push(`${pkg.name}@${pkg.version}: ${license}`);
     }
   }

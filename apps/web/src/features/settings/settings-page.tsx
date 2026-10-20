@@ -9,6 +9,7 @@ import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Select } from "../../components/select.js";
 import { useToasts } from "../../components/toast-store.js";
 import { Button, ConfirmDialog, Dialog, Field, Input } from "../../components/ui.js";
+import { ResetPasswordDialog } from "../auth/password-dialogs.js";
 import { PageHeader, Table, Td } from "../resources/table.js";
 
 const ROLES: Role[] = ["admin", "viewer"];
@@ -31,6 +32,7 @@ function UsersSection() {
   const { data: session } = useSession();
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: api.users });
   const [adding, setAdding] = useState(false);
+  const [resetting, setResetting] = useState<{ id: string; username: string } | null>(null);
   const [target, setTarget] = useState<{ id: string; username: string } | null>(null);
   const remove = useApiMutation((id: string) => api.deleteUser(id), [["users"]]);
   const roleOptions = ROLES.map((r) => ({ value: r, text: t(`settings.${r}`) }));
@@ -60,6 +62,13 @@ function UsersSection() {
             <Td>{t(`settings.${u.role}`)}</Td>
             <Td>
               <Button
+                aria-label={`${t("settings.resetPassword")} ${u.username}`}
+                title={t("settings.resetPassword")}
+                onClick={() => setResetting(u)}
+              >
+                <KeyRound size={14} />
+              </Button>{" "}
+              <Button
                 variant="danger"
                 disabled={u.username === session?.username}
                 aria-label={`${t("common.delete")} ${u.username}`}
@@ -72,6 +81,7 @@ function UsersSection() {
         ))}
       </Table>
       <p className="mt-2 text-xs text-dim">{t("settings.roleHint")}</p>
+      <ResetPasswordDialog user={resetting} onClose={() => setResetting(null)} />
       <AddUserDialog open={adding} roleOptions={roleOptions} onClose={() => setAdding(false)} />
       <ConfirmDialog
         open={target !== null}

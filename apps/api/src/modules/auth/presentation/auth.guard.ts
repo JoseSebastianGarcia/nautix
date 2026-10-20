@@ -9,6 +9,7 @@ import { AuthenticateTokenQuery } from "../application/queries/authenticate-toke
 import { GetSessionQuery } from "../application/queries/get-session.query.js";
 import { ADMIN_ONLY } from "./admin-only.decorator.js";
 import { IS_PUBLIC } from "./public.decorator.js";
+import { SELF_SERVICE } from "./self-service.decorator.js";
 
 export const SESSION_COOKIE = "nx_session";
 const SAFE = new Set(["GET", "HEAD", "OPTIONS"]);
@@ -46,7 +47,8 @@ export class AuthGuard implements CanActivate {
     setPrincipal(req, principal);
 
     const adminOnly = this.reflector.getAllAndOverride<boolean>(ADMIN_ONLY, targets);
-    if ((!SAFE.has(req.method) || adminOnly) && principal.role !== "admin") {
+    const selfService = this.reflector.getAllAndOverride<boolean>(SELF_SERVICE, targets);
+    if ((!SAFE.has(req.method) || adminOnly) && principal.role !== "admin" && !selfService) {
       throw new ForbiddenError("this role is read-only", "errors.readOnly");
     }
     return true;

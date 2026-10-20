@@ -55,3 +55,14 @@ export const ApiTokenInfo = z.object({
   lastUsedAt: z.number().nullable(),
 });
 export type ApiTokenInfo = z.infer<typeof ApiTokenInfo>;
+
+export const ChangePassword = z
+  .object({ currentPassword: z.string().min(1).max(200), newPassword: Password })
+  .refine((v) => v.currentPassword !== v.newPassword, {
+    message: "the new password must differ",
+    path: ["newPassword"],
+  });
+export type ChangePassword = z.infer<typeof ChangePassword>;
+
+export const ResetPassword = z.object({ password: Password });
+export type ResetPassword = z.infer<typeof ResetPassword>;

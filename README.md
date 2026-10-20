@@ -23,6 +23,13 @@ pnpm start            # http://127.0.0.1:3737
 
 On first start the server prints a **one-time setup token** in its log. Open the URL, paste the token and create the admin account.
 
+Passwords: everyone can change their own (key icon in the top bar; other sessions are signed out), and an admin can set a new one for any user (Settings → Users). If you lose the only admin account, run on the host:
+
+```bash
+docker exec nautix node dist/cli.js reset-password admin   # prints a new random password once
+docker exec nautix node dist/cli.js create-admin ana        # creates (or promotes) an admin
+```
+
 No Docker handy? Try the simulated engine:
 
 ```bash

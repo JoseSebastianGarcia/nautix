@@ -72,7 +72,14 @@
     "submitSetup": "Crear cuenta",
     "submitLogin": "Entrar",
     "logout": "Cerrar sesión",
-    "socketWarning": "Nautix controla el socket de Docker, equivalente a root en este equipo. Mantenelo enlazado a localhost."
+    "socketWarning": "Nautix controla el socket de Docker, equivalente a root en este equipo. Mantenelo enlazado a localhost.",
+    "changePassword": "Cambiar mi contraseña",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Contraseña nueva",
+    "repeatPassword": "Repetí la contraseña nueva",
+    "passwordRule": "Al menos {{min}} caracteres.",
+    "passwordChanged": "Contraseña cambiada",
+    "otherSessions": "Tus otras sesiones (otros navegadores o dispositivos) se cerrarán."
   },
   "topology": {
     "paletteTitle": "Paleta",
@@ -296,7 +303,8 @@
     "tlsInvalid": "Certificado o clave inválidos",
     "tlsExpired": "El certificado está vencido",
     "tlsHost": "Nombre o IP inválido",
-    "tlsExternal": "El certificado viene del entorno"
+    "tlsExternal": "El certificado viene del entorno",
+    "wrongCurrentPassword": "La contraseña actual es incorrecta"
   },
   "terminal": {
     "title": "Terminal",
@@ -378,7 +386,11 @@
     "auditTime": "Hora",
     "auditActor": "Quién",
     "auditAction": "Acción",
-    "auditStatus": "Resultado"
+    "auditStatus": "Resultado",
+    "resetPassword": "Resetear contraseña",
+    "resetPasswordTitle": "Contraseña nueva para {{name}}",
+    "resetPasswordWarning": "El usuario se desconecta de todos lados y debe usar la contraseña nueva. Avisale por un canal privado.",
+    "passwordReset": "Se cambió la contraseña de {{name}}"
   },
   "compose": {
     "title": "Proyectos Compose",

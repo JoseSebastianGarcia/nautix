@@ -72,7 +72,14 @@
     "submitSetup": "Create account",
     "submitLogin": "Sign in",
     "logout": "Sign out",
-    "socketWarning": "Nautix controls the Docker socket, which is equivalent to root on this host. Keep it bound to localhost."
+    "socketWarning": "Nautix controls the Docker socket, which is equivalent to root on this host. Keep it bound to localhost.",
+    "changePassword": "Change my password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "repeatPassword": "Repeat the new password",
+    "passwordRule": "At least {{min}} characters.",
+    "passwordChanged": "Password changed",
+    "otherSessions": "Your other sessions (other browsers or devices) will be signed out."
   },
   "topology": {
     "paletteTitle": "Palette",
@@ -296,7 +303,8 @@
     "tlsInvalid": "Invalid certificate or key",
     "tlsExpired": "The certificate has expired",
     "tlsHost": "Invalid name or IP",
-    "tlsExternal": "The certificate comes from the environment"
+    "tlsExternal": "The certificate comes from the environment",
+    "wrongCurrentPassword": "The current password is wrong"
   },
   "terminal": {
     "title": "Terminal",
@@ -378,7 +386,11 @@
     "auditTime": "Time",
     "auditActor": "Who",
     "auditAction": "Action",
-    "auditStatus": "Result"
+    "auditStatus": "Result",
+    "resetPassword": "Reset password",
+    "resetPasswordTitle": "New password for {{name}}",
+    "resetPasswordWarning": "The user is signed out everywhere and must use the new password. Tell them through a private channel.",
+    "passwordReset": "Password of {{name}} changed"
   },
   "compose": {
     "title": "Compose projects",

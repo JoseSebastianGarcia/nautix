@@ -1,8 +1,10 @@
-import { Activity, Boxes, Layers, LogOut, Route, Settings, Workflow } from "lucide-react";
+import { Activity, Boxes, KeyRound, Layers, LogOut, Route, Settings, Workflow } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Logo } from "../components/logo.js";
 import { Select } from "../components/select.js";
+import { ChangePasswordDialog } from "../features/auth/password-dialogs.js";
 import { LANGUAGES, type Language, setLanguage } from "../i18n/index.js";
 import { type ThemeChoice, useTheme } from "../theme/theme-store.js";
 import { api } from "./api.js";
@@ -28,6 +30,7 @@ export function Shell() {
   const { data: session } = useSession();
   const theme = useTheme();
   const { pathname } = useLocation();
+  const [changingPassword, setChangingPassword] = useState(false);
   const logout = useApiMutation(() => api.logout(), [keys.session]);
 
   const status = !engine?.connected
@@ -81,6 +84,15 @@ export function Shell() {
             options={LANGUAGES.map((v) => ({ value: v, text: v.toUpperCase() }))}
           />
           <span className="font-mono">{session?.username}</span>
+          <button
+            type="button"
+            aria-label={t("auth.changePassword")}
+            title={t("auth.changePassword")}
+            className="hover:text-fg"
+            onClick={() => setChangingPassword(true)}
+          >
+            <KeyRound size={16} />
+          </button>
           {session?.role === "admin" && (
             <NavLink
               to="/settings"
@@ -102,6 +114,7 @@ export function Shell() {
           </button>
         </div>
       </header>
+      <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       {isResourcePath(pathname) && (
         <nav
           className="flex gap-1 border-b border-line bg-bg1 px-4"

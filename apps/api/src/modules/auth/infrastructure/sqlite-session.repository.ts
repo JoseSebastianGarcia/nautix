@@ -24,6 +24,12 @@ export class SqliteSessionRepository extends SessionRepository {
     return row ?? null;
   }
 
+  async removeForUser(userId: string, exceptTokenHash?: string): Promise<void> {
+    this.db
+      .prepare("DELETE FROM sessions WHERE user_id = ? AND token_hash != ?")
+      .run(userId, exceptTokenHash ?? "");
+  }
+
   async remove(tokenHash: string): Promise<void> {
     this.db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(tokenHash);
   }

@@ -1,9 +1,12 @@
-import { LoginRequest, type Session, SetupRequest } from "@nautix/contracts";
+import { ChangePassword, LoginRequest, type Session, SetupRequest } from "@nautix/contracts";
 import { Body, Controller, Get, HttpCode, Inject, Post, Req, Res } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import type { Request, Response } from "express";
 import { APP_CONFIG, type AppConfig } from "../../../shared/config.js";
+import { UnauthorizedError } from "../../../shared/domain-error.js";
+import { getPrincipal } from "../../../shared/principal.js";
 import { parse } from "../../../shared/zod-body.js";
+import { ChangePasswordCommand } from "../application/commands/change-password.command.js";
 import { LoginCommand } from "../application/commands/login.command.js";
 import { LogoutCommand } from "../application/commands/logout.command.js";
 import { SetupCommand } from "../application/commands/setup.command.js";
@@ -12,10 +15,11 @@ import { SESSION_TTL_MS } from "../domain/user.js";
 import { SESSION_COOKIE } from "./auth.guard.js";
 import { LoginRateLimiter } from "./login-rate-limiter.js";
 import { Public } from "./public.decorator.js";
+import { SelfService } from "./self-service.decorator.js";
 
 @Controller("api/v1/auth")
 export class AuthController {
-  private readonly limiter = new LoginRateLimiter();
+  private readonly limiter = new LoginRateLimiter(Number(process.env.NAUTIX_LOGIN_RATE ?? 8));
 
   constructor(
     @Inject(CommandBus) private readonly commands: CommandBus,
@@ -58,6 +62,22 @@ export class AuthController {
       maxAge: SESSION_TTL_MS,
       path: "/",
     });
+  }
+
+  /** Your own password: needs the current one and signs your other sessions out. */
+  @SelfService()
+  @Post("password")
+  @HttpCode(204)
+  async changePassword(@Req() req: Request, @Body() body: unknown): Promise<void> {
+    const principal = getPrincipal(req);
+    const token = (req.cookies as Record<string, string | undefined>)[SESSION_COOKIE];
+    if (principal.kind !== "session" || !token)
+      throw new UnauthorizedError("sign in with the browser", "errors.unauthorized");
+    this.limiter.check(`password:${principal.name}`);
+    const b = parse(ChangePassword, body);
+    await this.commands.execute(
+      new ChangePasswordCommand(principal.name, b.currentPassword, b.newPassword, token),
+    );
   }
 
   @Public()

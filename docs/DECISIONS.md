@@ -96,3 +96,6 @@ The `LICENSE` file starts with a Nautix header (owner, what the Program is, vers
 
 ## ADR-028 — Copyright holder name
 The notices name "José Sebastián García (Patterna)" as the holder (the former "patterna.dev" was the working name). The name appears only in `LICENSE`, `NOTICE` and `CLAUDE.md`; the license text itself does not contain it. When Patterna becomes a company, the copyright is assigned to it in writing and the notices are updated; contributors sign a CLA before their code is merged.
+
+## ADR-029 — Password changes and emergency recovery
+Changing your own password needs the current one (rate-limited) and signs every other session out; viewers may do it too (`@SelfService()` lets a mutation through the read-only role check). An admin can set another user's password, which signs that user out everywhere. Recovery of a lost admin is a CLI that runs next to the database (`node dist/cli.js reset-password|create-admin <user>`): anyone who can run commands in the container already controls the host. It prints a random 24-character password once and writes an `cli` audit entry. There is deliberately no email-based reset (no mail server in a self-hosted tool) and no "forgot password" link.

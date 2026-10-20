@@ -44,6 +44,10 @@ export class SqliteUserRepository extends UserRepository {
       .run(user.id, user.username, user.passwordHash, user.role);
   }
 
+  async setPasswordHash(id: string, passwordHash: string): Promise<void> {
+    this.db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(passwordHash, id);
+  }
+
   async remove(id: string): Promise<void> {
     this.db.prepare("DELETE FROM sessions WHERE user_id = ?").run(id);
     this.db.prepare("DELETE FROM users WHERE id = ?").run(id);

@@ -1,5 +1,16 @@
-import { CreateToken, CreateUser } from "@nautix/contracts";
-import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Req } from "@nestjs/common";
+import { CreateToken, CreateUser, ResetPassword } from "@nautix/contracts";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Post,
+  Put,
+  Req,
+} from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import type { Request } from "express";
 import { requireAdmin } from "../../../shared/principal.js";
@@ -7,6 +18,7 @@ import { parse } from "../../../shared/zod-body.js";
 import { CreateApiTokenCommand } from "../application/commands/create-api-token.command.js";
 import { CreateUserCommand } from "../application/commands/create-user.command.js";
 import { DeleteUserCommand } from "../application/commands/delete-user.command.js";
+import { ResetUserPasswordCommand } from "../application/commands/reset-user-password.command.js";
 import { RevokeApiTokenCommand } from "../application/commands/revoke-api-token.command.js";
 import { ListApiTokensQuery } from "../application/queries/list-api-tokens.query.js";
 import { ListUsersQuery } from "../application/queries/list-users.query.js";
@@ -28,6 +40,14 @@ export class SettingsController {
   @Post("users")
   createUser(@Body() body: unknown) {
     return this.commands.execute(new CreateUserCommand(parse(CreateUser, body)));
+  }
+
+  @Put("users/:id/password")
+  @HttpCode(204)
+  async resetPassword(@Param("id") id: string, @Body() body: unknown) {
+    await this.commands.execute(
+      new ResetUserPasswordCommand(id, parse(ResetPassword, body).password),
+    );
   }
 
   @Delete("users/:id")

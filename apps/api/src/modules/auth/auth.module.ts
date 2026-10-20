@@ -3,11 +3,13 @@ import { APP_GUARD } from "@nestjs/core";
 import { CqrsModule } from "@nestjs/cqrs";
 import { APP_CONFIG, type AppConfig } from "../../shared/config.js";
 import { type Db, openDatabase } from "../../shared/sqlite-database.js";
+import { ChangePasswordHandler } from "./application/commands/change-password.handler.js";
 import { CreateApiTokenHandler } from "./application/commands/create-api-token.handler.js";
 import { CreateUserHandler } from "./application/commands/create-user.handler.js";
 import { DeleteUserHandler } from "./application/commands/delete-user.handler.js";
 import { LoginHandler } from "./application/commands/login.handler.js";
 import { LogoutHandler } from "./application/commands/logout.handler.js";
+import { ResetUserPasswordHandler } from "./application/commands/reset-user-password.handler.js";
 import { RevokeApiTokenHandler } from "./application/commands/revoke-api-token.handler.js";
 import { SetupHandler } from "./application/commands/setup.handler.js";
 import { ApiTokenRepository } from "./application/ports/api-token-repository.js";
@@ -70,6 +72,8 @@ export class AuthModule {
         },
         { provide: APP_GUARD, useClass: AuthGuard },
         SetupHandler,
+        ChangePasswordHandler,
+        ResetUserPasswordHandler,
         LoginHandler,
         LogoutHandler,
         GetSessionHandler,

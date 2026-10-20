@@ -102,6 +102,10 @@ export const api = {
 
   users: () => request<UserInfo[]>("GET", "/settings/users"),
   createUser: (b: CreateUser) => request<{ id: string }>("POST", "/settings/users", b),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<void>("POST", "/auth/password", { currentPassword, newPassword }),
+  resetUserPassword: (id: string, password: string) =>
+    request<void>("PUT", `/settings/users/${id}/password`, { password }),
   deleteUser: (id: string) => request<void>("DELETE", `/settings/users/${id}`),
   tokens: () => request<ApiTokenInfo[]>("GET", "/settings/tokens"),
   createToken: (b: CreateToken) =>

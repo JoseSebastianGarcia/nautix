@@ -36,6 +36,7 @@ const call = async (method: string, path: string, body?: unknown, withCookie = t
 };
 
 beforeAll(async () => {
+  process.env.NAUTIX_LOGIN_RATE = "1000"; // this suite signs in many times from one address
   dataDir = mkdtempSync(join(tmpdir(), "nautix-"));
   const config: AppConfig = {
     host: "127.0.0.1",
@@ -996,6 +997,112 @@ describe("image tools and system commands", () => {
     expect((await call("POST", "/plugins/vieux%2Fsshfs:latest/disable")).res.status).toBe(204);
     expect((await call("DELETE", "/plugins/vieux%2Fsshfs:latest")).res.status).toBe(204);
     expect((await call("GET", "/plugins")).json).toEqual([]);
+  });
+
+  it("changes passwords: own (needs the current one) and by an admin, signing sessions out", async () => {
+    const login = async (username: string, password: string) => {
+      const res = await fetch(`${base}/api/v1/auth/login`, {
+        method: "POST",
+        headers: { "x-nautix-csrf": "1", "content-type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      return {
+        status: res.status,
+        cookie: (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "",
+      };
+    };
+    const get = (cookieHeader: string) =>
+      fetch(`${base}/api/v1/containers`, { headers: { cookie: cookieHeader } }).then(
+        (r) => r.status,
+      );
+
+    const second = await login("admin", "correct-horse-1");
+    expect(await get(second.cookie)).toBe(200);
+
+    expect(
+      (
+        await call("POST", "/auth/password", {
+          currentPassword: "nope-nope-nope",
+          newPassword: "another-pass-9",
+        })
+      ).res.status,
+    ).toBe(401);
+    expect(
+      (
+        await call("POST", "/auth/password", {
+          currentPassword: "correct-horse-1",
+          newPassword: "correct-horse-1",
+        })
+      ).res.status,
+    ).toBe(422);
+    expect(
+      (
+        await call("POST", "/auth/password", {
+          currentPassword: "correct-horse-1",
+          newPassword: "short",
+        })
+      ).res.status,
+    ).toBe(422);
+    expect(
+      (
+        await call("POST", "/auth/password", {
+          currentPassword: "correct-horse-1",
+          newPassword: "another-pass-9",
+        })
+      ).res.status,
+    ).toBe(204);
+
+    expect(await get(cookie)).toBe(200); // this session stays
+    expect(await get(second.cookie)).toBe(401); // the other one is gone
+    expect((await login("admin", "correct-horse-1")).status).toBe(401);
+    expect((await login("admin", "another-pass-9")).status).toBe(204);
+    expect(
+      (
+        await call("POST", "/auth/password", {
+          currentPassword: "another-pass-9",
+          newPassword: "correct-horse-1",
+        })
+      ).res.status,
+    ).toBe(204);
+
+    const created = await call("POST", "/settings/users", {
+      username: "ana",
+      password: "viewer-pass-1",
+      role: "viewer",
+    });
+    const id = (created.json as { id: string }).id;
+    const anaSession = await login("ana", "viewer-pass-1");
+    expect(await get(anaSession.cookie)).toBe(200);
+    expect(
+      (
+        await fetch(`${base}/api/v1/auth/password`, {
+          method: "POST",
+          headers: {
+            cookie: anaSession.cookie,
+            "x-nautix-csrf": "1",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ currentPassword: "viewer-pass-1", newPassword: "viewer-pass-2" }),
+        })
+      ).status,
+    ).toBe(204);
+    expect((await login("ana", "viewer-pass-2")).status).toBe(204);
+
+    expect(
+      (await call("PUT", `/settings/users/${id}/password`, { password: "reset-by-admin-1" })).res
+        .status,
+    ).toBe(204);
+    expect(await get(anaSession.cookie)).toBe(401);
+    expect((await login("ana", "viewer-pass-2")).status).toBe(401);
+    expect((await login("ana", "reset-by-admin-1")).status).toBe(204);
+    expect(
+      (await call("PUT", `/settings/users/${id}/password`, { password: "short" })).res.status,
+    ).toBe(422);
+    expect(
+      (await call("PUT", "/settings/users/missing/password", { password: "reset-by-admin-1" })).res
+        .status,
+    ).toBe(404);
+    await call("DELETE", `/settings/users/${id}`);
   });
 
   it("reports info, version and disk usage", async () => {
