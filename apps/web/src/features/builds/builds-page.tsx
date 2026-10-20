@@ -4,16 +4,18 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowRight,
+  FolderOpen,
   Hammer,
   Info,
   Plus,
   Redo2,
   Undo2,
+  Wand2,
   X,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { buildImage } from "../../app/api.js";
+import { buildImage, buildImageFromContext } from "../../app/api.js";
 import { keys } from "../../app/queries.js";
 import { DockerfileEditor } from "../../components/dockerfile-editor.js";
 import { EnvEditor } from "../../components/fields.js";
@@ -23,6 +25,9 @@ import { canRedo, canUndo, commit, initialHistory, redo, undo } from "../compose
 import { PageHeader } from "../resources/table.js";
 import { BlocksView } from "./blocks-view.js";
 import { DOCKERFILE_TEMPLATES } from "./dockerfile-templates.js";
+import { isIgnored, parseDockerignore } from "./dockerignore.js";
+import { RecipeWizard } from "./recipe-wizard.js";
+import { buildTar } from "./tar.js";
 
 const STORAGE = "nautix.build.dockerfile";
 const DEFAULT = DOCKERFILE_TEMPLATES[3]?.dockerfile ?? "FROM alpine:3.20\n";
@@ -38,6 +43,19 @@ const load = (): string => {
 
 const ICON = { error: AlertCircle, warning: AlertTriangle, info: Info } as const;
 const COLOR = { error: "text-danger", warning: "text-amber", info: "text-dim" } as const;
+
+const MAX_CONTEXT = 500 * 1024 * 1024;
+const formatSize = (bytes: number): string =>
+  bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`;
+
+type FolderFile = { path: string; file: File };
+
+/** Folder files that survive .dockerignore (the one in the folder wins over a generated one). */
+const selectFromFolder = async (list: FolderFile[], fallback: string): Promise<FolderFile[]> => {
+  const own = list.find((f) => f.path === ".dockerignore");
+  const rules = parseDockerignore(own ? await own.file.text() : fallback);
+  return list.filter((f) => !isIgnored(rules, f.path));
+};
 
 interface ExtraFile {
   path: string;
@@ -61,6 +79,9 @@ export function BuildsPage() {
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
   const outputRef = useRef<HTMLPreElement>(null);
+  const [wizard, setWizard] = useState(false);
+  /** Files of the chosen project folder, keyed by path relative to the folder. */
+  const [folder, setFolder] = useState<{ path: string; file: File }[] | null>(null);
 
   const remember = (text: string) => {
     try {
@@ -94,27 +115,63 @@ export function BuildsPage() {
     (f) => /^[A-Za-z0-9._-][A-Za-z0-9._/-]{0,98}$/.test(f.path) && !f.path.includes(".."),
   );
 
+  const [folderStats, setFolderStats] = useState<{ count: number; size: number } | null>(null);
+  const generatedIgnore = files.find((f) => f.path === ".dockerignore")?.content ?? "";
+
+  const chooseFolder = (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    const entries = [...list].map((file) => ({
+      path: file.webkitRelativePath.split("/").slice(1).join("/"),
+      file,
+    }));
+    setFolder(entries.filter((e) => e.path !== ""));
+  };
+  useEffect(() => {
+    if (!folder) {
+      setFolderStats(null);
+      return;
+    }
+    let live = true;
+    void selectFromFolder(folder, generatedIgnore).then((sel) => {
+      if (live)
+        setFolderStats({ count: sel.length, size: sel.reduce((n, f) => n + f.file.size, 0) });
+    });
+    return () => {
+      live = false;
+    };
+  }, [folder, generatedIgnore]);
+
   const run = async () => {
     setOutput("");
     setRunning(true);
+    const onText = (chunk: string) => {
+      setOutput((o) => o + chunk);
+      queueMicrotask(() => outputRef.current?.scrollTo({ top: outputRef.current.scrollHeight }));
+    };
+    const buildArgs = Object.fromEntries(args.filter(([k]) => k.trim() !== ""));
     try {
-      const ok = await buildImage(
-        {
-          tag,
-          dockerfile,
-          files,
-          buildArgs: Object.fromEntries(args.filter(([k]) => k.trim() !== "")),
-          ...(target ? { target } : {}),
-          noCache,
-          pull,
-        },
-        (chunk) => {
-          setOutput((o) => o + chunk);
-          queueMicrotask(() =>
-            outputRef.current?.scrollTo({ top: outputRef.current.scrollHeight }),
-          );
-        },
-      );
+      let ok: boolean;
+      if (folder) {
+        const sel = await selectFromFolder(folder, generatedIgnore);
+        const own = new Map(files.map((f) => [f.path, new Blob([f.content])]));
+        own.set("Dockerfile", new Blob([dockerfile]));
+        const entries = [
+          ...sel
+            .filter((f) => !own.has(f.path))
+            .map((f) => ({ path: f.path, data: f.file as Blob })),
+          ...[...own].map(([path, data]) => ({ path, data })),
+        ];
+        ok = await buildImageFromContext(
+          buildTar(entries),
+          { tag, buildArgs, ...(target ? { target } : {}), noCache, pull },
+          onText,
+        );
+      } else {
+        ok = await buildImage(
+          { tag, dockerfile, files, buildArgs, ...(target ? { target } : {}), noCache, pull },
+          onText,
+        );
+      }
       push(ok ? "ok" : "error", ok ? t("builds.done", { tag }) : t("builds.failed"));
       if (ok) void qc.invalidateQueries({ queryKey: keys.images });
     } catch (error) {
@@ -129,23 +186,39 @@ export function BuildsPage() {
       <PageHeader
         title={t("builds.title")}
         actions={
-          <select
-            aria-label={t("builds.template")}
-            value=""
-            onChange={(e) => {
-              const tpl = DOCKERFILE_TEMPLATES.find((x) => x.id === e.target.value);
-              if (tpl) update(tpl.dockerfile);
-            }}
-            className="rounded-lg border border-line bg-bg0 px-2 py-2 text-sm text-fg"
-          >
-            <option value="">{t("builds.template")}…</option>
-            {DOCKERFILE_TEMPLATES.map((tpl) => (
-              <option key={tpl.id} value={tpl.id}>
-                {t(`builds.templates.${tpl.id}`)}
-              </option>
-            ))}
-          </select>
+          <>
+            <Button onClick={() => setWizard(true)}>
+              <Wand2 size={14} /> {t("builds.wizard.open")}
+            </Button>
+            <select
+              aria-label={t("builds.template")}
+              value=""
+              onChange={(e) => {
+                const tpl = DOCKERFILE_TEMPLATES.find((x) => x.id === e.target.value);
+                if (tpl) update(tpl.dockerfile);
+              }}
+              className="rounded-lg border border-line bg-bg0 px-2 py-2 text-sm text-fg"
+            >
+              <option value="">{t("builds.template")}…</option>
+              {DOCKERFILE_TEMPLATES.map((tpl) => (
+                <option key={tpl.id} value={tpl.id}>
+                  {t(`builds.templates.${tpl.id}`)}
+                </option>
+              ))}
+            </select>
+          </>
         }
+      />
+      <RecipeWizard
+        open={wizard}
+        onClose={() => setWizard(false)}
+        onUse={(project) => {
+          update(project.dockerfile);
+          setFiles((cur) => [
+            ...cur.filter((f) => !project.files.some((p) => p.path === f.path)),
+            ...project.files,
+          ]);
+        }}
       />
       <p className="text-xs text-dim">{t("builds.intro")}</p>
 
@@ -274,6 +347,42 @@ export function BuildsPage() {
           <p className="-mt-2 text-xs text-amber">{t("builds.argsWarning")}</p>
 
           <section className="flex flex-col gap-2">
+            <h3 className="text-xs uppercase tracking-wider text-dim">
+              {t("builds.folder.title")}
+            </h3>
+            <p className="text-xs text-dim">{t("builds.folder.hint")}</p>
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-sm hover:border-accent">
+              <FolderOpen size={14} /> {t("builds.folder.choose")}
+              <input
+                type="file"
+                className="sr-only"
+                // @ts-expect-error webkitdirectory is a non-standard attribute supported by every browser
+                webkitdirectory=""
+                onChange={(e) => {
+                  chooseFolder(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {folder && folderStats && (
+              <div className="flex items-center justify-between text-xs text-dim">
+                <span>
+                  {t("builds.folder.summary", {
+                    count: folderStats.count,
+                    size: formatSize(folderStats.size),
+                  })}
+                </span>
+                <button type="button" className="hover:text-danger" onClick={() => setFolder(null)}>
+                  {t("builds.folder.clear")}
+                </button>
+              </div>
+            )}
+            {folderStats && folderStats.size > MAX_CONTEXT && (
+              <p className="text-xs text-danger">{t("builds.folder.tooBig")}</p>
+            )}
+          </section>
+
+          <section className="flex flex-col gap-2">
             <h3 className="text-xs uppercase tracking-wider text-dim">{t("builds.files")}</h3>
             <p className="text-xs text-dim">{t("builds.filesHint")}</p>
             {files.map((f, i) => (
@@ -327,7 +436,13 @@ export function BuildsPage() {
           <Button
             write
             variant="primary"
-            disabled={running || blocking || !tagValid || !filesValid}
+            disabled={
+              running ||
+              blocking ||
+              !tagValid ||
+              !filesValid ||
+              (folderStats?.size ?? 0) > MAX_CONTEXT
+            }
             onClick={() => void run()}
           >
             <Hammer size={14} /> {running ? t("builds.building") : t("builds.build")}

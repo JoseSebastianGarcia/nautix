@@ -2,10 +2,13 @@ import {
   formToArgs,
   type Instruction,
   insertInstruction,
+  insertPiece,
   type LintIssue,
   lineCount,
   moveInstruction,
   NEW_INSTRUCTIONS,
+  PIECES,
+  type Piece,
   parseDockerfile,
   parseForm,
   removeInstruction,
@@ -59,6 +62,8 @@ export function BlocksView({ text, onChange, issues, stage }: Props) {
   const [open, setOpen] = useState<Set<number>>(() => new Set());
   const [dragging, setDragging] = useState<number | null>(null);
   const [over, setOver] = useState<number | null>(null);
+  /** Line before which the open picker will insert (null = closed). */
+  const [picker, setPicker] = useState<number | null>(null);
   const all = df.instructions;
   const byLine = (ins: Instruction) =>
     issues.filter((i) => i.line >= ins.startLine && i.line <= ins.endLine);
@@ -76,9 +81,14 @@ export function BlocksView({ text, onChange, issues, stage }: Props) {
     const ins = all[src];
     if (ins && ins.keyword !== "FROM") onChange(moveInstruction(text, ins, beforeLine));
   };
-  const add = (list: Instruction[], keyword: string) => {
+  const insertAt = (line: number, keyword: string) => {
     const preset = NEW_INSTRUCTIONS.find((n) => n.keyword === keyword);
-    if (preset) onChange(insertInstruction(text, endOf(list), keyword, preset.args));
+    if (preset) onChange(insertInstruction(text, line, keyword, preset.args));
+    setPicker(null);
+  };
+  const insertPieceAt = (line: number, piece: Piece) => {
+    onChange(insertPiece(text, line, piece));
+    setPicker(null);
   };
   const addStage = () => {
     const base = text.endsWith("\n") || text === "" ? text : `${text}\n`;
@@ -227,24 +237,70 @@ export function BlocksView({ text, onChange, issues, stage }: Props) {
     );
   };
 
-  const adder = (list: Instruction[], label: string) => (
-    <div className="flex items-center gap-2 pt-1">
-      <Plus size={14} className="text-accent" />
-      <select
-        aria-label={label}
-        value=""
-        onChange={(e) => e.target.value && add(list, e.target.value)}
-        className="rounded-lg border border-line bg-bg0 px-2 py-1 text-sm text-fg"
-      >
-        <option value="">{t("builds.blocks.add")}…</option>
-        {NEW_INSTRUCTIONS.map((n) => (
-          <option key={n.keyword} value={n.keyword}>
-            {n.keyword} — {t(`builds.blocks.kw.${n.keyword}`)}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+  /** "+" that opens the picker for this spot: single instructions and ready-made pieces. */
+  const inserter = (line: number, final: boolean, label: string, always = false) => {
+    const open = picker === line;
+    const mine = PIECES.filter(
+      (p) => p.stage === "any" || p.stage === (final ? "runtime" : "build"),
+    );
+    const others = PIECES.filter((p) => !mine.includes(p));
+    return (
+      <li key={`gap-${line}`} className="list-none">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-label={label}
+          title={label}
+          onClick={() => setPicker(open ? null : line)}
+          className={`flex items-center gap-1 rounded-md px-1 text-xs text-accent hover:bg-accent-soft focus-visible:opacity-100 ${always || open ? "" : "opacity-30 hover:opacity-100"}`}
+        >
+          <Plus size={12} /> {always || open ? label : ""}
+        </button>
+        {open && (
+          <div className="mt-1 flex flex-col gap-3 rounded-xl border border-line bg-bg1 p-3">
+            <div>
+              <h4 className="mb-1 text-xs uppercase tracking-wider text-dim">
+                {t("builds.blocks.pickInstruction")}
+              </h4>
+              <div className="flex flex-wrap gap-1">
+                {NEW_INSTRUCTIONS.map((n) => (
+                  <button
+                    key={n.keyword}
+                    type="button"
+                    title={t(`builds.blocks.kw.${n.keyword}`)}
+                    onClick={() => insertAt(line, n.keyword)}
+                    className="rounded-md border border-line px-2 py-1 font-mono text-xs hover:border-accent"
+                  >
+                    {n.keyword}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="mb-1 text-xs uppercase tracking-wider text-dim">
+                {t("builds.blocks.pickPiece")}
+              </h4>
+              <div className="flex flex-col gap-1">
+                {[...mine, ...others].map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => insertPieceAt(line, p)}
+                    className="rounded-lg border border-line px-3 py-2 text-left hover:border-accent"
+                  >
+                    <span className="block text-sm">{t(`builds.blocks.pieces.${p.id}.name`)}</span>
+                    <span className="block text-xs text-dim">
+                      {t(`builds.blocks.pieces.${p.id}.desc`)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </li>
+    );
+  };
 
   // Drop target for the mouse; the move up/down buttons are the keyboard way to do the same.
   const dropAtEnd = (list: Instruction[]) => (
@@ -305,14 +361,27 @@ export function BlocksView({ text, onChange, issues, stage }: Props) {
               {t("builds.blocks.stage")} {s.index + 1}
               {s.name && <span className="ml-2 font-mono normal-case text-accent">{s.name}</span>}
             </h3>
-            <ul className="flex flex-col gap-2">
-              {s.instructions.map((ins) => renderBlock(ins, s.index))}
+            <ul className="flex flex-col gap-1">
+              {s.instructions.flatMap((ins, i) => [
+                ...(i > 0
+                  ? [
+                      inserter(
+                        ins.spanStart,
+                        s.index === df.stages.length - 1,
+                        `${t("builds.blocks.insertHere")} · ${t("builds.blocks.stage")} ${s.index + 1}`,
+                      ),
+                    ]
+                  : []),
+                renderBlock(ins, s.index),
+              ])}
+              {inserter(
+                endOf(s.instructions),
+                s.index === df.stages.length - 1,
+                `${t("builds.blocks.add")} · ${t("builds.blocks.stage")} ${s.index + 1}`,
+                true,
+              )}
             </ul>
             {dropAtEnd(s.instructions)}
-            {adder(
-              s.instructions,
-              `${t("builds.blocks.add")} · ${t("builds.blocks.stage")} ${s.index + 1}`,
-            )}
           </section>
         ))}
       {stage === null && (

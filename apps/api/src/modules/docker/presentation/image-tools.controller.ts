@@ -1,4 +1,4 @@
-import { PassThrough, type Readable } from "node:stream";
+import type { Readable } from "node:stream";
 import {
   ImageReference,
   PushImage,
@@ -24,7 +24,7 @@ import {
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import type { Request, Response } from "express";
 import { z } from "zod";
-import { ValidationError } from "../../../shared/domain-error.js";
+import { limitBytes } from "../../../shared/limit-bytes.js";
 import { parse } from "../../../shared/zod-body.js";
 import { AdminOnly } from "../../auth/presentation/admin-only.decorator.js";
 import { ImportImageCommand } from "../application/commands/import-image.command.js";
@@ -53,20 +53,6 @@ const ImportQuery = z.object({
     .regex(/^[\w][\w.-]{0,127}$/)
     .default("latest"),
 });
-
-const limitBytes = (source: Readable, max: number): Readable => {
-  let seen = 0;
-  const out = new PassThrough();
-  source.on("data", (chunk: Buffer) => {
-    seen += chunk.length;
-    if (seen > max) {
-      source.unpipe(out);
-      out.destroy(new ValidationError("upload too large", "errors.uploadTooLarge"));
-    }
-  });
-  source.on("error", (e) => out.destroy(e));
-  return source.pipe(out);
-};
 
 /** docker tag / history / save / load / import / search / push, plus a stateless registry login check. */
 @Controller("api/v1")

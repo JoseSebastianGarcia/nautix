@@ -755,19 +755,23 @@ export class DockerSocketEngine extends DockerEngine {
     return { "X-Registry-Auth": Buffer.from(JSON.stringify(payload)).toString("base64url") };
   }
 
-  async *buildImage(context: Buffer, options: BuildOptions): AsyncIterable<string> {
+  async *buildImage(context: Buffer | Readable, options: BuildOptions): AsyncIterable<string> {
     const q = new URLSearchParams({
       t: options.tag,
       rm: "1",
       forcerm: "1",
-      dockerfile: "Dockerfile",
+      dockerfile: options.dockerfile ?? "Dockerfile",
     });
     if (Object.keys(options.buildArgs).length)
       q.set("buildargs", JSON.stringify(options.buildArgs));
     if (options.target) q.set("target", options.target);
     if (options.noCache) q.set("nocache", "1");
     if (options.pull) q.set("pull", "1");
-    const res = await this.stream("POST", `/build?${q.toString()}`, Readable.from([context]));
+    const res = await this.stream(
+      "POST",
+      `/build?${q.toString()}`,
+      Buffer.isBuffer(context) ? Readable.from([context]) : context,
+    );
     let pending = "";
     for await (const chunk of res) {
       pending += (chunk as Buffer).toString("utf8");

@@ -5,6 +5,7 @@ import { APP_CONFIG, type AppConfig } from "../../shared/config.js";
 import { openDatabase } from "../../shared/sqlite-database.js";
 import { ApplyDnsHandler } from "./application/commands/apply-dns.handler.js";
 import { ApplyGatewayHandler } from "./application/commands/apply-gateway.handler.js";
+import { BuildContextHandler } from "./application/commands/build-context.handler.js";
 import { BuildImageHandler } from "./application/commands/build-image.handler.js";
 import { CommitContainerHandler } from "./application/commands/commit-container.handler.js";
 import { ConnectNetworkHandler } from "./application/commands/connect-network.handler.js";
@@ -106,6 +107,7 @@ const HANDLERS = [
   ImportImageHandler,
   PushImageHandler,
   BuildImageHandler,
+  BuildContextHandler,
   SetFixedIpHandler,
   ApplyDnsHandler,
   LookupDnsHandler,

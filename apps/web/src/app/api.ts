@@ -331,18 +331,7 @@ export const api = {
 };
 
 /** `docker build` from the editor: streams the builder output, resolves with whether it succeeded. */
-export const buildImage = async (
-  body: BuildRequest,
-  onText: (chunk: string) => void,
-  signal?: AbortSignal,
-): Promise<boolean> => {
-  const res = await fetch("/api/v1/builds", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "x-nautix-csrf": "1", "content-type": "application/json" },
-    body: JSON.stringify(body),
-    ...(signal ? { signal } : {}),
-  });
+const readBuild = async (res: Response, onText: (chunk: string) => void): Promise<boolean> => {
   if (!res.ok || !res.body) {
     const problem = (await res.json().catch(() => ({}))) as { code?: string; hintKey?: string };
     throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey);
@@ -359,3 +348,44 @@ export const buildImage = async (
   }
   return all.trimEnd().endsWith("NAUTIX-BUILD: ok");
 };
+
+export const buildImage = async (
+  body: BuildRequest,
+  onText: (chunk: string) => void,
+  signal?: AbortSignal,
+): Promise<boolean> =>
+  readBuild(
+    await fetch("/api/v1/builds", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "x-nautix-csrf": "1", "content-type": "application/json" },
+      body: JSON.stringify(body),
+      ...(signal ? { signal } : {}),
+    }),
+    onText,
+  );
+
+/** Build from a project folder: `context` is a tar that already contains the Dockerfile. */
+export const buildImageFromContext = async (
+  context: Blob,
+  options: {
+    tag: string;
+    buildArgs?: Record<string, string>;
+    target?: string;
+    noCache?: boolean;
+    pull?: boolean;
+    dockerfilePath?: string;
+  },
+  onText: (chunk: string) => void,
+  signal?: AbortSignal,
+): Promise<boolean> =>
+  readBuild(
+    await fetch(`/api/v1/builds/context?options=${encodeURIComponent(JSON.stringify(options))}`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "x-nautix-csrf": "1", "content-type": "application/x-tar" },
+      body: context,
+      ...(signal ? { signal } : {}),
+    }),
+    onText,
+  );

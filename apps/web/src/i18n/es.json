@@ -710,7 +710,9 @@
       "NX-DF010": "Hay más de un {{keyword}} en la misma etapa: solo cuenta el último.",
       "NX-DF011": "El archivo debe empezar con FROM (solo ARG puede ir antes).",
       "NX-DF012": "Instrucción desconocida: {{keyword}}.",
-      "NX-DF013": "{{keyword}} en forma shell: la app no recibe las señales de parada. Usá la forma [\"exec\", \"form\"]."
+      "NX-DF013": "{{keyword}} en forma shell: la app no recibe las señales de parada. Usá la forma [\"exec\", \"form\"].",
+      "NX-DF014": "Copiar todo antes de restaurar dependencias las reinstala en cada cambio de código. Copiá primero solo los archivos de dependencias.",
+      "NX-DF015": "{{keyword}} viene después de CMD/ENTRYPOINT. Funciona, pero el archivo se lee mejor con los pasos de build primero."
     },
     "view": {
       "blocks": "Bloques",
@@ -788,7 +790,124 @@
         "STOPSIGNAL": "Señal con la que se le pide a la app que se detenga (por defecto SIGTERM).",
         "SHELL": "Cambia el shell que usan los comandos en forma shell (por defecto /bin/sh -c).",
         "ONBUILD": "Instrucción diferida: se ejecuta cuando alguien construye otra imagen FROM esta."
+      },
+      "insertHere": "Insertar acá",
+      "pickInstruction": "Instrucción suelta",
+      "pickPiece": "Piezas listas",
+      "pieces": {
+        "dotnetRestore": {
+          "name": ".NET: restaurar dependencias",
+          "desc": "Copia primero el .csproj y restaura, así la capa se cachea hasta que cambien las dependencias."
+        },
+        "dotnetPublish": {
+          "name": ".NET: publicar",
+          "desc": "Build Release en /app/publish, reutilizando el restore."
+        },
+        "aspnetPort": {
+          "name": "ASP.NET Core: puerto",
+          "desc": "Define el puerto en el que escucha la app y lo documenta."
+        },
+        "dotnetCultureInvariant": {
+          "name": ".NET: globalización invariante",
+          "desc": "Necesario en Alpine, que no trae ICU."
+        },
+        "nonRoot": {
+          "name": "Correr sin root",
+          "desc": "Usa el usuario app que ya traen las imágenes de .NET."
+        },
+        "wgetHealthcheck": {
+          "name": "Health check con wget",
+          "desc": "Permite que Docker marque el contenedor como no saludable cuando /health deja de responder."
+        },
+        "copyFromBuild": {
+          "name": "Copiar la app publicada",
+          "desc": "Trae el resultado de la etapa de build a la imagen final."
+        }
       }
+    },
+    "wizard": {
+      "title": "Asistente de Dockerfile",
+      "intro": "Elegí qué estás construyendo, respondé unas preguntas y Nautix escribe el Dockerfile. Después podés seguir editándolo con bloques.",
+      "groups": {
+        "dotnet": ".NET",
+        "other": "Otros stacks"
+      },
+      "recipes": {
+        "dotnet-web": {
+          "name": "API o web ASP.NET Core",
+          "desc": "Web API, minimal API, MVC o Razor Pages. Build multi-etapa, sin root y con health check."
+        },
+        "dotnet-worker": {
+          "name": "Worker .NET",
+          "desc": "Servicio en segundo plano o consola, sin puerto HTTP."
+        },
+        "dotnet-blazor": {
+          "name": "Blazor WebAssembly",
+          "desc": "App cliente estática publicada y servida con nginx."
+        },
+        "node": {
+          "name": "App Node.js",
+          "desc": "Dependencias instaladas una vez, corre como usuario node."
+        },
+        "python": {
+          "name": "App Python",
+          "desc": "Los requirements de pip quedan en su propia capa."
+        },
+        "go": {
+          "name": "Servicio Go",
+          "desc": "Binario estático en una imagen final mínima."
+        },
+        "static": {
+          "name": "Sitio estático",
+          "desc": "Archivos HTML/CSS/JS servidos con nginx."
+        }
+      },
+      "fields": {
+        "project": "Archivo de proyecto (.csproj)",
+        "assembly": "Nombre del ensamblado",
+        "version": "Versión",
+        "flavor": "Imagen de ejecución",
+        "extraProjects": "Otros proyectos que referencia (uno por línea)",
+        "port": "Puerto",
+        "healthPath": "Ruta del health check",
+        "nonRoot": "Correr sin usuario root",
+        "entry": "Archivo de inicio",
+        "folder": "Carpeta a servir"
+      },
+      "hints": {
+        "project": "Ruta desde la raíz del contexto, p. ej. src/Api/Api.csproj",
+        "assembly": "Dejalo vacío para usar el nombre del proyecto",
+        "extraProjects": "Se listan para que la capa de restore se cachee hasta que cambien las dependencias",
+        "flavor": "Alpine es chica y tiene shell; chiseled es la más chica y no tiene",
+        "healthPath": "Solo Alpine trae wget para el chequeo"
+      },
+      "options": {
+        "flavor": {
+          "alpine": "Alpine (chica, con shell)",
+          "debian": "Debian (la más compatible)",
+          "chiseled": "Chiseled (mínima, sin shell)"
+        }
+      },
+      "preview": "Dockerfile generado",
+      "use": "Usar este Dockerfile",
+      "files": "También agrega al contexto de build: {{files}}",
+      "notes": {
+        "context": "El contexto de build debe contener tu solución o carpetas de proyecto: elegí la carpeta del proyecto a la derecha.",
+        "port": "La app debe escuchar en el puerto {{port}} (ASPNETCORE_HTTP_PORTS ya queda configurado).",
+        "health": "Mapeá {{path}} a un endpoint de salud (app.MapHealthChecks).",
+        "noTools": "Esta imagen no trae wget ni curl, así que no hay HEALTHCHECK; monitoreá la app desde afuera.",
+        "noShell": "Las imágenes chiseled no tienen shell: no podés abrir una terminal dentro del contenedor.",
+        "blazorClient": "Una app Blazor WebAssembly (solo cliente). Para Blazor Server usá la receta de ASP.NET Core."
+      },
+      "open": "Asistente"
+    },
+    "folder": {
+      "title": "Carpeta del proyecto",
+      "hint": "Enviá una carpeta de tu computadora como contexto de build (bin, obj, .git y lo que esté en .dockerignore se excluye). Sin carpeta, el build solo ve los archivos extra de abajo.",
+      "choose": "Elegir carpeta…",
+      "summary": "{{count}} archivos · {{size}}",
+      "clear": "Quitar carpeta",
+      "tooBig": "La carpeta pesa más de 500 MB después de aplicar .dockerignore."
     }
   },
   "swarm": {

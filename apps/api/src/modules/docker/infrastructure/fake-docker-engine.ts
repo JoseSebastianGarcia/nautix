@@ -41,6 +41,12 @@ interface FakeNetwork extends Omit<Network, "containerIds"> {
   members: Set<string>;
 }
 
+const readAll = async (stream: Readable): Promise<Buffer> => {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks);
+};
+
 /** In-memory engine for demo mode (NAUTIX_ENGINE=fake), unit tests and e2e. */
 @Injectable()
 export class FakeDockerEngine extends DockerEngine {
@@ -576,7 +582,8 @@ export class FakeDockerEngine extends DockerEngine {
     return catalog.filter((c) => c.name.includes(term.toLowerCase())).slice(0, limit);
   }
 
-  async *buildImage(context: Buffer, options: BuildOptions): AsyncIterable<string> {
+  async *buildImage(input: Buffer | Readable, options: BuildOptions): AsyncIterable<string> {
+    const context = Buffer.isBuffer(input) ? input : await readAll(input);
     if (context.includes("BROKEN-STEP"))
       throw new ValidationError(
         "The command '/bin/sh -c BROKEN-STEP' returned a non-zero code: 127",

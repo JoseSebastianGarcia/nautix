@@ -421,6 +421,13 @@ export const BuildRequest = z.object({
 });
 export type BuildRequest = z.infer<typeof BuildRequest>;
 
+/** Options of a build whose context is a tar uploaded as the request body (a project folder). */
+export const BuildContextOptions = BuildRequest.omit({ dockerfile: true, files: true }).extend({
+  /** Path of the Dockerfile inside the uploaded context. */
+  dockerfilePath: BuildFilePath.default("Dockerfile"),
+});
+export type BuildContextOptions = z.infer<typeof BuildContextOptions>;
+
 export interface VolumeEntry {
   name: string;
   kind: "dir" | "file" | "link" | "other";

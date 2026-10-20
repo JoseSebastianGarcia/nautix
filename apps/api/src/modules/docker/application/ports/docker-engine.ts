@@ -42,6 +42,8 @@ export interface BuildOptions {
   target?: string;
   noCache: boolean;
   pull: boolean;
+  /** Path of the Dockerfile inside the context; defaults to `Dockerfile`. */
+  dockerfile?: string;
 }
 
 export abstract class DockerEngine {
@@ -105,7 +107,7 @@ export abstract class DockerEngine {
   abstract searchImages(term: string, limit: number): Promise<ImageSearchResult[]>;
   /** Credentials are used for this call only. Returns the engine's progress lines. */
   /** Builds from a tar build context; yields the builder's output line by line. */
-  abstract buildImage(context: Buffer, options: BuildOptions): AsyncIterable<string>;
+  abstract buildImage(context: Buffer | Readable, options: BuildOptions): AsyncIterable<string>;
   abstract pushImage(reference: string, auth: RegistryAuth | undefined): Promise<string>;
   abstract testRegistryAuth(auth: RegistryAuth): Promise<string>;
 

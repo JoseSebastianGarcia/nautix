@@ -710,7 +710,9 @@
       "NX-DF010": "More than one {{keyword}} in the same stage: only the last one counts.",
       "NX-DF011": "The file must start with FROM (only ARG may come before it).",
       "NX-DF012": "Unknown instruction {{keyword}}.",
-      "NX-DF013": "{{keyword}} in shell form: the app does not receive stop signals. Use the [\"exec\", \"form\"]."
+      "NX-DF013": "{{keyword}} in shell form: the app does not receive stop signals. Use the [\"exec\", \"form\"].",
+      "NX-DF014": "Copying everything before restoring dependencies reinstalls them on every code change. Copy only the dependency files first.",
+      "NX-DF015": "{{keyword}} comes after CMD/ENTRYPOINT. It works, but the file reads better with build steps first."
     },
     "view": {
       "blocks": "Blocks",
@@ -788,7 +790,124 @@
         "STOPSIGNAL": "Signal sent to ask the app to stop (default SIGTERM).",
         "SHELL": "Changes the shell used by shell-form commands (default /bin/sh -c).",
         "ONBUILD": "Delayed instruction: it runs when someone builds another image FROM this one."
+      },
+      "insertHere": "Insert here",
+      "pickInstruction": "Single instruction",
+      "pickPiece": "Ready-made pieces",
+      "pieces": {
+        "dotnetRestore": {
+          "name": ".NET: restore dependencies",
+          "desc": "Copy the .csproj first and restore, so the layer is cached until dependencies change."
+        },
+        "dotnetPublish": {
+          "name": ".NET: publish",
+          "desc": "Release build into /app/publish, reusing the restore."
+        },
+        "aspnetPort": {
+          "name": "ASP.NET Core: port",
+          "desc": "Sets the port the app listens on and documents it."
+        },
+        "dotnetCultureInvariant": {
+          "name": ".NET: invariant globalization",
+          "desc": "Needed on Alpine, where ICU is not installed."
+        },
+        "nonRoot": {
+          "name": "Run as non-root",
+          "desc": "Uses the app user that .NET images already provide."
+        },
+        "wgetHealthcheck": {
+          "name": "Health check with wget",
+          "desc": "Lets Docker mark the container unhealthy when /health stops answering."
+        },
+        "copyFromBuild": {
+          "name": "Copy the published app",
+          "desc": "Brings the build stage output into the final image."
+        }
       }
+    },
+    "wizard": {
+      "title": "Dockerfile wizard",
+      "intro": "Choose what you are building, answer a few questions and Nautix writes the Dockerfile. You can keep editing it with blocks afterwards.",
+      "groups": {
+        "dotnet": ".NET",
+        "other": "Other stacks"
+      },
+      "recipes": {
+        "dotnet-web": {
+          "name": "ASP.NET Core API or web app",
+          "desc": "Web API, minimal API, MVC or Razor Pages. Multi-stage build, non-root, health check."
+        },
+        "dotnet-worker": {
+          "name": ".NET worker service",
+          "desc": "Background service or console app with no HTTP port."
+        },
+        "dotnet-blazor": {
+          "name": "Blazor WebAssembly",
+          "desc": "Static client app published and served by nginx."
+        },
+        "node": {
+          "name": "Node.js app",
+          "desc": "Install dependencies once, run as the node user."
+        },
+        "python": {
+          "name": "Python app",
+          "desc": "Pip requirements cached in their own layer."
+        },
+        "go": {
+          "name": "Go service",
+          "desc": "Static binary in a tiny final image."
+        },
+        "static": {
+          "name": "Static site",
+          "desc": "HTML/CSS/JS files served by nginx."
+        }
+      },
+      "fields": {
+        "project": "Project file (.csproj)",
+        "assembly": "Assembly name",
+        "version": "Version",
+        "flavor": "Runtime image",
+        "extraProjects": "Other projects it references (one per line)",
+        "port": "Port",
+        "healthPath": "Health check path",
+        "nonRoot": "Run as a non-root user",
+        "entry": "Start file",
+        "folder": "Folder to serve"
+      },
+      "hints": {
+        "project": "Path from the build context root, e.g. src/Api/Api.csproj",
+        "assembly": "Leave empty to use the project file name",
+        "extraProjects": "Listed so the restore layer stays cached until dependencies change",
+        "flavor": "Alpine is small and has a shell; chiseled is the smallest and has none",
+        "healthPath": "Only Alpine has wget for the check"
+      },
+      "options": {
+        "flavor": {
+          "alpine": "Alpine (small, with shell)",
+          "debian": "Debian (most compatible)",
+          "chiseled": "Chiseled (smallest, no shell)"
+        }
+      },
+      "preview": "Generated Dockerfile",
+      "use": "Use this Dockerfile",
+      "files": "Also adds to the build context: {{files}}",
+      "notes": {
+        "context": "The build context must contain your solution or project folders: pick the project folder on the right.",
+        "port": "The app must listen on port {{port}} (ASPNETCORE_HTTP_PORTS is set for you).",
+        "health": "Map {{path}} to a health endpoint (app.MapHealthChecks).",
+        "noTools": "This image has no wget or curl, so there is no HEALTHCHECK; monitor the app from outside.",
+        "noShell": "Chiseled images have no shell: you cannot open a terminal inside the container.",
+        "blazorClient": "A Blazor WebAssembly app (client only). For Blazor Server use the ASP.NET Core recipe."
+      },
+      "open": "Wizard"
+    },
+    "folder": {
+      "title": "Project folder",
+      "hint": "Send a folder from your computer as the build context (bin, obj, .git and anything in .dockerignore are left out). Without one, the build only sees the extra files below.",
+      "choose": "Choose folder…",
+      "summary": "{{count}} files · {{size}}",
+      "clear": "Remove folder",
+      "tooBig": "The folder is larger than 500 MB after .dockerignore."
     }
   },
   "swarm": {

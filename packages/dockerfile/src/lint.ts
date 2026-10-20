@@ -59,6 +59,9 @@ const imageTag = (base: string): { name: string; tag: string | null; pinned: boo
     : { name: base, tag: null, pinned: false };
 };
 
+const RESTORE =
+  /\b(?:dotnet\s+restore|npm\s+(?:ci|install)|yarn\s+install|pnpm\s+install|pip3?\s+install|go\s+mod\s+download|bundle\s+install|composer\s+install)\b/;
+
 const inFinal = (df: Dockerfile): Instruction[] => df.stages.at(-1)?.instructions ?? [];
 
 export const lintDockerfile = (text: string): LintIssue[] => {
@@ -183,6 +186,27 @@ export const lintDockerfile = (text: string): LintIssue[] => {
           issues.push(issue("NX-DF013", "info", ins.startLine, { keyword: ins.keyword }));
       }
     }
+    // NX-DF014: copying the whole tree before restoring dependencies busts the cache on every edit
+    // NX-DF015: build steps after CMD / ENTRYPOINT: they work, but the file no longer reads in order
+    const copyAll = s.instructions.find(
+      (i) =>
+        i.keyword === "COPY" &&
+        !/--from=/.test(i.args) &&
+        /^(?:--\S+\s+)*\.\/?\s+\S+$/.test(i.args.trim()),
+    );
+    const restore = s.instructions.find((i) => i.keyword === "RUN" && RESTORE.test(i.args));
+    if (copyAll && restore && copyAll.startLine < restore.startLine)
+      issues.push(issue("NX-DF014", "warning", copyAll.startLine));
+    const runtimeAt = s.instructions.findIndex(
+      (i) => i.keyword === "CMD" || i.keyword === "ENTRYPOINT",
+    );
+    const late =
+      runtimeAt < 0
+        ? undefined
+        : s.instructions
+            .slice(runtimeAt + 1)
+            .find((i) => i.keyword === "RUN" || i.keyword === "COPY");
+    if (late) issues.push(issue("NX-DF015", "info", late.startLine, { keyword: late.keyword }));
   }
   return issues.sort((x, y) => x.line - y.line || x.rule.localeCompare(y.rule));
 };
@@ -208,4 +232,6 @@ export const RULES = [
   "NX-DF011",
   "NX-DF012",
   "NX-DF013",
+  "NX-DF014",
+  "NX-DF015",
 ] as const;

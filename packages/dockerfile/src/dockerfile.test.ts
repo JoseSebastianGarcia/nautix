@@ -113,6 +113,16 @@ describe("lint rules", () => {
       "FROM alpine:3\nCMD node app.js\nUSER a\nHEALTHCHECK CMD true\n",
       'FROM alpine:3\nCMD ["node","app.js"]\nUSER a\nHEALTHCHECK CMD true\n',
     ],
+    [
+      "NX-DF014",
+      "FROM node:22\nCOPY . .\nRUN npm ci\nUSER a\nHEALTHCHECK CMD true\n",
+      "FROM node:22\nCOPY package*.json ./\nRUN npm ci\nCOPY . .\nUSER a\nHEALTHCHECK CMD true\n",
+    ],
+    [
+      "NX-DF015",
+      'FROM alpine:3\nCMD ["a"]\nRUN echo late\nUSER a\nHEALTHCHECK CMD true\n',
+      'FROM alpine:3\nRUN echo early\nCMD ["a"]\nUSER a\nHEALTHCHECK CMD true\n',
+    ],
   ];
 
   it.each(cases)("%s fires on the bad file and not on the good one", (rule, bad, good) => {

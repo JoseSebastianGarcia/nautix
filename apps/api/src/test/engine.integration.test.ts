@@ -1,3 +1,4 @@
+import { buildTar } from "../modules/docker/domain/tar.js";
 import "reflect-metadata";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -355,6 +356,28 @@ describe("against a real Docker daemon", () => {
     expect(failed).toContain("ERROR:");
     expect(failed.trim().endsWith("NAUTIX-BUILD: failed")).toBe(true);
     docker("rmi", "-f", `${PREFIX}built:1`);
+  });
+
+  it("builds from an uploaded project folder with the real builder", async () => {
+    const tar = buildTar([
+      {
+        path: "docker/App.Dockerfile",
+        content: `FROM ${IMAGE}\nCOPY src/msg.txt /msg.txt\nCMD ["cat", "/msg.txt"]\n`,
+      },
+      { path: "src/msg.txt", content: "from a folder\n" },
+    ]);
+    const options = { tag: `${PREFIX}folder:1`, dockerfilePath: "docker/App.Dockerfile" };
+    const res = await fetch(
+      `${base}/api/v1/builds/context?options=${encodeURIComponent(JSON.stringify(options))}`,
+      {
+        method: "POST",
+        headers: { cookie, "x-nautix-csrf": "1", "content-type": "application/x-tar" },
+        body: new Uint8Array(tar),
+      },
+    );
+    expect((await res.text()).trim().endsWith("NAUTIX-BUILD: ok")).toBe(true);
+    expect(docker("run", "--rm", "--network", "none", `${PREFIX}folder:1`)).toBe("from a folder");
+    docker("rmi", "-f", `${PREFIX}folder:1`);
   });
 
   it("creates a container without starting it, with a healthcheck and limits", async () => {

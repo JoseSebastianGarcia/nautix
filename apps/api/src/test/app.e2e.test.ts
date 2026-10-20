@@ -1,3 +1,4 @@
+import { buildTar } from "../modules/docker/domain/tar.js";
 import "reflect-metadata";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -865,6 +866,31 @@ describe("image tools and system commands", () => {
       ).status,
     ).toBe(422);
     expect((await post({ tag: "bad tag!", dockerfile: "FROM a" })).status).toBe(422);
+  });
+
+  it("builds from an uploaded project folder (tar body) and limits the options", async () => {
+    const tar = buildTar([
+      { path: "Dockerfile", content: 'FROM alpine:3.20\nCOPY app.txt /app.txt\nCMD ["sh"]\n' },
+      { path: "app.txt", content: "hello" },
+    ]);
+    const post = (options: unknown, body: Buffer) =>
+      fetch(
+        `${base}/api/v1/builds/context?options=${encodeURIComponent(JSON.stringify(options))}`,
+        {
+          method: "POST",
+          headers: { cookie, "x-nautix-csrf": "1", "content-type": "application/x-tar" },
+          body: new Uint8Array(body),
+        },
+      );
+    const ok = await post({ tag: "demo/folder:1" }, tar);
+    expect(ok.status).toBe(200);
+    expect((await ok.text()).trim().endsWith("NAUTIX-BUILD: ok")).toBe(true);
+    const images = (await call("GET", "/images")).json as { tags: string[] }[];
+    expect(images.some((i) => i.tags.includes("demo/folder:1"))).toBe(true);
+    expect((await post({ tag: "bad tag!" }, tar)).status).toBe(422);
+    expect((await post({ tag: "demo/x:1", dockerfilePath: "../Dockerfile" }, tar)).status).toBe(
+      422,
+    );
   });
 
   it("manages a swarm: init, services, secrets, configs, nodes and stacks", async () => {
