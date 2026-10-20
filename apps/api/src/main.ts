@@ -1,21 +1,24 @@
 import "reflect-metadata";
 import { existsSync } from "node:fs";
+import type { Server as HttpsServer } from "node:https";
 import { join } from "node:path";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import express from "express";
 import { AppModule } from "./app.module.js";
+import { TlsManager } from "./modules/tls/infrastructure/tls-manager.js";
 import { loadConfig } from "./shared/config.js";
 import { ProblemFilter } from "./shared/problem.filter.js";
-import { loadTls } from "./shared/tls.js";
 
 const config = loadConfig();
-const tls = await loadTls(config);
-const app = await NestFactory.create<NestExpressApplication>(AppModule.register(config), {
+const tls = await TlsManager.create(config);
+await tls?.init();
+const app = await NestFactory.create<NestExpressApplication>(AppModule.register(config, tls), {
   logger: ["error", "warn"],
-  ...(tls ? { httpsOptions: tls } : {}),
+  ...(tls ? { httpsOptions: tls.material() } : {}),
 });
+tls?.attach(app.getHttpServer() as HttpsServer);
 
 app.use(cookieParser());
 app.use((_req: express.Request, res: express.Response, next: express.NextFunction) => {

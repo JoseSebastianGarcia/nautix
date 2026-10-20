@@ -41,7 +41,8 @@
     "created": "Creado",
     "force": "Forzar",
     "refresh": "Actualizar",
-    "none": "ninguna"
+    "none": "ninguna",
+    "save": "Guardar"
   },
   "theme": {
     "dark": "Oscuro",
@@ -267,7 +268,11 @@
     "gatewayNotRunning": "El gateway no está en ejecución",
     "gatewayNoNetwork": "El gateway no está en una red definida por el usuario",
     "gatewayUpstreamPath": "Este gateway necesita un destino sin ruta (solo host y puerto)",
-    "gatewayDuplicateRoute": "Dos rutas comparten el mismo dominio y ruta"
+    "gatewayDuplicateRoute": "Dos rutas comparten el mismo dominio y ruta",
+    "tlsInvalid": "Certificado o clave inválidos",
+    "tlsExpired": "El certificado está vencido",
+    "tlsHost": "Nombre o IP inválido",
+    "tlsExternal": "El certificado viene del entorno"
   },
   "terminal": {
     "title": "Terminal",
@@ -301,7 +306,31 @@
     "deleteUserTitle": "¿Eliminar al usuario {{name}}?",
     "deleteUserBody": "Sus sesiones terminan de inmediato.",
     "roleHint": "Los lectores pueden mirar pero no cambiar nada, y no pueden abrir terminales ni ver valores de entorno.",
-    "you": "vos"
+    "you": "vos",
+    "tls": "Certificado HTTPS",
+    "tlsMode": "Certificado",
+    "tlsModes": {
+      "off": "HTTPS desactivado",
+      "local-ca": "CA local de Nautix",
+      "custom": "Tu propio certificado",
+      "external": "Desde NAUTIX_TLS_CERT / NAUTIX_TLS_KEY"
+    },
+    "tlsExpires": "vence el {{date}}",
+    "tlsOff": "Nautix sirve HTTP plano. Definí NAUTIX_TLS=auto (el compose ya lo hace) para activar HTTPS y gestionar el certificado desde acá.",
+    "tlsExternal": "El certificado se carga desde archivos del entorno; cambiá esos archivos y reiniciá Nautix.",
+    "tlsHosts": "Nombres e IPs adicionales",
+    "tlsHostsHint": "localhost, 127.0.0.1 y ::1 siempre están incluidos. Agregá los nombres o IPs con los que abrís Nautix, separados por coma.",
+    "tlsReissue": "Guardar y reemitir",
+    "tlsDownloadCa": "Descargar CA local",
+    "tlsUseOwn": "Usar mi propio certificado",
+    "tlsBackToLocal": "Volver a la CA local",
+    "tlsCert": "Certificado (PEM, con la cadena)",
+    "tlsKey": "Clave privada (PEM)",
+    "tlsTrustTitle": "Cómo hacer que el navegador confíe",
+    "tlsTrustWindows": "Windows: doble clic en el archivo → Instalar certificado → Equipo local → Entidades de certificación raíz de confianza. Reiniciá el navegador.",
+    "tlsTrustMac": "macOS: abrilo en Acceso a Llaveros y marcalo como Confiar siempre.",
+    "tlsTrustLinux": "Linux/WSL: copialo a /usr/local/share/ca-certificates/nautix.crt y ejecutá update-ca-certificates. Si el navegador corre en Windows, usá el paso de Windows.",
+    "tlsTrustFirefox": "Firefox tiene su propio almacén: Ajustes → Privacidad → Certificados → Importar (o activá security.enterprise_roots.enabled)."
   },
   "compose": {
     "title": "Proyectos Compose",

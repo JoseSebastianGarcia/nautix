@@ -41,7 +41,8 @@
     "created": "Created",
     "force": "Force",
     "refresh": "Refresh",
-    "none": "none"
+    "none": "none",
+    "save": "Save"
   },
   "theme": {
     "dark": "Dark",
@@ -267,7 +268,11 @@
     "gatewayNotRunning": "The gateway is not running",
     "gatewayNoNetwork": "The gateway is not on a user-defined network",
     "gatewayUpstreamPath": "This gateway needs an upstream without a path (just host and port)",
-    "gatewayDuplicateRoute": "Two routes share the same domain and path"
+    "gatewayDuplicateRoute": "Two routes share the same domain and path",
+    "tlsInvalid": "Invalid certificate or key",
+    "tlsExpired": "The certificate has expired",
+    "tlsHost": "Invalid name or IP",
+    "tlsExternal": "The certificate comes from the environment"
   },
   "terminal": {
     "title": "Terminal",
@@ -301,7 +306,31 @@
     "deleteUserTitle": "Delete user {{name}}?",
     "deleteUserBody": "Their sessions end immediately.",
     "roleHint": "Viewers can look but not change anything, and cannot open terminals or see environment values.",
-    "you": "you"
+    "you": "you",
+    "tls": "HTTPS certificate",
+    "tlsMode": "Certificate",
+    "tlsModes": {
+      "off": "HTTPS off",
+      "local-ca": "Nautix local CA",
+      "custom": "Your own certificate",
+      "external": "From NAUTIX_TLS_CERT / NAUTIX_TLS_KEY"
+    },
+    "tlsExpires": "expires {{date}}",
+    "tlsOff": "Nautix is serving plain HTTP. Set NAUTIX_TLS=auto (the compose file does) to enable HTTPS and manage the certificate here.",
+    "tlsExternal": "The certificate is loaded from files given in the environment; change those files and restart Nautix.",
+    "tlsHosts": "Extra names and IPs",
+    "tlsHostsHint": "localhost, 127.0.0.1 and ::1 are always included. Add the names or IPs you open Nautix with, comma separated.",
+    "tlsReissue": "Save and reissue",
+    "tlsDownloadCa": "Download local CA",
+    "tlsUseOwn": "Use my own certificate",
+    "tlsBackToLocal": "Back to local CA",
+    "tlsCert": "Certificate (PEM, include the chain)",
+    "tlsKey": "Private key (PEM)",
+    "tlsTrustTitle": "How to make the browser trust it",
+    "tlsTrustWindows": "Windows: double-click the file → Install certificate → Local machine → Trusted Root Certification Authorities. Restart the browser.",
+    "tlsTrustMac": "macOS: open the file in Keychain Access, then set it to Always Trust.",
+    "tlsTrustLinux": "Linux/WSL: copy it to /usr/local/share/ca-certificates/nautix.crt and run update-ca-certificates. If the browser runs on Windows, use the Windows step.",
+    "tlsTrustFirefox": "Firefox keeps its own store: Settings → Privacy → Certificates → Import (or enable security.enterprise_roots.enabled)."
   },
   "compose": {
     "title": "Compose projects",

@@ -31,6 +31,8 @@ import type {
   RegistryAuth,
   Session,
   Template,
+  TlsCustomCertificate,
+  TlsStatus,
   UpdateContainer,
   UserInfo,
   Volume,
@@ -79,6 +81,10 @@ export const api = {
   createToken: (b: CreateToken) =>
     request<{ id: string; token: string }>("POST", "/settings/tokens", b),
   revokeToken: (id: string) => request<void>("DELETE", `/settings/tokens/${id}`),
+  tls: () => request<TlsStatus>("GET", "/settings/tls"),
+  setTlsHosts: (hosts: string[]) => request<TlsStatus>("PUT", "/settings/tls/hosts", { hosts }),
+  setTlsCustom: (b: TlsCustomCertificate) => request<TlsStatus>("PUT", "/settings/tls/custom", b),
+  removeTlsCustom: () => request<TlsStatus>("DELETE", "/settings/tls/custom"),
 
   layout: () => request<Layout>("GET", "/layout"),
   saveLayout: (layout: Layout) => request<void>("PUT", "/layout", layout),

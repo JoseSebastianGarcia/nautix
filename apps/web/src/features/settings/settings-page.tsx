@@ -18,6 +18,7 @@ export function SettingsPage() {
     <div className="flex flex-col gap-10 p-6">
       <UsersSection />
       <TokensSection />
+      <TlsSection />
     </div>
   );
 }
@@ -278,6 +279,139 @@ function TokensSection() {
         onConfirm={() => target && revoke.mutate(target.id)}
         onClose={() => setTarget(null)}
       />
+    </section>
+  );
+}
+
+function TlsSection() {
+  const { t } = useTranslation();
+  const { data: tls } = useQuery({ queryKey: ["tls"], queryFn: api.tls });
+  const [hosts, setHosts] = useState<string | null>(null);
+  const [custom, setCustom] = useState({ open: false, cert: "", key: "" });
+  const saveHosts = useApiMutation((list: string[]) => api.setTlsHosts(list), [["tls"]]);
+  const saveCustom = useApiMutation(() => api.setTlsCustom(custom), [["tls"]]);
+  const removeCustom = useApiMutation(() => api.removeTlsCustom(), [["tls"]]);
+  if (!tls) return null;
+
+  const extraHosts = tls.hosts.filter((h) => !["localhost", "127.0.0.1", "::1"].includes(h));
+  const hostsText = hosts ?? extraHosts.join(", ");
+  const managed = tls.mode === "local-ca" || tls.mode === "custom";
+
+  return (
+    <section>
+      <PageHeader title={t("settings.tls")} />
+      <div className="flex flex-col gap-4 rounded-xl border border-line bg-bg1 p-4 text-sm">
+        <p>
+          <span className="text-dim">{t("settings.tlsMode")}: </span>
+          {t(`settings.tlsModes.${tls.mode}`)}
+          {tls.validTo && (
+            <span className="text-dim">
+              {" "}
+              · {t("settings.tlsExpires", { date: new Date(tls.validTo).toLocaleDateString() })}
+            </span>
+          )}
+        </p>
+        {tls.mode === "off" && <p className="text-dim">{t("settings.tlsOff")}</p>}
+        {tls.mode === "external" && <p className="text-dim">{t("settings.tlsExternal")}</p>}
+        {managed && (
+          <>
+            <Field label={t("settings.tlsHosts")}>
+              <Input
+                value={hostsText}
+                placeholder="nautix.lan, 192.168.1.10"
+                onChange={(e) => setHosts(e.target.value)}
+              />
+            </Field>
+            <p className="text-xs text-dim">{t("settings.tlsHostsHint")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="primary"
+                disabled={hosts === null || tls.mode === "custom" || saveHosts.isPending}
+                onClick={() =>
+                  saveHosts.mutate(
+                    (hosts ?? "")
+                      .split(",")
+                      .map((h) => h.trim())
+                      .filter((h) => h !== ""),
+                    { onSuccess: () => setHosts(null) },
+                  )
+                }
+              >
+                {t("settings.tlsReissue")}
+              </Button>
+              {tls.ca && (
+                <a href="/api/v1/settings/tls/ca.pem" download>
+                  <Button>{t("settings.tlsDownloadCa")}</Button>
+                </a>
+              )}
+              <Button onClick={() => setCustom({ open: true, cert: "", key: "" })}>
+                {t("settings.tlsUseOwn")}
+              </Button>
+              {tls.mode === "custom" && (
+                <Button variant="danger" onClick={() => removeCustom.mutate(undefined)}>
+                  {t("settings.tlsBackToLocal")}
+                </Button>
+              )}
+            </div>
+            {tls.ca && (
+              <details className="text-xs text-dim">
+                <summary className="cursor-pointer text-text">
+                  {t("settings.tlsTrustTitle")}
+                </summary>
+                <ul className="mt-2 flex list-disc flex-col gap-1 pl-5">
+                  <li>{t("settings.tlsTrustWindows")}</li>
+                  <li>{t("settings.tlsTrustMac")}</li>
+                  <li>{t("settings.tlsTrustLinux")}</li>
+                  <li>{t("settings.tlsTrustFirefox")}</li>
+                </ul>
+                <p className="mt-2 font-mono">SHA-256: {tls.ca.fingerprint}</p>
+              </details>
+            )}
+          </>
+        )}
+      </div>
+      <Dialog
+        open={custom.open}
+        onClose={() => setCustom({ open: false, cert: "", key: "" })}
+        title={t("settings.tlsUseOwn")}
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveCustom.mutate(undefined, {
+              onSuccess: () => setCustom({ open: false, cert: "", key: "" }),
+            });
+          }}
+        >
+          <Field label={t("settings.tlsCert")}>
+            <textarea
+              className="h-32 w-full rounded-lg border border-line bg-bg0 p-2 font-mono text-xs"
+              value={custom.cert}
+              onChange={(e) => setCustom({ ...custom, cert: e.target.value })}
+              placeholder="-----BEGIN CERTIFICATE-----"
+              required
+            />
+          </Field>
+          <Field label={t("settings.tlsKey")}>
+            <textarea
+              className="h-32 w-full rounded-lg border border-line bg-bg0 p-2 font-mono text-xs"
+              value={custom.key}
+              onChange={(e) => setCustom({ ...custom, key: e.target.value })}
+              placeholder="-----BEGIN PRIVATE KEY-----"
+              required
+            />
+          </Field>
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setCustom({ open: false, cert: "", key: "" })}>
+              {t("common.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" disabled={saveCustom.isPending}>
+              {t("common.save")}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </section>
   );
 }
