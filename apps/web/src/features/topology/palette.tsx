@@ -1,11 +1,13 @@
 import type { Template } from "@nautix/contracts";
-import { Network as NetworkIcon, Plus, Trash2 } from "lucide-react";
+import { Network as NetworkIcon, Pencil, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
 import { keys, useCatalog, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button } from "../../components/ui.js";
 import { LogoBadge } from "./logo-badge.js";
+import { TemplateDialog, type TemplateTarget } from "./template-dialog.js";
 
 export const DRAG_TYPE = "application/x-nautix-template";
 
@@ -22,6 +24,7 @@ export function Palette({
   const { t } = useTranslation();
   const { data } = useCatalog();
   const isAdmin = useIsAdmin();
+  const [editing, setEditing] = useState<TemplateTarget>(null);
   const removeTemplate = useApiMutation(
     (id: string) => api.deleteCustomTemplate(id),
     [keys.catalog],
@@ -43,6 +46,9 @@ export function Palette({
       </div>
       <Button write variant="primary" onClick={onNewNetwork}>
         <NetworkIcon size={14} /> {t("topology.newNetwork")}
+      </Button>
+      <Button write onClick={() => setEditing("new")}>
+        <Plus size={14} /> {t("topology.newTemplate")}
       </Button>
       {[...groups.entries()].map(([category, items]) => (
         <section key={category} className="flex flex-col gap-2">
@@ -66,15 +72,26 @@ export function Palette({
                 </span>
               </button>
               {tpl.custom && isAdmin && (
-                <button
-                  type="button"
-                  title={t("topology.deleteTemplate")}
-                  aria-label={`${t("topology.deleteTemplate")}: ${tpl.name}`}
-                  className="absolute right-2 top-2 rounded p-1 text-dim opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100"
-                  onClick={() => removeTemplate.mutate(tpl.id)}
-                >
-                  <Trash2 size={13} />
-                </button>
+                <span className="absolute right-2 top-2 flex gap-1 opacity-0 focus-within:opacity-100 group-hover:opacity-100">
+                  <button
+                    type="button"
+                    title={t("topology.editTemplate")}
+                    aria-label={`${t("topology.editTemplate")}: ${tpl.name}`}
+                    className="rounded p-1 text-dim hover:text-accent"
+                    onClick={() => setEditing(tpl)}
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    title={t("topology.deleteTemplate")}
+                    aria-label={`${t("topology.deleteTemplate")}: ${tpl.name}`}
+                    className="rounded p-1 text-dim hover:text-danger"
+                    onClick={() => removeTemplate.mutate(tpl.id)}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </span>
               )}
             </div>
           ))}
@@ -93,6 +110,7 @@ export function Palette({
         </span>
         <span className="text-sm font-semibold">{t("topology.anyImage")}</span>
       </button>
+      <TemplateDialog target={editing} onClose={() => setEditing(null)} />
     </aside>
   );
 }

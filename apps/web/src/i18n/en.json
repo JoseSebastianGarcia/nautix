@@ -153,7 +153,11 @@
     "deleteTemplate": "Remove from the panel",
     "remove": "Remove",
     "invalidPort": "Ports must be between 1 and 65535",
-    "protocol": "Protocol"
+    "protocol": "Protocol",
+    "newTemplate": "New template",
+    "editTemplate": "Edit template",
+    "templateDescription": "Description (optional)",
+    "templateIntro": "Templates are saved in Nautix and appear in this panel under \"My images\"; drag or click them to deploy with these defaults."
   },
   "containers": {
     "title": "Containers",

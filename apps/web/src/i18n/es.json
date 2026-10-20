@@ -153,7 +153,11 @@
     "deleteTemplate": "Quitar del panel",
     "remove": "Quitar",
     "invalidPort": "Los puertos deben estar entre 1 y 65535",
-    "protocol": "Protocolo"
+    "protocol": "Protocolo",
+    "newTemplate": "Nuevo template",
+    "editTemplate": "Editar template",
+    "templateDescription": "Descripción (opcional)",
+    "templateIntro": "Los templates se guardan en Nautix y aparecen en este panel en \"Mis imágenes\"; arrastralos o hacé clic para desplegar con estos valores."
   },
   "containers": {
     "title": "Contenedores",

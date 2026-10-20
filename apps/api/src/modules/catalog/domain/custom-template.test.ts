@@ -30,6 +30,17 @@ describe("custom templates", () => {
     expect(t.color).toMatch(/^#[0-9a-f]{6}$/);
   });
 
+  it("keeps protocol and host port so DNS-style templates deploy as saved", () => {
+    const t = toTemplate(
+      CustomTemplateInput.parse({
+        name: "Mi DNS",
+        image: "x/dns:1",
+        ports: [{ containerPort: 53, protocol: "udp", hostPort: 5353 }],
+      }),
+    );
+    expect(t.ports).toEqual([{ containerPort: 53, label: "53", protocol: "udp", hostPort: 5353 }]);
+  });
+
   it("rejects bad input", () => {
     expect(() => CustomTemplateInput.parse({ name: "", image: "x" })).toThrow();
     expect(() =>

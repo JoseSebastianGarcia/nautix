@@ -32,6 +32,8 @@ export const toTemplate = (input: CustomTemplateInput): Template => {
     ports: input.ports.map((p) => ({
       containerPort: p.containerPort,
       label: p.label || String(p.containerPort),
+      ...(p.protocol ? { protocol: p.protocol } : {}),
+      ...(p.hostPort ? { hostPort: p.hostPort } : {}),
     })),
     ...(Object.keys(input.env).length ? { env: input.env } : {}),
     ...(input.volumes.length ? { volumes: input.volumes } : {}),

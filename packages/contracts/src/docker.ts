@@ -206,6 +206,8 @@ export const CustomTemplateInput = z.object({
       z.object({
         containerPort: z.number().int().min(1).max(65535),
         label: z.string().max(32).default(""),
+        protocol: z.enum(["tcp", "udp"]).optional(),
+        hostPort: z.number().int().min(1).max(65535).optional(),
       }),
     )
     .max(32)
