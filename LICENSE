@@ -1,3 +1,22 @@
+Nautix
+Copyright (c) 2026 patterna.dev. All rights reserved except as granted below.
+
+The "Program" in the license that follows is Nautix: all the source code and
+documentation in this repository, except third-party dependencies, which keep
+their own licenses.
+
+Nautix is licensed under the Server Side Public License, version 1 (SSPL-1.0),
+the version published on October 16, 2018 and reproduced unmodified below.
+It is licensed under that numbered version only, not "or any later version"
+(see section 14 of the license).
+
+The terms of the SSPL are not edited here because the license itself does not
+allow changing its text (see the notice at the top of the license). The only
+words in it that name its original author (the copyright line and section 14)
+refer to the author of the license text, not to the owner of this Program.
+
+================================================================================
+
                      Server Side Public License
                      VERSION 1, OCTOBER 16, 2018
 
