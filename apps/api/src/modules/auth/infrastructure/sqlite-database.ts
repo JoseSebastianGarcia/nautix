@@ -12,7 +12,8 @@ export const openDatabase = (dataDir: string): Db => {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       username TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'admin'
     );
     CREATE TABLE IF NOT EXISTS sessions (
       token_hash TEXT PRIMARY KEY,
@@ -20,6 +21,19 @@ export const openDatabase = (dataDir: string): Db => {
       username TEXT NOT NULL,
       expires_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS api_tokens (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL,
+      last_used_at INTEGER
+    );
   `);
+  // Databases created before roles existed: everyone already there was an admin.
+  const hasRole = (db.pragma("table_info(users)") as { name: string }[]).some(
+    (c) => c.name === "role",
+  );
+  if (!hasRole) db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'admin'");
   return db;
 };

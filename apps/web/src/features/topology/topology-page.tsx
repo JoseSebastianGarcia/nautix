@@ -18,7 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
-import { keys, useCatalog, useContainers, useNetworks } from "../../app/queries.js";
+import { keys, useCatalog, useContainers, useIsAdmin, useNetworks } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
 import { DeployDialog, type DeployTarget } from "./deploy-dialog.js";
@@ -91,6 +91,7 @@ function Canvas() {
   const { data: networks = NO_NETWORKS } = useNetworks();
   const { data: catalog = NO_TEMPLATES } = useCatalog();
   const flow = useReactFlow();
+  const isAdmin = useIsAdmin();
 
   const topology = useMemo(() => layoutTopology(containers, networks), [containers, networks]);
   const [nodes, setNodes] = useState<FlowNode[]>([]);
@@ -203,6 +204,7 @@ function Canvas() {
           }
           onPaneClick={() => setSelection(null)}
           nodesConnectable={false}
+          nodesDraggable={isAdmin}
           minZoom={0.2}
           proOptions={{ hideAttribution: true }}
           deleteKeyCode={null}

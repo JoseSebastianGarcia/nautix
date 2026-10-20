@@ -244,3 +244,94 @@ describe("terminal websocket", () => {
     expect(chunks.join("")).toContain("you typed: hi");
   });
 });
+
+const openTerminal = (headers: Record<string, string>) =>
+  new Promise<string | undefined>((resolve) => {
+    const ws = new WebSocket(`${base.replace("http", "ws")}/ws/terminal/abc?cols=80&rows=24`, {
+      headers,
+    });
+    ws.on("open", () => {
+      ws.close();
+      resolve(undefined);
+    });
+    ws.on("unexpected-response", (_req, res) => resolve(String(res.statusCode)));
+    ws.on("error", () => undefined);
+  });
+
+describe("roles and API tokens", () => {
+  const bearer = (token: string, method = "GET", path = "/containers", body?: unknown) =>
+    fetch(`${base}/api/v1${path}`, {
+      method,
+      headers: {
+        authorization: `Bearer ${token}`,
+        ...(body ? { "content-type": "application/json" } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+
+  it("creates API tokens shown once, usable without CSRF, revocable", async () => {
+    const created = await call("POST", "/settings/tokens", { name: "ci", role: "admin" });
+    expect(created.res.status).toBe(201);
+    const { id, token } = created.json as { id: string; token: string };
+    expect(token).toMatch(/^nx_/);
+
+    const list = (await call("GET", "/settings/tokens")).json as Record<string, unknown>[];
+    expect(JSON.stringify(list)).not.toContain(token);
+    expect(list[0]).not.toHaveProperty("tokenHash");
+
+    expect((await bearer(token)).status).toBe(200);
+    expect((await bearer(token, "POST", "/volumes", { name: "from-token" })).status).toBe(204);
+    expect((await bearer("nx_bogus")).status).toBe(401);
+
+    expect((await call("DELETE", `/settings/tokens/${id}`)).res.status).toBe(204);
+    expect((await bearer(token)).status).toBe(401);
+  });
+
+  it("makes viewers read-only and keeps secrets and terminals away from them", async () => {
+    const made = await call("POST", "/settings/users", {
+      username: "viewer1",
+      password: "correct-horse-2",
+      role: "viewer",
+    });
+    expect(made.res.status).toBe(201);
+
+    const login = await call(
+      "POST",
+      "/auth/login",
+      { username: "viewer1", password: "correct-horse-2" },
+      false,
+    );
+    const viewerCookie = (login.res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+    const asViewer = (method: string, path: string, body?: unknown) =>
+      fetch(`${base}/api/v1${path}`, {
+        method,
+        headers: {
+          cookie: viewerCookie,
+          "x-nautix-csrf": "1",
+          ...(body ? { "content-type": "application/json" } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+
+    expect((await asViewer("GET", "/containers")).status).toBe(200);
+    const write = await asViewer("POST", "/volumes", { name: "nope" });
+    expect(write.status).toBe(403);
+    expect(((await write.json()) as { hintKey: string }).hintKey).toBe("errors.readOnly");
+    expect((await asViewer("GET", "/export/compose")).status).toBe(200);
+    expect((await asViewer("GET", "/export/compose?includeEnv=true")).status).toBe(403);
+    expect((await asViewer("GET", "/settings/users")).status).toBe(403);
+    expect((await asViewer("GET", "/settings/tokens")).status).toBe(403);
+
+    expect(await openTerminal({ origin: base, cookie: viewerCookie })).toBe("403");
+  });
+
+  it("will not delete yourself or the last admin", async () => {
+    const users = (await call("GET", "/settings/users")).json as { id: string; username: string }[];
+    const admin = users.find((u) => u.username === "admin");
+    const refused = await call("DELETE", `/settings/users/${admin?.id}`);
+    expect(refused.res.status).toBe(409);
+    expect(refused.json.hintKey).toBe("errors.deleteSelf");
+    const viewer = users.find((u) => u.username === "viewer1");
+    expect((await call("DELETE", `/settings/users/${viewer?.id}`)).res.status).toBe(204);
+  });
+});

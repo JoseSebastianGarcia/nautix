@@ -4,6 +4,7 @@ import {
   Image as ImageIcon,
   LogOut,
   Network as NetworkIcon,
+  Settings,
   Workflow,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -23,6 +24,7 @@ const NAV = [
   { to: "/images", key: "nav.images", icon: ImageIcon },
   { to: "/volumes", key: "nav.volumes", icon: HardDrive },
   { to: "/networks", key: "nav.networks", icon: NetworkIcon },
+  { to: "/settings", key: "nav.settings", icon: Settings, adminOnly: true },
 ] as const;
 
 const THEMES: ThemeChoice[] = ["system", "dark", "light"];
@@ -46,18 +48,20 @@ export function Shell() {
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line bg-bg1 px-4">
         <Logo />
         <nav className="flex gap-1" aria-label="Main">
-          {NAV.map(({ to, key, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/"}
-              className={({ isActive }) =>
-                `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${isActive ? "bg-accent-soft text-accent" : "text-dim hover:text-fg"}`
-              }
-            >
-              <Icon size={15} /> {t(key)}
-            </NavLink>
-          ))}
+          {NAV.filter((n) => !("adminOnly" in n && n.adminOnly) || session?.role === "admin").map(
+            ({ to, key, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/"}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${isActive ? "bg-accent-soft text-accent" : "text-dim hover:text-fg"}`
+                }
+              >
+                <Icon size={15} /> {t(key)}
+              </NavLink>
+            ),
+          )}
         </nav>
         <div className="ml-auto flex items-center gap-3 text-xs text-dim">
           <span

@@ -1,7 +1,7 @@
 import type { Template } from "@nautix/contracts";
 import { Network as NetworkIcon, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useCatalog } from "../../app/queries.js";
+import { useCatalog, useIsAdmin } from "../../app/queries.js";
 import { Button } from "../../components/ui.js";
 import { LogoBadge } from "./logo-badge.js";
 
@@ -19,6 +19,7 @@ export function Palette({
 }) {
   const { t } = useTranslation();
   const { data } = useCatalog();
+  const isAdmin = useIsAdmin();
   const groups = new Map<string, Template[]>();
   for (const tpl of data ?? [])
     groups.set(tpl.category, [...(groups.get(tpl.category) ?? []), tpl]);
@@ -34,7 +35,7 @@ export function Palette({
         </h2>
         <p className="mt-1 text-xs text-dim">{t("topology.paletteHint")}</p>
       </div>
-      <Button variant="primary" onClick={onNewNetwork}>
+      <Button write variant="primary" onClick={onNewNetwork}>
         <NetworkIcon size={14} /> {t("topology.newNetwork")}
       </Button>
       {[...groups.entries()].map(([category, items]) => (
@@ -44,7 +45,8 @@ export function Palette({
             <button
               key={tpl.id}
               type="button"
-              draggable
+              draggable={isAdmin}
+              disabled={!isAdmin}
               onDragStart={(e) => e.dataTransfer.setData(DRAG_TYPE, tpl.id)}
               onClick={() => onPick(tpl)}
               className="flex items-center gap-3 rounded-xl border border-line bg-bg0 p-2 text-left hover:border-accent"
@@ -60,7 +62,8 @@ export function Palette({
       ))}
       <button
         type="button"
-        draggable
+        draggable={isAdmin}
+        disabled={!isAdmin}
         onDragStart={(e) => e.dataTransfer.setData(DRAG_TYPE, CUSTOM_TEMPLATE_ID)}
         onClick={() => onPick("custom")}
         className="flex items-center gap-3 rounded-xl border border-dashed border-line p-2 text-left hover:border-accent"

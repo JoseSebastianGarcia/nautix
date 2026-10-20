@@ -28,3 +28,6 @@ export const useImages = () =>
   useQuery({ queryKey: keys.images, queryFn: api.images, refetchInterval: 30_000 });
 export const useVolumes = () =>
   useQuery({ queryKey: keys.volumes, queryFn: api.volumes, refetchInterval: 30_000 });
+
+/** UI hint only: the server enforces roles. Viewers get read-only controls. */
+export const useIsAdmin = (): boolean => useSession().data?.role === "admin";

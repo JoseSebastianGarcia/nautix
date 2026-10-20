@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useIsAdmin } from "../app/queries.js";
 import { useToasts } from "./toast-store.js";
 
 type Variant = "primary" | "ghost" | "danger";
@@ -14,11 +15,15 @@ const VARIANT: Record<Variant, string> = {
 export function Button({
   variant = "ghost",
   className = "",
+  write = false,
+  disabled,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; write?: boolean }) {
+  const isAdmin = useIsAdmin();
   return (
     <button
       type="button"
+      disabled={disabled || (write && !isAdmin)}
       className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition ${VARIANT[variant]} ${className}`}
       {...rest}
     />

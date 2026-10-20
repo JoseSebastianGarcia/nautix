@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
-import { keys } from "../../app/queries.js";
+import { keys, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog, ShowCommand, TypeConfirmDialog } from "../../components/ui.js";
 import type { ExportTarget } from "./export-dialog.js";
@@ -81,6 +81,7 @@ function ContainerInspector({
   const [showLogs, setShowLogs] = useState(false);
   const refresh = [keys.containers, keys.networks];
 
+  const isAdmin = useIsAdmin();
   const confirm = c.isSelf ? c.name : undefined;
   const [pendingSelf, setPendingSelf] = useState<(() => void) | null>(null);
   // Nautix's own container needs the name typed before anything that could take it down.
@@ -124,25 +125,36 @@ function ContainerInspector({
       <div className="flex flex-wrap gap-2">
         {running ? (
           <>
-            <Button onClick={() => guard(() => act.mutate("stop"))} disabled={act.isPending}>
+            <Button write onClick={() => guard(() => act.mutate("stop"))} disabled={act.isPending}>
               <Square size={14} /> {t("containers.stop")}
             </Button>
-            <Button onClick={() => guard(() => act.mutate("restart"))} disabled={act.isPending}>
+            <Button
+              write
+              onClick={() => guard(() => act.mutate("restart"))}
+              disabled={act.isPending}
+            >
               <RotateCw size={14} /> {t("containers.restart")}
             </Button>
-            <Link
-              to={`/terminal/${c.id}`}
-              className="inline-flex items-center gap-2 rounded-lg border border-line bg-bg1 px-3 py-1.5 text-sm font-medium hover:bg-bg2"
-            >
-              <SquareTerminal size={14} /> {t("terminal.open_btn")}
-            </Link>
+            {isAdmin && (
+              <Link
+                to={`/terminal/${c.id}`}
+                className="inline-flex items-center gap-2 rounded-lg border border-line bg-bg1 px-3 py-1.5 text-sm font-medium hover:bg-bg2"
+              >
+                <SquareTerminal size={14} /> {t("terminal.open_btn")}
+              </Link>
+            )}
           </>
         ) : (
-          <Button variant="primary" onClick={() => act.mutate("start")} disabled={act.isPending}>
+          <Button
+            write
+            variant="primary"
+            onClick={() => act.mutate("start")}
+            disabled={act.isPending}
+          >
             <Play size={14} /> {t("containers.start")}
           </Button>
         )}
-        <Button variant="danger" onClick={() => setConfirmRemove(true)}>
+        <Button write variant="danger" onClick={() => setConfirmRemove(true)}>
           <Trash2 size={14} /> {t("containers.remove")}
         </Button>
       </div>
@@ -296,7 +308,12 @@ function NetworkInspector({
       </Button>
       {!n.system && (
         <>
-          <Button variant="danger" disabled={members.length > 0} onClick={() => setConfirm(true)}>
+          <Button
+            write
+            variant="danger"
+            disabled={members.length > 0}
+            onClick={() => setConfirm(true)}
+          >
             <Trash2 size={14} /> {t("common.delete")}
           </Button>
           {members.length > 0 && (

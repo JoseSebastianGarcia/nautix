@@ -26,6 +26,7 @@ import type { Request } from "express";
 import { Observable } from "rxjs";
 import { stringify } from "yaml";
 import { z } from "zod";
+import { requireAdmin } from "../../../shared/principal.js";
 import { parse } from "../../../shared/zod-body.js";
 import { ConnectNetworkCommand } from "../application/commands/connect-network.command.js";
 import { ContainerActionCommand } from "../application/commands/container-action.command.js";
@@ -92,8 +93,10 @@ export class DockerController {
   }
 
   @Get("export/compose")
-  async exportCompose(@Query() query: unknown) {
+  async exportCompose(@Req() req: Request, @Query() query: unknown) {
     const { network, includeEnv } = parse(ExportQuery, query);
+    // Env values may hold secrets: viewers never get them.
+    if (includeEnv === "true") requireAdmin(req);
     const doc = await this.queries.execute<ExportComposeQuery, ComposeDocument>(
       new ExportComposeQuery(network, includeEnv === "true"),
     );

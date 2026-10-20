@@ -17,8 +17,11 @@ export class GetSessionHandler implements IQueryHandler<GetSessionQuery, Session
     const setupRequired = (await this.users.count()) === 0;
     const stored = token ? await this.sessions.find(hashToken(token)) : null;
     if (stored && stored.expiresAt > Date.now()) {
-      return { authenticated: true, setupRequired, username: stored.username };
+      // Role is read live so demoting or deleting a user takes effect immediately.
+      const user = await this.users.findById(stored.userId);
+      if (user)
+        return { authenticated: true, setupRequired, username: user.username, role: user.role };
     }
-    return { authenticated: false, setupRequired, username: null };
+    return { authenticated: false, setupRequired, username: null, role: null };
   }
 }

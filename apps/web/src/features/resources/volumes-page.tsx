@@ -23,7 +23,7 @@ export function VolumesPage() {
       <PageHeader
         title={t("volumes.title")}
         actions={
-          <Button variant="primary" onClick={() => setCreating(true)}>
+          <Button write variant="primary" onClick={() => setCreating(true)}>
             <Plus size={14} /> {t("volumes.new")}
           </Button>
         }
@@ -46,6 +46,7 @@ export function VolumesPage() {
             <Td>{v.inUse ? t("common.inUse") : t("common.unused")}</Td>
             <Td>
               <Button
+                write
                 variant="danger"
                 disabled={v.inUse}
                 aria-label={`${t("common.delete")} ${v.name}`}

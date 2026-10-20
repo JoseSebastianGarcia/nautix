@@ -8,7 +8,8 @@
     "containers": "Contenedores",
     "images": "Imágenes",
     "volumes": "Volúmenes",
-    "networks": "Redes"
+    "networks": "Redes",
+    "settings": "Ajustes"
   },
   "common": {
     "cancel": "Cancelar",
@@ -183,7 +184,12 @@
     "conflict": "Conflicto con el estado actual",
     "imagePullFailed": "No se pudo descargar la imagen",
     "validation": "Revisá el formulario",
-    "selfProtected": "Este es el contenedor que ejecuta Nautix. Confirmá escribiendo su nombre."
+    "selfProtected": "Este es el contenedor que ejecuta Nautix. Confirmá escribiendo su nombre.",
+    "readOnly": "Tu rol es de solo lectura",
+    "adminOnly": "Se requiere rol de administrador",
+    "usernameTaken": "Ese usuario ya existe",
+    "deleteSelf": "No podés eliminarte a vos mismo",
+    "lastAdmin": "No podés eliminar al último administrador"
   },
   "terminal": {
     "title": "Terminal",
@@ -198,5 +204,27 @@
     "title": "Este es Nautix",
     "body": "Detenerlo, reiniciarlo o eliminarlo dejará esta interfaz inaccesible. Escribí el nombre del contenedor para continuar.",
     "typeName": "Nombre del contenedor"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "users": "Usuarios",
+    "tokens": "Tokens de API",
+    "role": "Rol",
+    "admin": "Administrador",
+    "viewer": "Lector (solo lectura)",
+    "addUser": "Agregar usuario",
+    "addToken": "Nuevo token",
+    "tokenName": "Nombre del token",
+    "lastUsed": "Último uso",
+    "never": "nunca",
+    "revoke": "Revocar",
+    "tokenShownOnce": "Copiá este token ahora. No se volverá a mostrar.",
+    "tokenUsage": "Usalo así: Authorization: Bearer <token>",
+    "revokeTitle": "¿Revocar el token {{name}}?",
+    "revokeBody": "Todo lo que lo use dejará de funcionar de inmediato.",
+    "deleteUserTitle": "¿Eliminar al usuario {{name}}?",
+    "deleteUserBody": "Sus sesiones terminan de inmediato.",
+    "roleHint": "Los lectores pueden mirar pero no cambiar nada, y no pueden abrir terminales ni ver valores de entorno.",
+    "you": "vos"
   }
 }

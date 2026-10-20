@@ -1,13 +1,17 @@
 import type {
+  ApiTokenInfo,
   Container,
   ContainerAction,
   CreateContainer,
   CreateNetwork,
+  CreateToken,
+  CreateUser,
   EngineInfo,
   Image,
   Network,
   Session,
   Template,
+  UserInfo,
   Volume,
 } from "@nautix/contracts";
 
@@ -45,6 +49,14 @@ export const api = {
     request<void>("POST", "/auth/setup", b),
   login: (b: { username: string; password: string }) => request<void>("POST", "/auth/login", b),
   logout: () => request<void>("POST", "/auth/logout"),
+
+  users: () => request<UserInfo[]>("GET", "/settings/users"),
+  createUser: (b: CreateUser) => request<{ id: string }>("POST", "/settings/users", b),
+  deleteUser: (id: string) => request<void>("DELETE", `/settings/users/${id}`),
+  tokens: () => request<ApiTokenInfo[]>("GET", "/settings/tokens"),
+  createToken: (b: CreateToken) =>
+    request<{ id: string; token: string }>("POST", "/settings/tokens", b),
+  revokeToken: (id: string) => request<void>("DELETE", `/settings/tokens/${id}`),
 
   engine: () => request<EngineInfo>("GET", "/engine"),
   catalog: () => request<Template[]>("GET", "/catalog"),

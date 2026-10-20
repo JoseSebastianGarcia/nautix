@@ -29,7 +29,7 @@ export function ImagesPage() {
       <PageHeader
         title={t("images.title")}
         actions={
-          <Button variant="primary" onClick={() => setPulling(true)}>
+          <Button write variant="primary" onClick={() => setPulling(true)}>
             <Download size={14} /> {t("images.pull")}
           </Button>
         }
@@ -52,6 +52,7 @@ export function ImagesPage() {
             <Td>{i.inUse ? t("common.inUse") : t("common.unused")}</Td>
             <Td>
               <Button
+                write
                 variant="danger"
                 disabled={i.inUse}
                 aria-label={`${t("common.delete")} ${name(i)}`}

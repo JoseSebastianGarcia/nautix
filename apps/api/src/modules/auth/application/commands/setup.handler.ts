@@ -33,6 +33,7 @@ export class SetupHandler implements ICommandHandler<SetupCommand, void> {
       id: randomUUID(),
       username: request.username,
       passwordHash: await this.hasher.hash(request.password),
+      role: "admin",
     });
     this.setupToken.consume();
   }

@@ -22,7 +22,7 @@ export function NetworksPage() {
       <PageHeader
         title={t("networks.title")}
         actions={
-          <Button variant="primary" onClick={() => setCreating(true)}>
+          <Button write variant="primary" onClick={() => setCreating(true)}>
             <Plus size={14} /> {t("networks.new")}
           </Button>
         }
@@ -49,6 +49,7 @@ export function NetworksPage() {
             <Td>{n.containerIds.length}</Td>
             <Td>
               <Button
+                write
                 variant="danger"
                 disabled={n.system || n.containerIds.length > 0}
                 aria-label={`${t("common.delete")} ${n.name}`}

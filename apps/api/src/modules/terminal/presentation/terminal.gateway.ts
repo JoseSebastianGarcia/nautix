@@ -74,6 +74,7 @@ export class TerminalGateway implements OnApplicationBootstrap, OnApplicationShu
       new GetSessionQuery(token),
     );
     if (!session.authenticated) return this.reject(socket, "401 Unauthorized");
+    if (session.role !== "admin") return this.reject(socket, "403 Forbidden");
 
     const cols = Number(url.searchParams.get("cols") ?? 80);
     const rows = Number(url.searchParams.get("rows") ?? 24);

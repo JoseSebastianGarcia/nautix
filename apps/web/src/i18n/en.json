@@ -8,7 +8,8 @@
     "containers": "Containers",
     "images": "Images",
     "volumes": "Volumes",
-    "networks": "Networks"
+    "networks": "Networks",
+    "settings": "Settings"
   },
   "common": {
     "cancel": "Cancel",
@@ -183,7 +184,12 @@
     "conflict": "Conflict with the current state",
     "imagePullFailed": "Could not pull the image",
     "validation": "Please check the form",
-    "selfProtected": "This is the container running Nautix. Confirm by typing its name."
+    "selfProtected": "This is the container running Nautix. Confirm by typing its name.",
+    "readOnly": "Your role is read-only",
+    "adminOnly": "Admin role required",
+    "usernameTaken": "That username already exists",
+    "deleteSelf": "You cannot delete yourself",
+    "lastAdmin": "You cannot delete the last admin"
   },
   "terminal": {
     "title": "Terminal",
@@ -198,5 +204,27 @@
     "title": "This is Nautix itself",
     "body": "Stopping, restarting or removing it will make this interface unavailable. Type the container name to continue.",
     "typeName": "Container name"
+  },
+  "settings": {
+    "title": "Settings",
+    "users": "Users",
+    "tokens": "API tokens",
+    "role": "Role",
+    "admin": "Admin",
+    "viewer": "Viewer (read-only)",
+    "addUser": "Add user",
+    "addToken": "New token",
+    "tokenName": "Token name",
+    "lastUsed": "Last used",
+    "never": "never",
+    "revoke": "Revoke",
+    "tokenShownOnce": "Copy this token now. It will not be shown again.",
+    "tokenUsage": "Use it as: Authorization: Bearer <token>",
+    "revokeTitle": "Revoke token {{name}}?",
+    "revokeBody": "Anything using it will stop working immediately.",
+    "deleteUserTitle": "Delete user {{name}}?",
+    "deleteUserBody": "Their sessions end immediately.",
+    "roleHint": "Viewers can look but not change anything, and cannot open terminals or see environment values.",
+    "you": "you"
   }
 }
