@@ -30,8 +30,8 @@ Ports are abstract classes used as tokens; every constructor parameter uses `@In
 ## ADR-008 — Theme tokens
 The spec's lime/cyan palette is replaced by a violet accent (matches the approved reference). Dark and light define identical token sets (unit-tested).
 
-## ADR-009 — Polling instead of WebSocket events (for now)
-The UI polls (3 s containers/networks, 10 s others) and invalidates on every mutation. The `/ws` events gateway from `01-architecture.md` replaces polling in a later milestone.
+## ADR-009 — Server-sent events instead of a WebSocket for engine events
+`GET /api/v1/events` (SSE, same session cookie) streams `{kind}` messages from the daemon's `/events` (reconnect backoff 250 ms → 8 s). The client coalesces bursts (150 ms) and invalidates queries; 30 s polling stays as a safety net. SSE is one-way and needs no extra dependency; WebSockets are reserved for the terminal.
 
 ## ADR-010 — No shadcn/ui yet
 Small hand-written components (`components/ui.tsx`) cover M1. Adopt shadcn when the component count justifies it.

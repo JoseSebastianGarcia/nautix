@@ -93,6 +93,8 @@
     "networkNotEmpty": "Move or remove its containers first.",
     "removeContainerTitle": "Remove container {{name}}?",
     "removeContainerBody": "This deletes the container ({{image}}). Its volumes are kept.",
+    "joinNetwork": "Also join network…",
+    "joinHint": "A container on two networks bridges them: use it for a reverse proxy that must reach isolated services.",
     "disconnect": "Leave network",
     "empty": "No containers yet. Drag something from the palette."
   },

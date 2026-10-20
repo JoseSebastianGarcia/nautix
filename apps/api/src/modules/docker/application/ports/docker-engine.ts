@@ -9,9 +9,13 @@ import type {
 } from "@nautix/contracts";
 import type { EngineContainerSpec } from "../../domain/container-spec.js";
 
+export type EngineEventKind = "container" | "network" | "image" | "volume";
+
 /** Port to the Docker engine. Adapters: DockerSocketEngine (real), FakeDockerEngine (demo/tests). */
 export abstract class DockerEngine {
   abstract info(): Promise<EngineInfo>;
+  /** Stream of "something of this kind changed" events; ends when the signal aborts. */
+  abstract events(signal: AbortSignal): AsyncIterable<EngineEventKind>;
 
   abstract listContainers(): Promise<Container[]>;
   abstract createContainer(spec: EngineContainerSpec): Promise<{ id: string }>;

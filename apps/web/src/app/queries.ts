@@ -11,13 +11,13 @@ export const keys = {
   volumes: ["volumes"],
 } as const;
 
-/** Polling keeps the UI close to the engine state until the WS events gateway lands. */
-const LIVE = 3000;
+/** Live updates come from the SSE stream; polling is only a slow safety net. */
+const LIVE = 30_000;
 
 export const useSession = () =>
   useQuery({ queryKey: keys.session, queryFn: api.session, retry: false });
 export const useEngine = () =>
-  useQuery({ queryKey: keys.engine, queryFn: api.engine, refetchInterval: 10_000 });
+  useQuery({ queryKey: keys.engine, queryFn: api.engine, refetchInterval: 30_000 });
 export const useCatalog = () =>
   useQuery({ queryKey: keys.catalog, queryFn: api.catalog, staleTime: Infinity });
 export const useContainers = () =>
@@ -25,6 +25,6 @@ export const useContainers = () =>
 export const useNetworks = () =>
   useQuery({ queryKey: keys.networks, queryFn: api.networks, refetchInterval: LIVE });
 export const useImages = () =>
-  useQuery({ queryKey: keys.images, queryFn: api.images, refetchInterval: 10_000 });
+  useQuery({ queryKey: keys.images, queryFn: api.images, refetchInterval: 30_000 });
 export const useVolumes = () =>
-  useQuery({ queryKey: keys.volumes, queryFn: api.volumes, refetchInterval: 10_000 });
+  useQuery({ queryKey: keys.volumes, queryFn: api.volumes, refetchInterval: 30_000 });

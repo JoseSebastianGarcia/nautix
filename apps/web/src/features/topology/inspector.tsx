@@ -65,6 +65,8 @@ function ContainerInspector({
   const act = useApiMutation((a: ContainerAction) => api.containerAction(c.id, a), refresh);
   const remove = useApiMutation(() => api.removeContainer(c.id, true), refresh);
   const leave = useApiMutation((networkId: string) => api.disconnect(networkId, c.id), refresh);
+  const join = useApiMutation((networkId: string) => api.connect(networkId, c.id), refresh);
+  const joinable = networks.filter((n) => !n.system && !c.networks.includes(n.name));
   const logs = useQuery({
     queryKey: ["logs", c.id],
     queryFn: () => api.logs(c.id),
@@ -140,6 +142,22 @@ function ContainerInspector({
             </li>
           ))}
         </ul>
+        {joinable.length > 0 && (
+          <select
+            aria-label={t("topology.joinNetwork")}
+            className="mt-2 w-full rounded-lg border border-line bg-bg0 px-2 py-1.5 text-sm text-fg"
+            value=""
+            onChange={(e) => e.target.value && join.mutate(e.target.value)}
+          >
+            <option value="">{t("topology.joinNetwork")}</option>
+            {joinable.map((n) => (
+              <option key={n.id} value={n.id}>
+                {n.name}
+              </option>
+            ))}
+          </select>
+        )}
+        <p className="mt-1 text-xs text-dim">{t("topology.joinHint")}</p>
       </section>
 
       <section>

@@ -19,6 +19,7 @@ import { ListContainersHandler } from "./application/queries/list-containers.han
 import { ListImagesHandler } from "./application/queries/list-images.handler.js";
 import { ListNetworksHandler } from "./application/queries/list-networks.handler.js";
 import { ListVolumesHandler } from "./application/queries/list-volumes.handler.js";
+import { WatchEventsHandler } from "./application/queries/watch-events.handler.js";
 import { DockerSocketEngine } from "./infrastructure/docker-socket-engine.js";
 import { FakeDockerEngine } from "./infrastructure/fake-docker-engine.js";
 import { DockerController } from "./presentation/docker.controller.js";
@@ -41,6 +42,7 @@ const HANDLERS = [
   ListImagesHandler,
   ListNetworksHandler,
   ListVolumesHandler,
+  WatchEventsHandler,
 ];
 
 @Module({})

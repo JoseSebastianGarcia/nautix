@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { EventEmitter, on } from "node:events";
 import type {
   Container,
   ContainerAction,
@@ -10,7 +11,7 @@ import type {
 } from "@nautix/contracts";
 import { Injectable } from "@nestjs/common";
 import { ConflictError, NotFoundError } from "../../../shared/domain-error.js";
-import { DockerEngine } from "../application/ports/docker-engine.js";
+import { DockerEngine, type EngineEventKind } from "../application/ports/docker-engine.js";
 import type { EngineContainerSpec } from "../domain/container-spec.js";
 
 const newId = (): string => randomBytes(32).toString("hex");
@@ -27,6 +28,20 @@ export class FakeDockerEngine extends DockerEngine {
   private images = new Map<string, Image>();
   private volumes = new Map<string, Volume>();
   private logs = new Map<string, string>();
+  private readonly bus = new EventEmitter();
+
+  private emit(kind: EngineEventKind): void {
+    // Deferred so subscribers refetch after the mutation has completed.
+    setTimeout(() => this.bus.emit("change", kind), 0);
+  }
+
+  async *events(signal: AbortSignal): AsyncIterable<EngineEventKind> {
+    try {
+      for await (const [kind] of on(this.bus, "change", { signal })) yield kind as EngineEventKind;
+    } catch (error) {
+      if (!signal.aborted) throw error;
+    }
+  }
 
   constructor(seed = true) {
     super();
@@ -153,6 +168,7 @@ export class FakeDockerEngine extends DockerEngine {
   }
 
   async containerAction(id: string, action: ContainerAction): Promise<void> {
+    this.emit("container");
     const c = this.container(id);
     const next: Record<ContainerAction, [Container["state"], string]> = {
       start: ["running", "Up less than a second"],
@@ -169,6 +185,7 @@ export class FakeDockerEngine extends DockerEngine {
   }
 
   async removeContainer(id: string, force: boolean): Promise<void> {
+    this.emit("container");
     const c = this.container(id);
     if (c.state === "running" && !force) {
       throw new ConflictError("container is running", "errors.inUse");
@@ -202,6 +219,7 @@ export class FakeDockerEngine extends DockerEngine {
   }
 
   async removeNetwork(id: string): Promise<void> {
+    this.emit("network");
     const net = this.networks.get(id);
     if (!net) throw new NotFoundError("network not found", "errors.notFound");
     if (net.members.size > 0)
@@ -210,10 +228,14 @@ export class FakeDockerEngine extends DockerEngine {
   }
 
   async connectNetwork(networkId: string, containerId: string): Promise<void> {
+    this.emit("network");
+    this.emit("container");
     this.attach(networkId, containerId);
   }
 
   async disconnectNetwork(networkId: string, containerId: string): Promise<void> {
+    this.emit("network");
+    this.emit("container");
     const net = this.networks.get(networkId);
     const c = this.container(containerId);
     if (!net) throw new NotFoundError("network not found", "errors.notFound");
@@ -227,6 +249,7 @@ export class FakeDockerEngine extends DockerEngine {
   }
 
   async pullImage(reference: string): Promise<void> {
+    this.emit("image");
     const ref = reference.includes(":") ? reference : `${reference}:latest`;
     this.images.set(ref, {
       id: `sha256:${newId()}`,
@@ -243,6 +266,7 @@ export class FakeDockerEngine extends DockerEngine {
   }
 
   async removeImage(id: string, _force: boolean): Promise<void> {
+    this.emit("image");
     const key = [...this.images.entries()].find(([, i]) => i.id === id)?.[0];
     if (!key) throw new NotFoundError("image not found", "errors.notFound");
     this.images.delete(key);
@@ -253,6 +277,7 @@ export class FakeDockerEngine extends DockerEngine {
   }
 
   async createVolume(name: string): Promise<void> {
+    this.emit("volume");
     this.volumes.set(name, {
       name,
       driver: "local",
@@ -263,6 +288,7 @@ export class FakeDockerEngine extends DockerEngine {
   }
 
   async removeVolume(name: string): Promise<void> {
+    this.emit("volume");
     if (!this.volumes.delete(name)) throw new NotFoundError("volume not found", "errors.notFound");
   }
 }

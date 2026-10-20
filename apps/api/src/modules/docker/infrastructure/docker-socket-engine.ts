@@ -1,4 +1,4 @@
-import { request } from "node:http";
+import { type IncomingMessage, request } from "node:http";
 import type {
   Container,
   ContainerAction,
@@ -17,7 +17,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../../shared/domain-error.js";
-import { DockerEngine } from "../application/ports/docker-engine.js";
+import { DockerEngine, type EngineEventKind } from "../application/ports/docker-engine.js";
 import type { EngineContainerSpec } from "../domain/container-spec.js";
 import { demuxStdcopy, isMultiplexed } from "./stdcopy.js";
 
@@ -102,6 +102,56 @@ export class DockerSocketEngine extends DockerEngine {
     if (/name .* is already in use/i.test(message)) return "errors.nameInUse";
     if (/in use|active endpoints|being used/i.test(message)) return "errors.inUse";
     return "errors.conflict";
+  }
+
+  /** Streams `/events`, reconnecting with backoff (250 ms → 8 s) until aborted. */
+  async *events(signal: AbortSignal): AsyncIterable<EngineEventKind> {
+    let delay = 250;
+    while (!signal.aborted) {
+      try {
+        for await (const kind of this.eventStream(signal)) {
+          delay = 250;
+          yield kind;
+        }
+      } catch {
+        /* daemon unreachable: retry below */
+      }
+      if (signal.aborted) return;
+      yield "container"; // after a gap, tell clients to refetch everything
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay = Math.min(delay * 2, 8000);
+    }
+  }
+
+  private async *eventStream(signal: AbortSignal): AsyncIterable<EngineEventKind> {
+    const filters = encodeURIComponent(
+      JSON.stringify({ type: ["container", "network", "image", "volume"] }),
+    );
+    const res = await new Promise<IncomingMessage>((resolve, reject) => {
+      const req = request(
+        {
+          socketPath: this.socketPath,
+          path: `/v1.43/events?filters=${filters}`,
+          method: "GET",
+          signal,
+        },
+        resolve,
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    let buffered = "";
+    for await (const chunk of res) {
+      buffered += (chunk as Buffer).toString("utf8");
+      const lines = buffered.split("\n");
+      buffered = lines.pop() ?? "";
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const type = (JSON.parse(line) as { Type?: string }).Type;
+        if (type === "container" || type === "network" || type === "image" || type === "volume")
+          yield type;
+      }
+    }
   }
 
   async info(): Promise<EngineInfo> {

@@ -93,6 +93,8 @@
     "networkNotEmpty": "Primero mové o eliminá sus contenedores.",
     "removeContainerTitle": "¿Eliminar el contenedor {{name}}?",
     "removeContainerBody": "Se elimina el contenedor ({{image}}). Sus volúmenes se conservan.",
+    "joinNetwork": "Unir también a la red…",
+    "joinHint": "Un contenedor en dos redes las conecta: usalo para un proxy inverso que debe llegar a servicios aislados.",
     "disconnect": "Salir de la red",
     "empty": "Todavía no hay contenedores. Arrastrá algo desde la paleta."
   },

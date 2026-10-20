@@ -159,3 +159,23 @@ describe("docker api (fake engine)", () => {
     expect((await call("DELETE", `/networks/${backend?.id}`)).res.status).toBe(409);
   });
 });
+
+describe("events stream", () => {
+  it("pushes a change event when a resource is mutated", async () => {
+    const abort = new AbortController();
+    const res = await fetch(`${base}/api/v1/events`, { headers: { cookie }, signal: abort.signal });
+    expect(res.headers.get("content-type")).toContain("text/event-stream");
+    const reader = res.body?.getReader();
+    const decoder = new TextDecoder();
+    await new Promise((r) => setTimeout(r, 100));
+    await call("POST", "/volumes", { name: "events-vol" });
+    let text = "";
+    while (!text.includes("volume")) {
+      const chunk = await reader?.read();
+      if (!chunk || chunk.done) break;
+      text += decoder.decode(chunk.value);
+    }
+    abort.abort();
+    expect(text).toContain('"kind":"volume"');
+  });
+});

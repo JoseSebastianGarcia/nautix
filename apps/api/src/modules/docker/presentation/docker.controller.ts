@@ -14,11 +14,16 @@ import {
   Get,
   HttpCode,
   Inject,
+  type MessageEvent,
   Param,
   Post,
   Query,
+  Req,
+  Sse,
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
+import type { Request } from "express";
+import { Observable } from "rxjs";
 import { z } from "zod";
 import { parse } from "../../../shared/zod-body.js";
 import { ConnectNetworkCommand } from "../application/commands/connect-network.command.js";
@@ -32,12 +37,14 @@ import { RemoveContainerCommand } from "../application/commands/remove-container
 import { RemoveImageCommand } from "../application/commands/remove-image.command.js";
 import { RemoveNetworkCommand } from "../application/commands/remove-network.command.js";
 import { RemoveVolumeCommand } from "../application/commands/remove-volume.command.js";
+import type { EngineEventKind } from "../application/ports/docker-engine.js";
 import { GetContainerLogsQuery } from "../application/queries/get-container-logs.query.js";
 import { GetEngineInfoQuery } from "../application/queries/get-engine-info.query.js";
 import { ListContainersQuery } from "../application/queries/list-containers.query.js";
 import { ListImagesQuery } from "../application/queries/list-images.query.js";
 import { ListNetworksQuery } from "../application/queries/list-networks.query.js";
 import { ListVolumesQuery } from "../application/queries/list-volumes.query.js";
+import { WatchEventsQuery } from "../application/queries/watch-events.query.js";
 
 const Force = z.object({ force: z.enum(["true", "false"]).default("false") });
 const Logs = z.object({ tail: z.coerce.number().int().min(1).max(5000).default(200) });
@@ -52,6 +59,25 @@ export class DockerController {
   @Get("engine")
   engine() {
     return this.queries.execute(new GetEngineInfoQuery());
+  }
+
+  /** Server-sent events: each message says only *what kind* of resource changed; clients refetch. */
+  @Sse("events")
+  events(@Req() req: Request): Observable<MessageEvent> {
+    return new Observable<MessageEvent>((subscriber) => {
+      const abort = new AbortController();
+      req.on("close", () => abort.abort());
+      (async () => {
+        const stream = await this.queries.execute<WatchEventsQuery, AsyncIterable<EngineEventKind>>(
+          new WatchEventsQuery(abort.signal),
+        );
+        for await (const kind of stream) subscriber.next({ data: { kind } });
+        subscriber.complete();
+      })().catch((error) =>
+        abort.signal.aborted ? subscriber.complete() : subscriber.error(error),
+      );
+      return () => abort.abort();
+    });
   }
 
   @Get("catalog")

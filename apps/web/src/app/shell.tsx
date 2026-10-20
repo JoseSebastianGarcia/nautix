@@ -15,6 +15,7 @@ import { type ThemeChoice, useTheme } from "../theme/theme-store.js";
 import { api } from "./api.js";
 import { keys, useEngine, useSession } from "./queries.js";
 import { useApiMutation } from "./use-api-mutation.js";
+import { useEngineEvents } from "./use-engine-events.js";
 
 const NAV = [
   { to: "/", key: "nav.topology", icon: Workflow },
@@ -28,6 +29,7 @@ const THEMES: ThemeChoice[] = ["system", "dark", "light"];
 
 export function Shell() {
   const { t, i18n } = useTranslation();
+  useEngineEvents();
   const { data: engine } = useEngine();
   const { data: session } = useSession();
   const theme = useTheme();
