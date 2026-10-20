@@ -15,7 +15,8 @@
     "gateway": "Gateways",
     "resources": "Recursos",
     "builds": "Builds",
-    "swarm": "Swarm"
+    "swarm": "Swarm",
+    "dns": "DNS"
   },
   "common": {
     "cancel": "Cancelar",
@@ -314,7 +315,10 @@
     "pluginPrivileges": "Los permisos no coinciden con lo que pide el plugin",
     "swarmActive": "Este nodo ya forma parte de un swarm",
     "swarmLastManager": "Es el último manager: para salir hace falta forzar",
-    "swarmRejected": "El swarm rechazó la solicitud"
+    "swarmRejected": "El swarm rechazó la solicitud",
+    "dnsInvalidRecord": "Nombre de dominio o dirección IP inválidos",
+    "notDns": "Este contenedor no es un servidor DNS que Nautix pueda editar",
+    "dnsNotRunning": "El contenedor DNS no está en ejecución"
   },
   "terminal": {
     "title": "Terminal",
@@ -786,5 +790,29 @@
     "installing": "Instalando {{name}}…",
     "removeTitle": "¿Quitar el plugin {{name}}?",
     "removeBody": "Un plugin activo se desactiva primero. Los volúmenes o redes que lo usan dejan de funcionar."
+  },
+  "dns": {
+    "title": "DNS",
+    "intro": "Asigná una IP a tus propios nombres (por ejemplo app.home.lab). Los contenedores y equipos que usen tu contenedor DNS como resolver los van a encontrar; cualquier otro nombre se reenvía al DNS externo.",
+    "server": "Servidor DNS",
+    "needServer": "Primero necesitás un contenedor DNS",
+    "needServerBody": "Desplegá dnsmasq desde la paleta (Topología → DNS → dnsmasq) y va a aparecer acá, listo para editar.",
+    "goDeploy": "Ir a la paleta",
+    "unsupported": "Encontrados, pero Nautix todavía no los puede editar (solo dnsmasq de la paleta):",
+    "useIt": "Cómo usar este DNS",
+    "useInNetwork": "Contenedores en {{network}}",
+    "useFromHost": "Desde esta máquina",
+    "notRunning": "El contenedor DNS está detenido: iniciálo para aplicar o probar registros.",
+    "domain": "Dominio",
+    "domainHint": "También cubre sus subdominios (db.app.lab → misma IP que app.lab).",
+    "ip": "Dirección IP",
+    "add": "Agregar",
+    "clash": "Ese nombre ya tiene una dirección del mismo tipo.",
+    "test": "Preguntarle al servidor",
+    "apply": "Guardar y aplicar",
+    "applyHint": "Escribe los registros en el contenedor y lo reinicia (cerca de un segundo sin DNS).",
+    "unsaved": "Cambios sin guardar",
+    "applied": "Registros DNS aplicados",
+    "rejected": "El servidor DNS rechazó los registros"
   }
 }

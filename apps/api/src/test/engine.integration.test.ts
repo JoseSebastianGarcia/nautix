@@ -473,6 +473,96 @@ describe("against a real Docker daemon", () => {
     expect(miss).not.toContain("pong");
   });
 
+  it("serves custom DNS records from a real dnsmasq, and keeps them after the container restarts", async () => {
+    try {
+      docker("image", "inspect", "dockurr/dnsmasq:2.93");
+    } catch {
+      return; // image not available offline: nothing to verify
+    }
+    const nets = (await call("GET", "/networks")).json as Net[];
+    const b = nets.find((n) => n.name === `${PREFIX}b`);
+    const template = (await call("GET", "/catalog")).json.find(
+      (t: { id: string }) => t.id === "dnsmasq",
+    );
+    const created = await call("POST", "/containers", {
+      name: `${PREFIX}dns`,
+      image: template.image,
+      networkId: b?.id,
+      restartPolicy: "no",
+      env: template.env,
+      volumes: template.volumes,
+    });
+    expect(created.res.status).toBe(201);
+    await new Promise((r) => setTimeout(r, 1500));
+
+    const servers = (await call("GET", "/dns")).json as {
+      name: string;
+      kind: string;
+      ips: Record<string, string>;
+    }[];
+    const me = servers.find((s) => s.name === `${PREFIX}dns`);
+    expect(me?.kind).toBe("dnsmasq");
+    expect(Object.values(me?.ips ?? {})[0]).toMatch(/^\d+\.\d+\.\d+\.\d+$/);
+
+    expect(
+      (
+        await call("PUT", `/dns/${PREFIX}dns/records`, {
+          records: [
+            { name: "app.lab.test", ip: "10.9.8.7" },
+            { name: "v6.lab.test", ip: "fd00::7" },
+          ],
+        })
+      ).res.status,
+    ).toBe(204);
+    const applied = await call("POST", `/dns/${PREFIX}dns/apply`);
+    expect(applied.json.ok, applied.json.output).toBe(true);
+
+    let answer = "";
+    for (let i = 0; i < 20 && !answer.includes("10.9.8.7"); i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      const r = await call("GET", `/dns/${PREFIX}dns/lookup?host=app.lab.test`);
+      answer = r.json.output;
+    }
+    expect(answer).toContain("10.9.8.7");
+    // a subdomain follows the record, a name nobody owns does not
+    expect(
+      (await call("GET", `/dns/${PREFIX}dns/lookup?host=sub.app.lab.test`)).json.output,
+    ).toContain("10.9.8.7");
+    expect((await call("GET", `/dns/${PREFIX}dns/lookup?host=v6.lab.test`)).json.output).toContain(
+      "fd00::7",
+    );
+
+    // another container on the network can use it as its resolver
+    const ip = Object.values(me?.ips ?? {})[0] as string;
+    const viaNetwork = docker(
+      "exec",
+      `${PREFIX}svc`,
+      "sh",
+      "-c",
+      `nslookup app.lab.test ${ip} 2>&1 || true`,
+    );
+    expect(viaNetwork).toContain("10.9.8.7");
+
+    // a rejected file never replaces the working one (the script checks it with dnsmasq itself)
+    docker(
+      "exec",
+      `${PREFIX}dns`,
+      "sh",
+      "-c",
+      "echo 'not-a-directive=1' > /etc/dnsmasq.d/nautix.conf.new && dnsmasq --test --conf-file=/etc/dnsmasq.d/nautix.conf.new >/dev/null 2>&1 || rm -f /etc/dnsmasq.d/nautix.conf.new",
+    );
+    expect(docker("exec", `${PREFIX}dns`, "cat", "/etc/dnsmasq.d/nautix.conf")).toContain(
+      "address=/app.lab.test/10.9.8.7",
+    );
+
+    // records live in a volume: a restart keeps them
+    docker("restart", `${PREFIX}dns`);
+    await new Promise((r) => setTimeout(r, 1500));
+    expect((await call("GET", `/dns/${PREFIX}dns/lookup?host=app.lab.test`)).json.output).toContain(
+      "10.9.8.7",
+    );
+  });
+
   it("lists plugins through the real engine", async () => {
     const res = await call("GET", "/plugins");
     expect(res.res.status).toBe(200);

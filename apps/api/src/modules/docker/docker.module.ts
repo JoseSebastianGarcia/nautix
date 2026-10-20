@@ -3,6 +3,7 @@ import { type DynamicModule, Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 import { APP_CONFIG, type AppConfig } from "../../shared/config.js";
 import { openDatabase } from "../../shared/sqlite-database.js";
+import { ApplyDnsHandler } from "./application/commands/apply-dns.handler.js";
 import { ApplyGatewayHandler } from "./application/commands/apply-gateway.handler.js";
 import { BuildImageHandler } from "./application/commands/build-image.handler.js";
 import { CommitContainerHandler } from "./application/commands/commit-container.handler.js";
@@ -52,6 +53,7 @@ import { ListImagesHandler } from "./application/queries/list-images.handler.js"
 import { ListNetworksHandler } from "./application/queries/list-networks.handler.js";
 import { ListRegistriesHandler } from "./application/queries/list-registries.handler.js";
 import { ListVolumesHandler } from "./application/queries/list-volumes.handler.js";
+import { LookupDnsHandler } from "./application/queries/lookup-dns.handler.js";
 import { PreviewPruneHandler } from "./application/queries/preview-prune.handler.js";
 import { SaveImageHandler } from "./application/queries/save-image.handler.js";
 import { SearchImagesHandler } from "./application/queries/search-images.handler.js";
@@ -103,6 +105,8 @@ const HANDLERS = [
   ImportImageHandler,
   PushImageHandler,
   BuildImageHandler,
+  ApplyDnsHandler,
+  LookupDnsHandler,
   BrowseVolumeHandler,
   SaveRegistryHandler,
   RemoveRegistryHandler,

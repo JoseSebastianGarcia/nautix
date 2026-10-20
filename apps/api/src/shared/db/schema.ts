@@ -59,4 +59,13 @@ export const MIGRATIONS: readonly Migration[] = [
       if (!hasRole) db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'admin'");
     },
   },
+  {
+    version: 2,
+    name: "dns_records",
+    up(db: Db) {
+      db.exec(
+        "CREATE TABLE IF NOT EXISTS dns_records (container TEXT PRIMARY KEY, json TEXT NOT NULL)",
+      );
+    },
+  },
 ];

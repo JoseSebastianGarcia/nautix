@@ -15,7 +15,8 @@
     "gateway": "Gateways",
     "resources": "Resources",
     "builds": "Builds",
-    "swarm": "Swarm"
+    "swarm": "Swarm",
+    "dns": "DNS"
   },
   "common": {
     "cancel": "Cancel",
@@ -314,7 +315,10 @@
     "pluginPrivileges": "The permissions do not match what the plugin asks for",
     "swarmActive": "This node is already part of a swarm",
     "swarmLastManager": "This is the last manager: leaving needs force",
-    "swarmRejected": "The swarm rejected the request"
+    "swarmRejected": "The swarm rejected the request",
+    "dnsInvalidRecord": "Invalid domain name or IP address",
+    "notDns": "This container is not a DNS server Nautix can edit",
+    "dnsNotRunning": "The DNS container is not running"
   },
   "terminal": {
     "title": "Terminal",
@@ -786,5 +790,29 @@
     "installing": "Installing {{name}}…",
     "removeTitle": "Remove plugin {{name}}?",
     "removeBody": "An enabled plugin is disabled first. Volumes or networks that use it stop working."
+  },
+  "dns": {
+    "title": "DNS",
+    "intro": "Give your own names (for example app.home.lab) an IP address. Containers and machines that use your DNS container as their resolver will find them; every other name is forwarded to the upstream DNS.",
+    "server": "DNS server",
+    "needServer": "You need a DNS container first",
+    "needServerBody": "Deploy dnsmasq from the palette (Topology → DNS → dnsmasq) and it will show up here, ready to edit.",
+    "goDeploy": "Go to the palette",
+    "unsupported": "Found, but Nautix cannot edit these yet (only dnsmasq from the palette):",
+    "useIt": "How to use this DNS",
+    "useInNetwork": "Containers on {{network}}",
+    "useFromHost": "From this machine",
+    "notRunning": "The DNS container is stopped: start it to apply or test records.",
+    "domain": "Domain",
+    "domainHint": "Also covers its subdomains (db.app.lab → same IP as app.lab).",
+    "ip": "IP address",
+    "add": "Add",
+    "clash": "That name already has an address of the same type.",
+    "test": "Ask the server",
+    "apply": "Save and apply",
+    "applyHint": "Writes the records into the container and restarts it (about a second without DNS).",
+    "unsaved": "Unsaved changes",
+    "applied": "DNS records applied",
+    "rejected": "The DNS server rejected the records"
   }
 }

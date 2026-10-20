@@ -5,6 +5,7 @@ export const RESOURCE_TABS = [
   { to: "/volumes", key: "nav.volumes" },
   { to: "/networks", key: "nav.networks" },
   { to: "/builds", key: "nav.builds" },
+  { to: "/dns", key: "nav.dns" },
   { to: "/swarm", key: "nav.swarm" },
 ] as const;
 

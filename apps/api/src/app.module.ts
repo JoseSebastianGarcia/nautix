@@ -6,6 +6,7 @@ import type { Restarter } from "./modules/backup/application/ports/backup-servic
 import { BackupModule } from "./modules/backup/backup.module.js";
 import { CatalogModule } from "./modules/catalog/catalog.module.js";
 import { ComposeModule } from "./modules/compose/compose.module.js";
+import { DnsModule } from "./modules/dns/dns.module.js";
 import { DockerModule } from "./modules/docker/docker.module.js";
 import { GatewayModule } from "./modules/gateway/gateway.module.js";
 import { LayoutModule } from "./modules/layout/layout.module.js";
@@ -33,6 +34,7 @@ export class AppModule {
         TlsModule.register(tls),
         SwarmModule.register(config),
         PluginsModule.register(config),
+        DnsModule.register(config),
         BackupModule.register(config, restarter),
       ],
       controllers: [HealthController],

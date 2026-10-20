@@ -10,6 +10,7 @@ describe("navigation", () => {
       "/volumes",
       "/networks",
       "/builds",
+      "/dns",
     ]) {
       expect(isActivePath("/containers", p)).toBe(true);
       expect(isResourcePath(p)).toBe(true);

@@ -239,15 +239,18 @@ export const TEMPLATES: readonly Template[] = [
     id: "dnsmasq",
     name: "dnsmasq",
     category: "dns",
-    image: "jpillora/dnsmasq:1.1",
-    description: "Lightweight DNS with a web editor for custom domains",
+    image: "dockurr/dnsmasq:2.93",
+    description: "Lightweight DNS: edit your own domains in the DNS tab",
     icon: "dnsmasq",
     color: "#3B82F6",
     ports: [
       { containerPort: 53, label: "dns", protocol: "udp", hostPort: 5353 },
-      { containerPort: 8080, label: "web" },
+      { containerPort: 53, label: "dns", protocol: "tcp", hostPort: 5353 },
     ],
-    env: { HTTP_USER: "admin", HTTP_PASS: "change-me" },
+    // Upstream resolvers for names that are not yours; change them if your network blocks these.
+    env: { DNS1: "1.1.1.1", DNS2: "1.0.0.1" },
+    // Nautix writes /etc/dnsmasq.d/nautix.conf; the volume keeps it when the container is recreated.
+    volumes: ["/etc/dnsmasq.d"],
   },
   {
     id: "kafka",

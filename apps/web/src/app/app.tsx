@@ -6,6 +6,7 @@ import { AuthPage } from "../features/auth/auth-page.js";
 import { BuildsPage } from "../features/builds/builds-page.js";
 import { ComposeProjectsPage } from "../features/compose/compose-projects-page.js";
 import { ContainerPage } from "../features/containers/container-page.js";
+import { DnsPage } from "../features/dns/dns-page.js";
 import { GatewayPage } from "../features/gateway/gateway-page.js";
 import { ContainersPage } from "../features/resources/containers-page.js";
 import { ImagesPage } from "../features/resources/images-page.js";
@@ -64,6 +65,7 @@ export function App() {
             <Route path="volumes" element={<VolumesPage />} />
             <Route path="networks" element={<NetworksPage />} />
             <Route path="builds" element={<BuildsPage />} />
+            <Route path="dns" element={<DnsPage />} />
             <Route path="swarm" element={<SwarmPage />} />
             <Route path="compose" element={<ComposeProjectsPage />} />
             <Route

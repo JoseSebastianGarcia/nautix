@@ -18,6 +18,9 @@ import type {
   CreateUser,
   CustomTemplateInput,
   DiskUsage,
+  DnsApplyResult,
+  DnsRecord,
+  DnsServer,
   EngineInfo,
   FsChange,
   GatewayApplyResult,
@@ -140,6 +143,13 @@ export const api = {
     request<void>("POST", `/plugins/${encodeURIComponent(name)}/disable`),
   removePlugin: (name: string, force: boolean) =>
     request<void>("DELETE", `/plugins/${encodeURIComponent(name)}?force=${force}`),
+  dnsServers: () => request<DnsServer[]>("GET", "/dns"),
+  dnsRecords: (name: string) => request<DnsRecord[]>("GET", `/dns/${name}/records`),
+  saveDnsRecords: (name: string, records: DnsRecord[]) =>
+    request<void>("PUT", `/dns/${name}/records`, { records }),
+  applyDns: (name: string) => request<DnsApplyResult>("POST", `/dns/${name}/apply`),
+  dnsLookup: (name: string, host: string) =>
+    request<DnsApplyResult>("GET", `/dns/${name}/lookup?host=${encodeURIComponent(host)}`),
   browseVolume: (name: string, path: string, view: boolean) =>
     request<VolumeBrowseResult>(
       "GET",

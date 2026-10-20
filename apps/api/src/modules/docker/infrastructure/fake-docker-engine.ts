@@ -352,6 +352,11 @@ export class FakeDockerEngine extends DockerEngine {
         output:
           "total 8\n-rw-r--r--    1 root     root            18 Oct 20 12:00 hello.txt\ndrwxr-xr-x    2 root     root          4096 Oct 20 12:00 data/\n",
       };
+    if (command[0] === "nslookup")
+      return {
+        exitCode: 0,
+        output: `Server: 127.0.0.1\n\nName: ${command[1] ?? ""}\nAddress: 10.0.0.5`,
+      };
     if (command[0] === "head") return { exitCode: 0, output: "hello from the volume\n" };
     return { exitCode: 0, output: `ran: ${command[0] ?? ""}` };
   }

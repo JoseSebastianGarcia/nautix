@@ -1105,6 +1105,64 @@ describe("image tools and system commands", () => {
     await call("DELETE", `/settings/users/${id}`);
   });
 
+  it("edits custom DNS records of a dnsmasq container", async () => {
+    await call("POST", "/containers", {
+      name: "dns1",
+      image: "dockurr/dnsmasq:2.93",
+      networkId: null,
+    });
+    await call("POST", "/containers", {
+      name: "other-dns",
+      image: "adguard/adguardhome",
+      networkId: null,
+    });
+    const servers = (
+      (await call("GET", "/dns")).json as { name: string; kind: string | null }[]
+    ).filter((s) => ["dns1", "other-dns"].includes(s.name));
+    expect(servers.map((s) => [s.name, s.kind])).toEqual([
+      ["dns1", "dnsmasq"],
+      ["other-dns", null],
+    ]);
+
+    expect((await call("GET", "/dns/dns1/records")).json).toEqual([]);
+    expect(
+      (
+        await call("PUT", "/dns/dns1/records", {
+          records: [
+            { name: "Web.Lab", ip: "10.0.0.5" },
+            { name: "db.lab", ip: "fd00::5" },
+          ],
+        })
+      ).res.status,
+    ).toBe(204);
+    expect((await call("GET", "/dns/dns1/records")).json).toEqual([
+      { name: "web.lab", ip: "10.0.0.5" },
+      { name: "db.lab", ip: "fd00::5" },
+    ]);
+    expect(
+      (await call("PUT", "/dns/dns1/records", { records: [{ name: "bad name", ip: "10.0.0.5" }] }))
+        .res.status,
+    ).toBe(422);
+    expect(
+      (
+        await call("PUT", "/dns/dns1/records", {
+          records: [
+            { name: "a.lab", ip: "1.1.1.1" },
+            { name: "a.lab", ip: "2.2.2.2" },
+          ],
+        })
+      ).res.status,
+    ).toBe(422);
+
+    const applied = await call("POST", "/dns/dns1/apply");
+    expect(applied.json.ok).toBe(true);
+    expect((await call("POST", "/dns/other-dns/apply")).res.status).toBe(422);
+    expect((await call("POST", "/dns/missing/apply")).res.status).toBe(404);
+    const lookup = await call("GET", "/dns/dns1/lookup?host=web.lab");
+    expect(lookup.json.ok).toBe(true);
+    expect((await call("GET", "/dns/dns1/lookup?host=bad%20host")).res.status).toBe(422);
+  });
+
   it("reports info, version and disk usage", async () => {
     expect(
       ((await call("GET", "/system/info")).json as { ServerVersion: string }).ServerVersion,
