@@ -62,6 +62,8 @@ pnpm lint && pnpm typecheck && pnpm test
 - **Any image**: deploy anything with its ports, environment variables, data volumes, command and restart policy, and save it to the panel to reuse. Also built in: SQL Server, Kafka and n8n.
 - **Tunnels between boxes**: drag from one box's connector dot to another's to expose one TCP port of a service across two otherwise isolated networks (a tiny socat forwarder; nothing is published on the host).
 - **DNS for your own domains**: AdGuard Home, Pi-hole and dnsmasq are in the palette (53/udp and 53/tcp supported; any image can publish UDP ports).
+- **Docker commands**: 36 of the 59 top-level commands are fully covered and 8 partly (see `docs/spec/05-commands.md`, checked by a test against `docker --help`). Container pages cover inspect/stats/top/diff/rename/update/wait/commit/export/cp; images cover tag/history/save/load/import/search/push; **System** has info, disk usage, a prune wizard with preview, and live events.
+- **Brand logos**: drop `logo-light.png` and `logo-dark.png` in `apps/web/public/brand/`; the login screen picks one by theme.
 - **Nautix is locked**: its own container can't be stopped, restarted, removed or edited from the UI or API.
 - Where things are stored: everything lives in the data directory (`/data`, volume `nautix-data` with Docker): `nautix.db` (SQLite) holds users, sessions, API tokens, canvas layout, saved templates and Compose projects.
 - Every action has a **Show command** with the equivalent `docker` CLI line.

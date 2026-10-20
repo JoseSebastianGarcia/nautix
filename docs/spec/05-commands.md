@@ -5,82 +5,94 @@
 Route: `API` = Docker Engine API via `ContainerEngine`; `CLI` = Docker CLI via `DockerCli`/dedicated adapter; `LOCAL` = Nautix-only logic.
 Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 
+## Status legend
+
+`Done` = reachable in the UI with the flags people use daily. `Partial` = works, with gaps named in the table below. `Planned` = not built yet (milestone in the M column).
+
+Gaps in `Partial` rows: **run** has no healthcheck or resource limits at creation (use Update afterwards) · **ps** has no filters · **login/logout** do not keep registries (credentials are sent once per push; a stateless login check exists) · **compose** covers up/down/pull/config, not ps/logs/build · **volume** has no file browser or update · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls (no since/until).
+
 ## Common (13)
 
-| Command | Route | UI placement | M |
-|---|---|---|---|
-| run | API (create+start; pull if needed) | "Run container" wizard (image, name, ports, env, volumes, network, resources, restart policy, healthcheck); also Images → Run | M1 |
-| exec | API | Container → Exec tab (terminal) / one-shot command dialog | M1 |
-| ps | API | Containers list (filters: status, label, compose project, name) | M1 |
-| build | CLI (buildx) | Builds → New build | M4 |
-| bake | CLI (buildx bake) | Builds → Bake | M4 |
-| pull | API (stream) | Images → Pull dialog with layer progress | M1 |
-| push | API (stream, auth) | Images → Push (registry selector) | M1 |
-| images | API | Images list (dangling, digests, tree view) | M1 |
-| login | CLI + SecretStore | Registries → Add/Sign in | M1 |
-| logout | CLI + SecretStore | Registries → Sign out | M1 |
-| search | API | Images → Search Hub (stars, official) | M1 |
-| version | API + CLI | About / System → Versions | M1 |
-| info | API | System → Info (formatted + raw) | M1 |
+| Command | Route | UI placement | M | Status |
+|---|---|---|---|---|
+| run | API (create+start; pull if needed) | "Run container" wizard (image, name, ports, env, volumes, network, resources, restart policy, healthcheck); also Images → Run | M1 | Partial |
+| exec | API | Container → Exec tab (terminal) / one-shot command dialog | M1 | Done |
+| ps | API | Containers list (filters: status, label, compose project, name) | M1 | Partial |
+| build | CLI (buildx) | Builds → New build | M4 | Planned |
+| bake | CLI (buildx bake) | Builds → Bake | M4 | Planned |
+| pull | API (stream) | Images → Pull dialog with layer progress | M1 | Done |
+| push | API (stream, auth) | Images → Push (registry selector) | M1 | Done |
+| images | API | Images list (dangling, digests, tree view) | M1 | Done |
+| login | CLI + SecretStore | Registries → Add/Sign in | M1 | Partial |
+| logout | CLI + SecretStore | Registries → Sign out | M1 | Partial |
+| search | API | Images → Search Hub (stars, official) | M1 | Done |
+| version | API + CLI | About / System → Versions | M1 | Done |
+| info | API | System → Info (formatted + raw) | M1 | Done |
 
 ## Management (11)
 
-| Command | Route | UI placement | M |
-|---|---|---|---|
-| builder | CLI | Builds → Builders (alias of image build management: prune, ls) | M4 |
-| buildx | CLI | Builds → Builders (create/use/inspect/rm/du/prune/stop) | M4 |
-| compose | CLI | Compose editor operations bar + Projects list | M3 |
-| container | API | Containers (all subcommands in rows below) | M1 |
-| context | CLI + LOCAL | Settings → Targets (list/inspect/create/update/use/export/import/rm; v1 shows the local target, remote post-1.0); top-bar target chip | M1 |
-| image | API | Images (all subcommands in rows below) | M1 |
-| manifest | CLI | Images → Manifest (inspect/create/annotate/push/rm) | M5 |
-| network | API | Networks list + graph | M2 |
-| plugin | API | System → Plugins (ls/install/enable/disable/inspect/upgrade/set/rm) | M5 |
-| system | API + CLI | System → Disk usage, Prune wizard, Events, Info | M1 |
-| volume | API | Volumes (create/ls/inspect/rm/prune/update; browse files via helper container) | M1 |
+| Command | Route | UI placement | M | Status |
+|---|---|---|---|---|
+| builder | CLI | Builds → Builders (alias of image build management: prune, ls) | M4 | Planned |
+| buildx | CLI | Builds → Builders (create/use/inspect/rm/du/prune/stop) | M4 | Planned |
+| compose | CLI | Compose editor operations bar + Projects list | M3 | Partial |
+| container | API | Containers (all subcommands in rows below) | M1 | Done |
+| context | CLI + LOCAL | Settings → Targets (list/inspect/create/update/use/export/import/rm; v1 shows the local target, remote post-1.0); top-bar target chip | M1 | Planned |
+| image | API | Images (all subcommands in rows below) | M1 | Done |
+| manifest | CLI | Images → Manifest (inspect/create/annotate/push/rm) | M5 | Planned |
+| network | API | Networks list + graph | M2 | Done |
+| plugin | API | System → Plugins (ls/install/enable/disable/inspect/upgrade/set/rm) | M5 | Planned |
+| system | API + CLI | System → Disk usage, Prune wizard, Events, Info | M1 | Done |
+| volume | API | Volumes (create/ls/inspect/rm/prune/update; browse files via helper container) | M1 | Partial |
 
 > `trust`, `model`, `mcp`, `ai` and other plugin-provided top-level commands appear in `docker --help` only on some versions. If present in `corpus/docker-help.txt`, add rows here (Route: CLI, UI: Terminal + dedicated dialog for `trust` in Registries). Do not invent entries.
 
 ## Swarm (1)
 
-| Command | Route | UI placement | M |
-|---|---|---|---|
-| swarm | API | Swarm → Init/Join/Leave/Unlock/Join-token/CA/Update; and nodes/services/stacks/secrets/configs views (`node`, `service`, `stack`, `secret`, `config` subcommands under Swarm) | M5 |
+| Command | Route | UI placement | M | Status |
+|---|---|---|---|---|
+| swarm | API | Swarm → Init/Join/Leave/Unlock/Join-token/CA/Update | M5 | Planned |
+| node | API | Swarm → Nodes | M5 | Planned |
+| service | API | Swarm → Services | M5 | Planned |
+| stack | CLI | Swarm → Stacks | M5 | Planned |
+| secret | API | Swarm → Secrets | M5 | Planned |
+| config | API | Swarm → Configs | M5 | Planned |
+| checkpoint | API (experimental) | Container → Checkpoints, shown only when the daemon has experimental features on | M5 | Planned |
 
 ## Individual commands (28)
 
-| Command | Route | UI placement | M |
-|---|---|---|---|
-| attach | API (hijack) | Container → Attach tab (terminal; detach keys) | M1 |
-| commit | API | Container → "Create image from container" | M1 |
-| cp | API (archive) | Container → Files (browser upload/download, streamed tar) | M1 |
-| create | API | Run wizard "Create only" | M1 |
-| diff | API | Container → Changes tab | M1 |
-| events | API (stream) | System → Events (filters, pause, export) | M1 |
-| export | API | Container → Export filesystem (.tar) | M1 |
-| history | API | Image → Layers tab | M1 |
-| import | API | Images → Import tarball | M1 |
-| inspect | API | Any object → Inspect (tree + raw JSON, copy path) | M1 |
-| kill | API | Container → Kill (signal picker) | M1 |
-| load | API | Images → Load archive | M1 |
-| logs | API (stream) | Container → Logs (follow, since/until, timestamps, search, tail, export) | M1 |
-| pause | API | Container → Pause | M1 |
-| unpause | API | Container → Unpause | M1 |
-| port | API (inspect) | Container → Ports section | M1 |
-| rename | API | Container → Rename | M1 |
-| restart | API | Container → Restart | M1 |
-| rm | API | Container → Remove (force, volumes) | M1 |
-| rmi | API | Image → Remove (force, no-prune) | M1 |
-| save | API | Image → Save archive | M1 |
-| start | API | Container → Start | M1 |
-| stats | API (stream) | Container → Stats; Dashboard live charts | M1 |
-| stop | API | Container → Stop (timeout/signal) | M1 |
-| tag | API | Image → Tag | M1 |
-| top | API | Container → Processes tab | M1 |
-| update | API | Container → Resources/restart policy editor | M1 |
-| wait | API | Container → "Wait until exit" operation | M1 |
+| Command | Route | UI placement | M | Status |
+|---|---|---|---|---|
+| attach | API (hijack) | Container → Attach tab (terminal; detach keys) | M1 | Partial |
+| commit | API | Container → "Create image from container" | M1 | Done |
+| cp | API (archive) | Container → Files (browser upload/download, streamed tar) | M1 | Done |
+| create | API | Run wizard "Create only" | M1 | Planned |
+| diff | API | Container → Changes tab | M1 | Done |
+| events | API (stream) | System → Events (filters, pause, export) | M1 | Done |
+| export | API | Container → Export filesystem (.tar) | M1 | Done |
+| history | API | Image → Layers tab | M1 | Done |
+| import | API | Images → Import tarball | M1 | Done |
+| inspect | API | Any object → Inspect (tree + raw JSON, copy path) | M1 | Done |
+| kill | API | Container → Kill (signal picker) | M1 | Done |
+| load | API | Images → Load archive | M1 | Done |
+| logs | API (stream) | Container → Logs (follow, since/until, timestamps, search, tail, export) | M1 | Partial |
+| pause | API | Container → Pause | M1 | Done |
+| unpause | API | Container → Unpause | M1 | Done |
+| port | API (inspect) | Container → Ports section | M1 | Done |
+| rename | API | Container → Rename | M1 | Done |
+| restart | API | Container → Restart | M1 | Done |
+| rm | API | Container → Remove (force, volumes) | M1 | Done |
+| rmi | API | Image → Remove (force, no-prune) | M1 | Done |
+| save | API | Image → Save archive | M1 | Done |
+| start | API | Container → Start | M1 | Done |
+| stats | API (stream) | Container → Stats; Dashboard live charts | M1 | Done |
+| stop | API | Container → Stop (timeout/signal) | M1 | Done |
+| tag | API | Image → Tag | M1 | Done |
+| top | API | Container → Processes tab | M1 | Done |
+| update | API | Container → Resources/restart policy editor | M1 | Done |
+| wait | API | Container → "Wait until exit" operation | M1 | Done |
 
-(Count check: 13 + 11 + 1 + 28 = 53.)
+(Count check: 13 + 11 + 1 + 28 = 53 from the original spec. `docker --help` on Docker 29 lists 59 commands: the extra six are the swarm sub-areas and `checkpoint`, now rows of their own.)
 
 ## Subcommand coverage
 
