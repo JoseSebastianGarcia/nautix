@@ -51,6 +51,16 @@ export class ApiError extends Error {
   }
 }
 
+export interface AuditRow {
+  id: number;
+  at: number;
+  actor: string;
+  kind: string;
+  action: string;
+  status: number;
+  detail: string;
+}
+
 const request = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
   const res = await fetch(`/api/v1${path}`, {
     method,
@@ -87,6 +97,20 @@ export const api = {
   saveRegistry: (b: SaveRegistry) => request<RegistryInfo>("PUT", "/registries", b),
   removeRegistry: (server: string) =>
     request<void>("DELETE", `/registries/${encodeURIComponent(server)}`),
+  audit: (before?: number) =>
+    request<AuditRow[]>("GET", `/settings/audit?limit=100${before ? `&before=${before}` : ""}`),
+  restoreBackup: async (file: File) => {
+    const res = await fetch("/api/v1/settings/restore", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "x-nautix-csrf": "1", "content-type": "application/gzip" },
+      body: file,
+    });
+    if (!res.ok) {
+      const problem = (await res.json().catch(() => ({}))) as { code?: string; hintKey?: string };
+      throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey);
+    }
+  },
   tls: () => request<TlsStatus>("GET", "/settings/tls"),
   setTlsHosts: (hosts: string[]) => request<TlsStatus>("PUT", "/settings/tls/hosts", { hosts }),
   setTlsCustom: (b: TlsCustomCertificate) => request<TlsStatus>("PUT", "/settings/tls/custom", b),

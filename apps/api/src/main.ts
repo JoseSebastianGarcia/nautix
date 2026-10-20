@@ -7,11 +7,13 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import express from "express";
 import { AppModule } from "./app.module.js";
+import { applyPendingRestore } from "./modules/backup/infrastructure/apply-pending-restore.js";
 import { TlsManager } from "./modules/tls/infrastructure/tls-manager.js";
 import { loadConfig } from "./shared/config.js";
 import { ProblemFilter } from "./shared/problem.filter.js";
 
 const config = loadConfig();
+if (applyPendingRestore(config.dataDir)) console.log("Nautix: restored data from a backup");
 const tls = await TlsManager.create(config);
 await tls?.init();
 const app = await NestFactory.create<NestExpressApplication>(AppModule.register(config, tls), {

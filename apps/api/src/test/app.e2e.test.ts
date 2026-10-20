@@ -17,6 +17,7 @@ let base: string;
 let dataDir: string;
 let setupToken = "";
 let cookie = "";
+let restarts = 0;
 
 const call = async (method: string, path: string, body?: unknown, withCookie = true) => {
   const res = await fetch(`${base}/api/v1${path}`, {
@@ -48,7 +49,15 @@ beforeAll(async () => {
   };
   const logs: string[] = [];
   vi.spyOn(console, "log").mockImplementation((m: string) => logs.push(String(m)));
-  app = await NestFactory.create(AppModule.register(config), { logger: false });
+  restarts = 0;
+  app = await NestFactory.create(
+    AppModule.register(config, undefined, {
+      restartSoon: () => {
+        restarts++;
+      },
+    }),
+    { logger: false },
+  );
   app.use(cookieParser());
   app.useGlobalFilters(new ProblemFilter());
   await app.listen(0, "127.0.0.1");
@@ -771,6 +780,57 @@ describe("image tools and system commands", () => {
 
     expect((await call("DELETE", "/registries/docker.io")).res.status).toBe(204);
     expect((await call("DELETE", "/registries/docker.io")).res.status).toBe(404);
+  });
+
+  it("records who changed what, without bodies or secrets", async () => {
+    await call("PUT", "/registries", {
+      server: "ghcr.io",
+      username: "audit-me",
+      password: "p4ssw0rd-x",
+    });
+    const rows = (await call("GET", "/settings/audit?limit=50")).json as {
+      actor: string;
+      action: string;
+      status: number;
+    }[];
+    expect(rows[0]).toMatchObject({
+      actor: "admin",
+      action: "PUT /api/v1/registries",
+      status: 200,
+    });
+    expect(rows.some((r) => r.action.startsWith("POST /api/v1/auth/login"))).toBe(true);
+    expect(JSON.stringify(rows)).not.toContain("p4ssw0rd-x");
+    expect(rows.every((r) => !r.action.startsWith("GET"))).toBe(true);
+    await call("DELETE", "/registries/ghcr.io");
+  });
+
+  it("downloads a backup and stages a restore without touching live data", async () => {
+    const res = await fetch(`${base}/api/v1/settings/backup`, { headers: { cookie } });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-disposition")).toContain("nautix-backup-");
+    const archive = Buffer.from(await res.arrayBuffer());
+    expect(archive.length).toBeGreaterThan(100);
+
+    const bad = await fetch(`${base}/api/v1/settings/restore`, {
+      method: "POST",
+      headers: { cookie, "x-nautix-csrf": "1", "content-type": "application/gzip" },
+      body: new Uint8Array(Buffer.from("nope")),
+    });
+    expect(bad.status).toBe(422);
+    expect(restarts).toBe(0);
+
+    const ok = await fetch(`${base}/api/v1/settings/restore`, {
+      method: "POST",
+      headers: { cookie, "x-nautix-csrf": "1", "content-type": "application/gzip" },
+      body: new Uint8Array(archive),
+    });
+    expect(ok.status).toBe(202);
+    expect(restarts).toBe(1);
+    const trail = (await call("GET", "/settings/audit?limit=20")).json as { action: string }[];
+    expect(trail.map((r) => r.action)).toEqual(
+      expect.arrayContaining(["backup.download", "backup.restore"]),
+    );
+    rmSync(join(dataDir, "restore-pending"), { recursive: true, force: true });
   });
 
   it("reports info, version and disk usage", async () => {

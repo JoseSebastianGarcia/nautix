@@ -10,6 +10,7 @@ import {
 import { HttpAdapterHost } from "@nestjs/core";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { type RawData, WebSocket, WebSocketServer } from "ws";
+import { AuditLog } from "../../audit/application/ports/audit-log.js";
 import { GetSessionQuery } from "../../auth/application/queries/get-session.query.js";
 import { ListContainersQuery } from "../../docker/application/queries/list-containers.query.js";
 import { OpenTerminalCommand } from "../application/commands/open-terminal.command.js";
@@ -36,6 +37,7 @@ export class TerminalGateway implements OnApplicationBootstrap, OnApplicationShu
     @Inject(HttpAdapterHost) private readonly host: HttpAdapterHost,
     @Inject(CommandBus) private readonly commands: CommandBus,
     @Inject(QueryBus) private readonly queries: QueryBus,
+    @Inject(AuditLog) private readonly audit: AuditLog,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -96,9 +98,13 @@ export class TerminalGateway implements OnApplicationBootstrap, OnApplicationShu
     }
 
     // Audit trail for every interactive session.
-    console.log(
-      JSON.stringify({ audit: "terminal.open", user: session.username, container: containerId }),
-    );
+    this.audit.record({
+      actor: session.username ?? "-",
+      kind: "session",
+      action: "terminal.open",
+      status: 0,
+      detail: containerId,
+    });
     this.wss.handleUpgrade(req, socket, head, (ws) =>
       this.bridge(ws, channel, session.username ?? "", containerId),
     );
@@ -121,7 +127,13 @@ export class TerminalGateway implements OnApplicationBootstrap, OnApplicationShu
     });
     ws.on("close", () => {
       channel.close();
-      console.log(JSON.stringify({ audit: "terminal.close", user, container: containerId }));
+      this.audit.record({
+        actor: user,
+        kind: "session",
+        action: "terminal.close",
+        status: 0,
+        detail: containerId,
+      });
     });
   }
 }

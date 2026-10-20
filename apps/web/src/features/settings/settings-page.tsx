@@ -20,6 +20,8 @@ export function SettingsPage() {
       <TokensSection />
       <RegistriesSection />
       <TlsSection />
+      <BackupSection />
+      <AuditSection />
     </div>
   );
 }
@@ -515,6 +517,100 @@ function RegistriesSection() {
         onConfirm={() => target && remove.mutate(target)}
         onClose={() => setTarget(null)}
       />
+    </section>
+  );
+}
+
+function BackupSection() {
+  const { t } = useTranslation();
+  const [confirm, setConfirm] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const restore = useApiMutation(
+    (f: File) => api.restoreBackup(f),
+    [],
+    () => t("settings.restoreStarted"),
+  );
+  return (
+    <section>
+      <PageHeader title={t("settings.backup")} />
+      <div className="flex flex-col gap-3 rounded-xl border border-line bg-bg1 p-4 text-sm">
+        <p className="text-dim">{t("settings.backupHint")}</p>
+        <p className="text-xs text-amber">{t("settings.backupWarning")}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <a href="/api/v1/settings/backup" download>
+            <Button>{t("settings.backupDownload")}</Button>
+          </a>
+          <label className="flex items-center gap-2 text-xs text-dim">
+            {t("settings.restoreFile")}
+            <input
+              type="file"
+              accept=".nbk,application/gzip"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <Button
+            variant="danger"
+            disabled={!file || restore.isPending}
+            onClick={() => setConfirm(true)}
+          >
+            {t("settings.restore")}
+          </Button>
+        </div>
+      </div>
+      <ConfirmDialog
+        open={confirm}
+        title={t("settings.restoreTitle")}
+        body={t("settings.restoreBody")}
+        onConfirm={() => file && restore.mutate(file)}
+        onClose={() => setConfirm(false)}
+      />
+    </section>
+  );
+}
+
+function AuditSection() {
+  const { t } = useTranslation();
+  const {
+    data: rows = [],
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: ["audit"],
+    queryFn: () => api.audit(),
+  });
+  return (
+    <section>
+      <PageHeader
+        title={t("settings.audit")}
+        actions={
+          <Button onClick={() => void refetch()} disabled={isFetching}>
+            {t("common.refresh")}
+          </Button>
+        }
+      />
+      <Table
+        head={[
+          t("settings.auditTime"),
+          t("settings.auditActor"),
+          t("settings.auditAction"),
+          t("settings.auditStatus"),
+        ]}
+        empty={rows.length === 0}
+      >
+        {rows.map((r) => (
+          <tr key={r.id}>
+            <Td mono>{new Date(r.at).toLocaleString()}</Td>
+            <Td mono>
+              {r.actor} <span className="text-dim">({r.kind})</span>
+            </Td>
+            <Td mono>
+              {r.action}
+              {r.detail && <span className="text-dim"> {r.detail}</span>}
+            </Td>
+            <Td mono>{r.status || "—"}</Td>
+          </tr>
+        ))}
+      </Table>
     </section>
   );
 }

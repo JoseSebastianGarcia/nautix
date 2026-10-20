@@ -344,7 +344,21 @@
     "registrySaved": "Sesión iniciada en {{server}}",
     "registryRemove": "Quitar",
     "registryRemoveTitle": "¿Quitar el acceso a {{server}}?",
-    "registryRemoveBody": "Las descargas y subidas a este registry volverán a pedir credenciales."
+    "registryRemoveBody": "Las descargas y subidas a este registry volverán a pedir credenciales.",
+    "backup": "Backup y restauración",
+    "backupHint": "Descarga todo lo que guarda Nautix: usuarios, tokens, disposición, templates, proyectos Compose, rutas de gateways, accesos a registries, la clave de cifrado y los certificados.",
+    "backupWarning": "El archivo contiene secretos y la clave que los abre. Cuidalo como una contraseña.",
+    "backupDownload": "Descargar backup",
+    "restoreFile": "Archivo de backup",
+    "restore": "Restaurar",
+    "restoreTitle": "¿Restaurar este backup?",
+    "restoreBody": "Nautix se reiniciará y reemplazará sus datos actuales por los del backup. Los datos actuales quedan en una carpeta before-restore dentro del volumen de datos. Vas a tener que iniciar sesión de nuevo.",
+    "restoreStarted": "Restaurando: Nautix se está reiniciando…",
+    "audit": "Registro de auditoría",
+    "auditTime": "Hora",
+    "auditActor": "Quién",
+    "auditAction": "Acción",
+    "auditStatus": "Resultado"
   },
   "compose": {
     "title": "Proyectos Compose",

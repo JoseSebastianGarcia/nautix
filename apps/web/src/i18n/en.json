@@ -344,7 +344,21 @@
     "registrySaved": "Signed in to {{server}}",
     "registryRemove": "Remove",
     "registryRemoveTitle": "Remove login for {{server}}?",
-    "registryRemoveBody": "Pulls and pushes to this registry will need credentials again."
+    "registryRemoveBody": "Pulls and pushes to this registry will need credentials again.",
+    "backup": "Backup and restore",
+    "backupHint": "Downloads everything Nautix stores: users, tokens, layout, templates, Compose projects, gateway routes, saved registry logins, the encryption key and certificates.",
+    "backupWarning": "The file contains secrets and the key that opens them. Keep it as private as a password.",
+    "backupDownload": "Download backup",
+    "restoreFile": "Backup file",
+    "restore": "Restore",
+    "restoreTitle": "Restore this backup?",
+    "restoreBody": "Nautix will restart and replace its current data with the backup. The current data is kept in a before-restore folder inside the data volume. You will have to sign in again.",
+    "restoreStarted": "Restoring: Nautix is restarting…",
+    "audit": "Audit log",
+    "auditTime": "Time",
+    "auditActor": "Who",
+    "auditAction": "Action",
+    "auditStatus": "Result"
   },
   "compose": {
     "title": "Compose projects",
