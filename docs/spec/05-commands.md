@@ -41,7 +41,7 @@ Gaps in `Partial` rows: **swarm** has no `ca` rotation or `update` beyond autolo
 | image | API | Images (all subcommands in rows below) | M1 | Done |
 | manifest | CLI | Images → Manifest (inspect/create/annotate/push/rm) | M5 | Planned |
 | network | API | Networks list + graph | M2 | Done |
-| plugin | API | System → Plugins (ls/install/enable/disable/inspect/upgrade/set/rm) | M5 | Planned |
+| plugin | API | System → Plugins (ls/install/enable/disable/inspect/upgrade/set/rm) | M5 | Done |
 | system | API + CLI | System → Disk usage, Prune wizard, Events, Info | M1 | Done |
 | volume | API | Volumes (create/ls/inspect/rm/prune/update; browse files via helper container) | M1 | Done |
 

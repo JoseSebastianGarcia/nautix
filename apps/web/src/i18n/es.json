@@ -543,7 +543,8 @@
     "tab": {
       "overview": "Resumen",
       "prune": "Asistente de limpieza",
-      "events": "Eventos"
+      "events": "Eventos",
+      "plugins": "Plugins"
     },
     "engine": "Motor",
     "os": "Sistema operativo",
@@ -744,5 +745,24 @@
     "leave": "Salir del swarm",
     "leaveBody": "Este nodo sale del swarm y sus servicios se detienen. No se puede deshacer.",
     "left": "Saliste del swarm"
+  },
+  "plugins": {
+    "install": "Instalar plugin",
+    "hint": "Los plugins agregan drivers de volúmenes, redes o logs. Corren con acceso elevado en el host: instalá solo los que confiás.",
+    "description": "Descripción",
+    "enabled": "Activo",
+    "disabled": "Inactivo",
+    "enable": "Activar",
+    "disable": "Desactivar",
+    "remote": "Plugin",
+    "remoteHint": "Referencia del registry, por ejemplo vieux/sshfs.",
+    "review": "Revisar permisos",
+    "privilegesTitle": "Este plugin pide estos permisos en el host:",
+    "noPrivileges": "Sin permisos especiales.",
+    "accept": "Aceptar e instalar",
+    "installed": "Plugin {{name}} instalado",
+    "installing": "Instalando {{name}}…",
+    "removeTitle": "¿Quitar el plugin {{name}}?",
+    "removeBody": "Un plugin activo se desactiva primero. Los volúmenes o redes que lo usan dejan de funcionar."
   }
 }

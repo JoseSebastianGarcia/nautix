@@ -543,7 +543,8 @@
     "tab": {
       "overview": "Overview",
       "prune": "Prune wizard",
-      "events": "Events"
+      "events": "Events",
+      "plugins": "Plugins"
     },
     "engine": "Engine",
     "os": "Operating system",
@@ -744,5 +745,24 @@
     "leave": "Leave swarm",
     "leaveBody": "This node leaves the swarm and its services stop. This cannot be undone.",
     "left": "Left the swarm"
+  },
+  "plugins": {
+    "install": "Install plugin",
+    "hint": "Plugins add volume, network or log drivers. They run with elevated access on the host: install only plugins you trust.",
+    "description": "Description",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "enable": "Enable",
+    "disable": "Disable",
+    "remote": "Plugin",
+    "remoteHint": "Registry reference, for example vieux/sshfs.",
+    "review": "Review permissions",
+    "privilegesTitle": "This plugin asks for these permissions on the host:",
+    "noPrivileges": "No special permissions.",
+    "accept": "Accept and install",
+    "installed": "Plugin {{name}} installed",
+    "installing": "Installing {{name}}…",
+    "removeTitle": "Remove plugin {{name}}?",
+    "removeBody": "An enabled plugin is disabled first. Volumes or networks that use it stop working."
   }
 }

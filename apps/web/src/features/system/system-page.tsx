@@ -12,8 +12,9 @@ import { JsonTree } from "../containers/json-tree.js";
 import { Card } from "../containers/panels.js";
 import { formatBytes } from "../resources/format.js";
 import { PageHeader } from "../resources/table.js";
+import { PluginsTab } from "./plugins-tab.js";
 
-const TABS = ["overview", "prune", "events"] as const;
+const TABS = ["overview", "prune", "events", "plugins"] as const;
 type Tab = (typeof TABS)[number];
 
 export function SystemPage() {
@@ -39,6 +40,7 @@ export function SystemPage() {
       {tab === "overview" && <Overview />}
       {tab === "prune" && <PruneWizard />}
       {tab === "events" && <Events />}
+      {tab === "plugins" && <PluginsTab />}
     </div>
   );
 }

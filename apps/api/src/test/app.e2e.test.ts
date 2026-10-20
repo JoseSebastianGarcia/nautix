@@ -971,6 +971,33 @@ describe("image tools and system commands", () => {
     await call("DELETE", "/volumes/browse-me");
   });
 
+  it("installs plugins only with the privileges the user accepted", async () => {
+    const asks = (await call("GET", "/plugins/privileges?remote=vieux/sshfs")).json as {
+      name: string;
+      value: string[];
+    }[];
+    expect(asks.map((a) => a.name)).toEqual(["network", "mount"]);
+    expect(
+      (
+        await call("POST", "/plugins", {
+          remote: "vieux/sshfs",
+          privileges: [{ name: "network", value: ["bridge"] }],
+        })
+      ).res.status,
+    ).toBe(422);
+    expect(
+      (await call("POST", "/plugins", { remote: "vieux/sshfs", privileges: asks })).res.status,
+    ).toBe(204);
+    expect((await call("GET", "/plugins")).json as { name: string; enabled: boolean }[]).toEqual([
+      expect.objectContaining({ name: "vieux/sshfs:latest", enabled: false }),
+    ]);
+    expect((await call("POST", "/plugins/vieux%2Fsshfs:latest/enable")).res.status).toBe(204);
+    expect((await call("DELETE", "/plugins/vieux%2Fsshfs:latest")).res.status).toBe(409);
+    expect((await call("POST", "/plugins/vieux%2Fsshfs:latest/disable")).res.status).toBe(204);
+    expect((await call("DELETE", "/plugins/vieux%2Fsshfs:latest")).res.status).toBe(204);
+    expect((await call("GET", "/plugins")).json).toEqual([]);
+  });
+
   it("reports info, version and disk usage", async () => {
     expect(
       ((await call("GET", "/system/info")).json as { ServerVersion: string }).ServerVersion,

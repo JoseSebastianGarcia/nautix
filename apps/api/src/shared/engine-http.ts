@@ -4,7 +4,7 @@ import {
   EngineUnavailableError,
   NotFoundError,
   ValidationError,
-} from "../../../shared/domain-error.js";
+} from "./domain-error.js";
 
 export interface EngineReply {
   status: number;

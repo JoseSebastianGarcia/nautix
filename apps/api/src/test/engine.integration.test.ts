@@ -412,6 +412,12 @@ describe("against a real Docker daemon", () => {
     docker("volume", "rm", `${PREFIX}vol`);
   });
 
+  it("lists plugins through the real engine", async () => {
+    const res = await call("GET", "/plugins");
+    expect(res.res.status).toBe(200);
+    expect(Array.isArray(res.json)).toBe(true);
+  });
+
   it("removes what it created", async () => {
     const list = (await call("GET", "/containers")).json as Ctr[];
     for (const c of list.filter((c) => c.name.startsWith(PREFIX)))

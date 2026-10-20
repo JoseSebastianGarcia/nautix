@@ -425,3 +425,35 @@ export interface VolumeEntry {
 export type VolumeBrowseResult =
   | { kind: "directory"; path: string; entries: VolumeEntry[] }
   | { kind: "file"; path: string; content: string; truncated: boolean };
+
+export interface PluginInfo {
+  id: string;
+  /** `name:tag`, e.g. `vieux/sshfs:latest`. */
+  name: string;
+  enabled: boolean;
+  description: string;
+}
+
+/** What a plugin asks the host for; shown to the user before it is installed. */
+export interface PluginPrivilege {
+  name: string;
+  description: string;
+  value: string[];
+}
+
+export const InstallPlugin = z.object({
+  remote: z
+    .string()
+    .min(1)
+    .max(255)
+    .regex(/^[a-zA-Z0-9][a-zA-Z0-9_.:/@-]*$/, "invalid reference"),
+  /** The privileges the user saw and accepted; they must match what the plugin asks for. */
+  privileges: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string().default(""),
+      value: z.array(z.string()),
+    }),
+  ),
+});
+export type InstallPlugin = z.infer<typeof InstallPlugin>;

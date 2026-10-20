@@ -28,6 +28,8 @@ import type {
   JoinSwarm,
   Layout,
   Network,
+  PluginInfo,
+  PluginPrivilege,
   PruneKind,
   PrunePreview,
   PruneResult,
@@ -123,6 +125,17 @@ export const api = {
       throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey);
     }
   },
+  plugins: () => request<PluginInfo[]>("GET", "/plugins"),
+  pluginPrivileges: (remote: string) =>
+    request<PluginPrivilege[]>("GET", `/plugins/privileges?remote=${encodeURIComponent(remote)}`),
+  installPlugin: (remote: string, privileges: PluginPrivilege[]) =>
+    request<void>("POST", "/plugins", { remote, privileges }),
+  enablePlugin: (name: string) =>
+    request<void>("POST", `/plugins/${encodeURIComponent(name)}/enable`),
+  disablePlugin: (name: string) =>
+    request<void>("POST", `/plugins/${encodeURIComponent(name)}/disable`),
+  removePlugin: (name: string, force: boolean) =>
+    request<void>("DELETE", `/plugins/${encodeURIComponent(name)}?force=${force}`),
   browseVolume: (name: string, path: string, view: boolean) =>
     request<VolumeBrowseResult>(
       "GET",

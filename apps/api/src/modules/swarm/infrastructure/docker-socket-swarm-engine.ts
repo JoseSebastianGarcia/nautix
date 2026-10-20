@@ -8,6 +8,7 @@ import type {
   UpdateSwarmNode,
   UpdateSwarmService,
 } from "@nautix/contracts";
+import { EngineHttp } from "../../../shared/engine-http.js";
 import { demuxStdcopy, isMultiplexed } from "../../docker/infrastructure/stdcopy.js";
 import { SwarmEngine } from "../application/ports/swarm-engine.js";
 import {
@@ -20,7 +21,6 @@ import {
   type RawTask,
   toServiceSpec,
 } from "../domain/swarm-spec.js";
-import { EngineHttp } from "./engine-http.js";
 
 interface RawSwarm {
   ID: string;

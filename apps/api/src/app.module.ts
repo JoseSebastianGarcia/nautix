@@ -9,6 +9,7 @@ import { ComposeModule } from "./modules/compose/compose.module.js";
 import { DockerModule } from "./modules/docker/docker.module.js";
 import { GatewayModule } from "./modules/gateway/gateway.module.js";
 import { LayoutModule } from "./modules/layout/layout.module.js";
+import { PluginsModule } from "./modules/plugins/plugins.module.js";
 import { SwarmModule } from "./modules/swarm/swarm.module.js";
 import { TerminalModule } from "./modules/terminal/terminal.module.js";
 import type { TlsCertificates } from "./modules/tls/application/ports/tls-certificates.js";
@@ -31,6 +32,7 @@ export class AppModule {
         GatewayModule.register(config),
         TlsModule.register(tls),
         SwarmModule.register(config),
+        PluginsModule.register(config),
         BackupModule.register(config, restarter),
       ],
       controllers: [HealthController],
