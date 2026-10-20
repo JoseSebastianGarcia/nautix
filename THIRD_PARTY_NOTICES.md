@@ -12,6 +12,7 @@ Nautix is MIT licensed. Dependencies must be MIT, Apache-2.0, BSD or MS-PL (see 
 | Shouldly | 4.3.0 | BSD-3-Clause |
 | NetArchTest.Rules | 1.3.2 | MIT (upstream repository; package metadata has no license field, see ADR-004) |
 | coverlet.collector | 10.1.0 | MIT |
+| Microsoft.CodeAnalysis.CSharp | 4.14.0 | MIT (source generator and its tests; not redistributed) |
 
 ## Runtime packages
 

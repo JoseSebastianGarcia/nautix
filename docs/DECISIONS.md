@@ -53,4 +53,28 @@ New entries go at the end; never edit an accepted ADR, supersede it.
 - **Decision:** `EnableWindowsTargeting=true` in `Directory.Build.props`. Verified that XAML compilation and analyzers run on Linux with SDK 10.0.113. Running and UI smoke tests remain Windows-only.
 - **Consequences:** Linux build success does not prove WPF runtime behavior; Windows CI is authoritative for anything under `Nautix.Host.Wpf` / `Nautix.Ui.Wpf`.
 
+## ADR-008 — MVU runtime details that refine the spec
+
+- **Status:** Accepted.
+- **Decision:** (1) `Store<TState>` is constrained to `class` (state is an immutable record; lock-free `Volatile` publication of a reference). (2) Effects are dispatched through `EffectRunner`, built from explicit handler registrations (`EffectRunnerBuilder`), not a service locator; an unregistered effect surfaces as an `EffectFailed` message. (3) Handler exceptions never escape: the store turns them into `EffectFailed` so `Update` decides what the user sees. (4) Observers are notified through an optional `SynchronizationContext`, so only the runtime marshals to the Dispatcher. (5) `History<T>` (undo/redo) and `CollectionSync` are deferred to the first editor that needs them (M2/M3); `MsgCommand<T>` goes with the first WPF view. (6) WPF-UI (`ApplicationTheme`, Mica) is deferred to M1 with the main window; `ThemeManager` is independent of it.
+- **Consequences:** Marker interfaces `IMsg`/`IEffect` stay empty by spec (CA1040 disabled with reason).
+
+## ADR-009 — Theme contrast findings (measured against `03-ui-wpf.md` tokens)
+
+- **Status:** Proposed — **needs owner decision on the options below.**
+- **Context:** The spec requires text ≥ 4.5:1 and UI boundaries ≥ 3:1 and asks for a unit test. Measured with WCAG 2.x maths (`Wcag`, tested against the 21:1 and 4.48:1 reference values):
+  - **Pass:** `Nx.Text` (≥ 14.9) and `Nx.TextDim` (≥ 5.06) on all three surfaces in both themes; `Nx.OnLime` on `Nx.Lime` (16.48); every accent ≥ 3:1 on all surfaces in both themes (lowest: light `Nx.Cyan` on `Nx.Bg2` 3.46) — fine for icons, lines, status dots and the focus ring.
+  - **Fail as body text (light theme only):** `Nx.LimeStrong` 3.69–4.25, `Nx.Cyan` 3.46–3.98, `Nx.Amber` 3.47–3.99, `Nx.Violet` on Bg0/Bg2 4.37/4.09, `Nx.Danger` on Bg2 4.38. The spec describes `LimeStrong` as "text/lines on surface"; as text it does not reach 4.5.
+  - **Borders:** `Nx.Line` is 1.18–1.36:1 against surfaces in both themes. Fine for decorative dividers, but an input or button defined *only* by a 1 px `Nx.Line` border fails WCAG 1.4.11 (3:1).
+- **Decision (interim):** `Accent_as_text_known_gaps_are_exactly_the_documented_ones` pins the failing set so any token change forces an update here. Rule until decided: do not use accents as text colour in the light theme except `Nx.Violet` on Bg1 and `Nx.Danger` on Bg0/Bg1; use `Nx.Text`/`Nx.TextDim` for text next to a coloured dot or icon.
+- **Options for the owner:** (a) darken light-theme `LimeStrong` to about `#3F7300`, `Cyan` to about `#006E94`, `Amber` to about `#9A5C00` so they work as text (spec change, small); (b) keep tokens and enforce the rule above in code review; (c) add a `Nx.LineStrong` token (≥ 3:1) for interactive-control borders in both themes. Recommended: (a) + (c).
+- **Consequences:** Changing tokens requires updating `ThemeTokens`, both XAML dictionaries and the pinned test together.
+
+## ADR-010 — Static `LocalizationSource.Instance`
+
+- **Status:** Accepted (spec-mandated).
+- **Context:** `{loc:T key}` is a XAML markup extension and cannot receive constructor injection; `03-ui-wpf.md` specifies `LocalizationSource.Instance[key]`.
+- **Decision:** Keep the singleton but make it a thin holder: the composition root calls `Attach(ILocalizer)` at startup; all logic lives in the injectable `Localizer`. Everything outside XAML uses `ILocalizer`.
+- **Consequences:** This is the only sanctioned static in UI code; do not add others.
+
 <!-- Pending ADRs required by M0 (filled as spikes complete): rootfs base, YAML parser, graph canvas, terminal control, editor, charts, credential helper, localization formatting. -->
