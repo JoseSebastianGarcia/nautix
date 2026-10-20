@@ -47,6 +47,8 @@ pnpm lint && pnpm typecheck && pnpm test
 - **Outside the boxes is protected too:** published ports bind to `127.0.0.1` only. Exposing `0.0.0.0` needs an explicit checkbox and is flagged in amber.
 - **Drag a container** to another box to move it (asks for confirmation and shows the `docker` commands).
 - Select a container to see its logs, join it to more networks (a reverse proxy in two boxes bridges them) or open a **web terminal** (`docker exec` inside the container, never on the host).
+- **Export as Compose** (whole canvas or one box): networks, loopback port bindings, volumes; env values become `${NAME}` placeholders unless you opt in.
+- Data directories of database templates use named volumes (`<name>-data`), so they survive recreating the container.
 - The UI updates live from the daemon's event stream.
 - Every action has a **Show command** with the equivalent `docker` CLI line.
 

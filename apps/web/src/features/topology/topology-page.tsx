@@ -13,7 +13,7 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { LayoutGrid } from "lucide-react";
+import { FileDown, LayoutGrid } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
@@ -22,6 +22,7 @@ import { keys, useCatalog, useContainers, useNetworks } from "../../app/queries.
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
 import { DeployDialog, type DeployTarget } from "./deploy-dialog.js";
+import { ExportDialog, type ExportTarget } from "./export-dialog.js";
 import { Inspector, type Selection } from "./inspector.js";
 import { EXTERNAL_ID, layoutTopology, NODE_H, NODE_W, type Topology, zoneAt } from "./layout.js";
 import { type MoveStep, planMove } from "./move-plan.js";
@@ -96,6 +97,7 @@ function Canvas() {
   const [selection, setSelection] = useState<Selection>(null);
   const [deploy, setDeploy] = useState<DeployTarget | null>(null);
   const [newNetwork, setNewNetwork] = useState(false);
+  const [exporting, setExporting] = useState<ExportTarget | null>(null);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
 
   // Re-sync from engine data whenever it changes (drag offsets are intentionally discarded).
@@ -220,6 +222,9 @@ function Canvas() {
           <Button onClick={relayout}>
             <LayoutGrid size={14} /> {t("topology.autoLayout")}
           </Button>
+          <Button onClick={() => setExporting({ networkId: undefined, label: undefined })}>
+            <FileDown size={14} /> {t("topology.exportButton")}
+          </Button>
         </div>
         {containers.length === 0 && (
           <p className="pointer-events-none absolute inset-x-0 bottom-8 text-center text-sm text-dim">
@@ -232,9 +237,11 @@ function Canvas() {
         containers={containers}
         networks={networks}
         onClearSelection={() => setSelection(null)}
+        onExport={setExporting}
       />
 
       <DeployDialog target={deploy} onClose={() => setDeploy(null)} />
+      <ExportDialog target={exporting} onClose={() => setExporting(null)} />
       <NetworkDialog open={newNetwork} onClose={() => setNewNetwork(false)} />
       <ConfirmDialog
         open={pendingMove !== null}

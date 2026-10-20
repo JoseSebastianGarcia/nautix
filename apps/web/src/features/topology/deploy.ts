@@ -33,3 +33,7 @@ export const uniqueName = (base: string, taken: Iterable<string>): string => {
   if (!used.has(base)) return base;
   for (let i = 2; ; i++) if (!used.has(`${base}-${i}`)) return `${base}-${i}`;
 };
+
+/** Data paths become named volumes (`<container>-data`, `<container>-data-2`, …) so data survives recreation. */
+export const namedVolumes = (container: string, paths: readonly string[]): string[] =>
+  paths.map((path, i) => `${container}-data${i === 0 ? "" : `-${i + 1}`}:${path}`);

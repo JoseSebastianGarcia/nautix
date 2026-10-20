@@ -13,6 +13,7 @@ import { RemoveImageHandler } from "./application/commands/remove-image.handler.
 import { RemoveNetworkHandler } from "./application/commands/remove-network.handler.js";
 import { RemoveVolumeHandler } from "./application/commands/remove-volume.handler.js";
 import { DockerEngine } from "./application/ports/docker-engine.js";
+import { ExportComposeHandler } from "./application/queries/export-compose.handler.js";
 import { GetContainerLogsHandler } from "./application/queries/get-container-logs.handler.js";
 import { GetEngineInfoHandler } from "./application/queries/get-engine-info.handler.js";
 import { ListContainersHandler } from "./application/queries/list-containers.handler.js";
@@ -43,6 +44,7 @@ const HANDLERS = [
   ListNetworksHandler,
   ListVolumesHandler,
   WatchEventsHandler,
+  ExportComposeHandler,
 ];
 
 @Module({})

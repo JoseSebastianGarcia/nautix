@@ -3,6 +3,7 @@ import { EventEmitter, on } from "node:events";
 import type {
   Container,
   ContainerAction,
+  ContainerDetails,
   CreateNetwork,
   EngineInfo,
   Image,
@@ -28,6 +29,7 @@ export class FakeDockerEngine extends DockerEngine {
   private images = new Map<string, Image>();
   private volumes = new Map<string, Volume>();
   private logs = new Map<string, string>();
+  private env = new Map<string, Record<string, string>>();
   private readonly bus = new EventEmitter();
 
   private emit(kind: EngineEventKind): void {
@@ -136,6 +138,21 @@ export class FakeDockerEngine extends DockerEngine {
     return [...this.containers.values()].map((c) => structuredClone(c));
   }
 
+  async inspectContainers(ids: string[]): Promise<ContainerDetails[]> {
+    return ids.map((id) => {
+      const c = this.container(id);
+      return {
+        id,
+        name: c.name,
+        image: c.image,
+        env: this.env.get(id) ?? {},
+        command: null,
+        restartPolicy: "unless-stopped",
+        mounts: [],
+      };
+    });
+  }
+
   async createContainer(spec: EngineContainerSpec): Promise<{ id: string }> {
     if ([...this.containers.values()].some((c) => c.name === spec.name)) {
       throw new ConflictError(`name ${spec.name} is already in use`, "errors.nameInUse");
@@ -164,6 +181,12 @@ export class FakeDockerEngine extends DockerEngine {
       : [...this.networks.values()].find((n) => n.name === "bridge");
     if (target) this.attach(target.id, id);
     this.logs.set(id, "");
+    this.env.set(
+      id,
+      Object.fromEntries(
+        spec.env.map((e) => [e.slice(0, e.indexOf("=")), e.slice(e.indexOf("=") + 1)]),
+      ),
+    );
     return { id };
   }
 

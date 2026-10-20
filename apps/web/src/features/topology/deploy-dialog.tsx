@@ -6,7 +6,14 @@ import { cli } from "../../app/cli.js";
 import { keys, useContainers } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, Dialog, Field, Input, ShowCommand } from "../../components/ui.js";
-import { formatEnv, parseEnv, randomizeSecrets, randomSecret, uniqueName } from "./deploy.js";
+import {
+  formatEnv,
+  namedVolumes,
+  parseEnv,
+  randomizeSecrets,
+  randomSecret,
+  uniqueName,
+} from "./deploy.js";
 import { CUSTOM_TEMPLATE_ID } from "./palette.js";
 
 export interface DeployTarget {
@@ -78,7 +85,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
           ...(p.hostPort ? { hostPort: Number(p.hostPort) } : {}),
           exposePublicly: p.expose,
         })),
-        ...(tpl?.volumes ? { volumes: tpl.volumes } : {}),
+        ...(tpl?.volumes ? { volumes: namedVolumes(name, tpl.volumes) } : {}),
         ...(tpl?.command ? { command: tpl.command } : {}),
       }),
     [keys.containers, keys.networks, keys.images],

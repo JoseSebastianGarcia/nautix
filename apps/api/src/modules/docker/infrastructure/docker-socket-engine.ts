@@ -2,6 +2,7 @@ import { type IncomingMessage, request } from "node:http";
 import type {
   Container,
   ContainerAction,
+  ContainerDetails,
   ContainerState,
   CreateNetwork,
   EngineInfo,
@@ -218,6 +219,61 @@ export class DockerSocketEngine extends DockerEngine {
       networks: Object.keys(r.NetworkSettings?.Networks ?? {}),
       labels: r.Labels ?? {},
     }));
+  }
+
+  async inspectContainers(ids: string[]): Promise<ContainerDetails[]> {
+    return Promise.all(
+      ids.map(async (id) => {
+        const c = await this.json<{
+          Id: string;
+          Name: string;
+          Config: { Image: string; Env: string[] | null; Cmd: string[] | null };
+          HostConfig: { RestartPolicy?: { Name?: string } };
+          Mounts?: {
+            Type: string;
+            Name?: string;
+            Source: string;
+            Destination: string;
+            RW: boolean;
+          }[];
+        }>("GET", `/containers/${encodeURIComponent(id)}/json`);
+        const image = await this.json<{
+          Config?: { Env?: string[] | null; Cmd?: string[] | null };
+        }>("GET", `/images/${encodeURIComponent(c.Config.Image)}/json`).catch(() => ({
+          Config: undefined,
+        }));
+        const defaults = new Set(image.Config?.Env ?? []);
+        const env = Object.fromEntries(
+          (c.Config.Env ?? [])
+            .filter((e) => !defaults.has(e))
+            .map((e) => {
+              const eq = e.indexOf("=");
+              return [e.slice(0, eq), e.slice(eq + 1)] as const;
+            }),
+        );
+        const sameCmd = JSON.stringify(c.Config.Cmd) === JSON.stringify(image.Config?.Cmd ?? null);
+        return {
+          id: c.Id,
+          name: c.Name.replace(/^\//, ""),
+          image: c.Config.Image,
+          env,
+          command: sameCmd ? null : c.Config.Cmd,
+          restartPolicy: c.HostConfig.RestartPolicy?.Name || "no",
+          mounts: (c.Mounts ?? []).flatMap((m) =>
+            m.Type === "volume" || m.Type === "bind" || m.Type === "tmpfs"
+              ? [
+                  {
+                    type: m.Type,
+                    source: m.Type === "volume" ? (m.Name ?? m.Source) : m.Source,
+                    target: m.Destination,
+                    readOnly: !m.RW,
+                  },
+                ]
+              : [],
+          ),
+        };
+      }),
+    );
   }
 
   async createContainer(spec: EngineContainerSpec): Promise<{ id: string }> {

@@ -119,3 +119,24 @@ export const CreateContainer = z.object({
   volumes: z.array(z.string()).default([]),
 });
 export type CreateContainer = z.infer<typeof CreateContainer>;
+
+export const Mount = z.object({
+  type: z.enum(["bind", "volume", "tmpfs"]),
+  /** Volume name for `volume`, host path for `bind`. */
+  source: z.string(),
+  target: z.string(),
+  readOnly: z.boolean(),
+});
+export type Mount = z.infer<typeof Mount>;
+
+/** What was explicitly configured for a container (image defaults removed). */
+export const ContainerDetails = z.object({
+  id: z.string(),
+  name: z.string(),
+  image: z.string(),
+  env: z.record(z.string(), z.string()),
+  command: z.array(z.string()).nullable(),
+  restartPolicy: z.string(),
+  mounts: z.array(Mount),
+});
+export type ContainerDetails = z.infer<typeof ContainerDetails>;

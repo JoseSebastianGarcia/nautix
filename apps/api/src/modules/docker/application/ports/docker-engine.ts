@@ -1,6 +1,7 @@
 import type {
   Container,
   ContainerAction,
+  ContainerDetails,
   CreateNetwork,
   EngineInfo,
   Image,
@@ -18,6 +19,7 @@ export abstract class DockerEngine {
   abstract events(signal: AbortSignal): AsyncIterable<EngineEventKind>;
 
   abstract listContainers(): Promise<Container[]>;
+  abstract inspectContainers(ids: string[]): Promise<ContainerDetails[]>;
   abstract createContainer(spec: EngineContainerSpec): Promise<{ id: string }>;
   abstract containerAction(id: string, action: ContainerAction): Promise<void>;
   abstract removeContainer(id: string, force: boolean): Promise<void>;

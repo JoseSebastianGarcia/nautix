@@ -56,6 +56,18 @@ beforeAll(async () => {
           },
           { Id: "n0", Name: "bridge", Driver: "bridge", Internal: false, Containers: {} },
         ]);
+      if (url === "/v1.43/containers/abc/json")
+        return send(200, {
+          Id: "abc",
+          Name: "/web",
+          Config: { Image: "nginx", Env: ["PATH=/bin", "APP_KEY=1"], Cmd: ["nginx"] },
+          HostConfig: { RestartPolicy: { Name: "always" } },
+          Mounts: [
+            { Type: "volume", Name: "data", Source: "/var/lib/x", Destination: "/data", RW: true },
+          ],
+        });
+      if (url === "/v1.43/images/nginx/json")
+        return send(200, { Config: { Env: ["PATH=/bin"], Cmd: ["nginx"] } });
       if (url.startsWith("/v1.43/containers/create")) return send(201, { Id: "new" });
       if (url.includes("/containers/missing/"))
         return send(404, { message: "No such container: missing" });
@@ -86,6 +98,17 @@ describe("DockerSocketEngine", () => {
       system: false,
     });
     expect(nets[1]?.system).toBe(true);
+  });
+
+  it("inspects only what the user configured (image defaults removed)", async () => {
+    const [d] = await engine.inspectContainers(["abc"]);
+    expect(d).toMatchObject({
+      name: "web",
+      env: { APP_KEY: "1" },
+      command: null,
+      restartPolicy: "always",
+      mounts: [{ type: "volume", source: "data", target: "/data", readOnly: false }],
+    });
   });
 
   it("creates containers with loopback bindings and the target network", async () => {

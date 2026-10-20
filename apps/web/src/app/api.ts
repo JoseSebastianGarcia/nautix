@@ -59,6 +59,11 @@ export const api = {
     request<void>("DELETE", `/containers/${id}?force=${force}`),
   logs: (id: string) => request<{ logs: string }>("GET", `/containers/${id}/logs?tail=300`),
 
+  exportCompose: (networkId: string | undefined, includeEnv: boolean) =>
+    request<{ yaml: string }>(
+      "GET",
+      `/export/compose?includeEnv=${includeEnv}${networkId ? `&network=${encodeURIComponent(networkId)}` : ""}`,
+    ),
   networks: () => request<Network[]>("GET", "/networks"),
   createNetwork: (b: Pick<CreateNetwork, "name" | "internal" | "subnet">) =>
     request<{ id: string }>("POST", "/networks", b),

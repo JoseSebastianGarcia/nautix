@@ -1,6 +1,7 @@
 import type { Container, ContainerAction, Network } from "@nautix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import {
+  FileDown,
   Lock,
   Play,
   RotateCw,
@@ -18,6 +19,7 @@ import { cli } from "../../app/cli.js";
 import { keys } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog, ShowCommand } from "../../components/ui.js";
+import type { ExportTarget } from "./export-dialog.js";
 import { LogoBadge } from "./logo-badge.js";
 
 export type Selection = { kind: "container"; id: string } | { kind: "zone"; id: string } | null;
@@ -27,11 +29,13 @@ export function Inspector({
   containers,
   networks,
   onClearSelection,
+  onExport,
 }: {
   selection: Selection;
   containers: Container[];
   networks: Network[];
   onClearSelection: () => void;
+  onExport: (target: ExportTarget) => void;
 }) {
   const { t } = useTranslation();
   const container =
@@ -51,7 +55,12 @@ export function Inspector({
         <ContainerInspector container={container} networks={networks} onGone={onClearSelection} />
       )}
       {network && (
-        <NetworkInspector network={network} containers={containers} onGone={onClearSelection} />
+        <NetworkInspector
+          network={network}
+          containers={containers}
+          onGone={onClearSelection}
+          onExport={onExport}
+        />
       )}
       {!container && !network && <p className="text-sm text-dim">{t("topology.inspectorEmpty")}</p>}
     </aside>
@@ -235,10 +244,12 @@ function NetworkInspector({
   network: n,
   containers,
   onGone,
+  onExport,
 }: {
   network: Network;
   containers: Container[];
   onGone: () => void;
+  onExport: (target: ExportTarget) => void;
 }) {
   const { t } = useTranslation();
   const [confirm, setConfirm] = useState(false);
@@ -264,6 +275,9 @@ function NetworkInspector({
           </li>
         ))}
       </ul>
+      <Button onClick={() => onExport({ networkId: n.id, label: n.name })}>
+        <FileDown size={14} /> {t("topology.exportButton")}
+      </Button>
       {!n.system && (
         <>
           <Button variant="danger" disabled={members.length > 0} onClick={() => setConfirm(true)}>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatEnv, parseEnv, randomizeSecrets, uniqueName } from "./deploy.js";
+import { formatEnv, namedVolumes, parseEnv, randomizeSecrets, uniqueName } from "./deploy.js";
 
 describe("deploy helpers", () => {
   it("round-trips env text and ignores comments", () => {
@@ -18,5 +18,12 @@ describe("deploy helpers", () => {
   it("finds a free name", () => {
     expect(uniqueName("redis", ["redis", "redis-2"])).toBe("redis-3");
     expect(uniqueName("redis", [])).toBe("redis");
+  });
+
+  it("turns data paths into named volumes", () => {
+    expect(namedVolumes("db", ["/var/lib/data", "/etc/x"])).toEqual([
+      "db-data:/var/lib/data",
+      "db-data-2:/etc/x",
+    ]);
   });
 });

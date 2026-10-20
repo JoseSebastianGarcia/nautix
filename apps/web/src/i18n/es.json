@@ -106,7 +106,15 @@
     "joinNetwork": "Unir también a la red…",
     "joinHint": "Un contenedor en dos redes las conecta: usalo para un proxy inverso que debe llegar a servicios aislados.",
     "disconnect": "Salir de la red",
-    "empty": "Todavía no hay contenedores. Arrastrá algo desde la paleta."
+    "empty": "Todavía no hay contenedores. Arrastrá algo desde la paleta.",
+    "exportTitle": "Exportar como Compose",
+    "exportButton": "Exportar Compose",
+    "exportEnv": "Incluir valores de entorno",
+    "exportEnvWarning": "Los valores pueden contener contraseñas. Sin esto, las variables se escriben como marcadores ${NAME}.",
+    "exportCopy": "Copiar",
+    "exportDownload": "Descargar",
+    "exportScope": "Alcance: {{scope}}",
+    "exportAll": "todos los contenedores"
   },
   "containers": {
     "title": "Contenedores",

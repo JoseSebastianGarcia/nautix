@@ -24,6 +24,7 @@ import {
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import type { Request } from "express";
 import { Observable } from "rxjs";
+import { stringify } from "yaml";
 import { z } from "zod";
 import { parse } from "../../../shared/zod-body.js";
 import { ConnectNetworkCommand } from "../application/commands/connect-network.command.js";
@@ -38,6 +39,7 @@ import { RemoveImageCommand } from "../application/commands/remove-image.command
 import { RemoveNetworkCommand } from "../application/commands/remove-network.command.js";
 import { RemoveVolumeCommand } from "../application/commands/remove-volume.command.js";
 import type { EngineEventKind } from "../application/ports/docker-engine.js";
+import { ExportComposeQuery } from "../application/queries/export-compose.query.js";
 import { GetContainerLogsQuery } from "../application/queries/get-container-logs.query.js";
 import { GetEngineInfoQuery } from "../application/queries/get-engine-info.query.js";
 import { ListContainersQuery } from "../application/queries/list-containers.query.js";
@@ -45,8 +47,13 @@ import { ListImagesQuery } from "../application/queries/list-images.query.js";
 import { ListNetworksQuery } from "../application/queries/list-networks.query.js";
 import { ListVolumesQuery } from "../application/queries/list-volumes.query.js";
 import { WatchEventsQuery } from "../application/queries/watch-events.query.js";
+import type { ComposeDocument } from "../domain/compose-export.js";
 
 const Force = z.object({ force: z.enum(["true", "false"]).default("false") });
+const ExportQuery = z.object({
+  network: z.string().optional(),
+  includeEnv: z.enum(["true", "false"]).default("false"),
+});
 const Logs = z.object({ tail: z.coerce.number().int().min(1).max(5000).default(200) });
 
 @Controller("api/v1")
@@ -78,6 +85,15 @@ export class DockerController {
       );
       return () => abort.abort();
     });
+  }
+
+  @Get("export/compose")
+  async exportCompose(@Query() query: unknown) {
+    const { network, includeEnv } = parse(ExportQuery, query);
+    const doc = await this.queries.execute<ExportComposeQuery, ComposeDocument>(
+      new ExportComposeQuery(network, includeEnv === "true"),
+    );
+    return { yaml: stringify(doc, { lineWidth: 0 }) };
   }
 
   @Get("catalog")

@@ -149,6 +149,21 @@ describe("docker api (fake engine)", () => {
     expect(dup.json.hintKey).toBe("errors.nameInUse");
   });
 
+  it("exports the canvas as Compose without leaking env values", async () => {
+    await call("POST", "/containers", {
+      name: "exp-db",
+      image: "postgres:16-alpine",
+      networkId: null,
+      env: { POSTGRES_PASSWORD: "topsecret" },
+    });
+    const { json } = await call("GET", "/export/compose");
+    expect(json.yaml).toContain("exp-db:");
+    expect(json.yaml).toContain("POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}");
+    expect(json.yaml).not.toContain("topsecret");
+    const withEnv = await call("GET", "/export/compose?includeEnv=true");
+    expect(withEnv.json.yaml).toContain("topsecret");
+  });
+
   it("validates input", async () => {
     const bad = await call("POST", "/networks", { name: "bad name!" });
     expect(bad.res.status).toBe(422);

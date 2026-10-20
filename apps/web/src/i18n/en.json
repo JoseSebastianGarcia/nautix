@@ -106,7 +106,15 @@
     "joinNetwork": "Also join network…",
     "joinHint": "A container on two networks bridges them: use it for a reverse proxy that must reach isolated services.",
     "disconnect": "Leave network",
-    "empty": "No containers yet. Drag something from the palette."
+    "empty": "No containers yet. Drag something from the palette.",
+    "exportTitle": "Export as Compose",
+    "exportButton": "Export Compose",
+    "exportEnv": "Include environment values",
+    "exportEnvWarning": "Values may contain passwords. Without this, variables are written as ${NAME} placeholders.",
+    "exportCopy": "Copy",
+    "exportDownload": "Download",
+    "exportScope": "Scope: {{scope}}",
+    "exportAll": "all containers"
   },
   "containers": {
     "title": "Containers",
