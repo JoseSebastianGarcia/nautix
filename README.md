@@ -27,8 +27,9 @@ Custom socket / port / data dir: `NAUTIX_DOCKER_SOCKET`, `NAUTIX_PORT`, `NAUTIX_
 ### With Docker
 
 ```bash
-docker compose -f installer/compose.yaml up -d --build
-docker compose -f installer/compose.yaml logs nautix     # setup token
+export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
+docker compose up -d --build
+docker compose logs nautix     # setup token
 ```
 
 Set `DOCKER_GID` to your docker socket's group id (`stat -c %g /var/run/docker.sock`) if it is not 999.

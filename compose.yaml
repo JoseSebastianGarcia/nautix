@@ -1,0 +1,21 @@
+# Start Nautix:   docker compose up -d --build
+# Setup token:    docker compose logs nautix
+# Open:           http://localhost:3737
+#
+# DOCKER_GID must be the group id of the docker socket on the host:
+#   export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
+services:
+  nautix:
+    build: .
+    restart: unless-stopped
+    # Bound to localhost only. Put a reverse proxy with TLS in front to reach it remotely.
+    ports: ["127.0.0.1:3737:3737"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   # root-equivalent on the host
+      - nautix-data:/data
+    group_add: ["${DOCKER_GID:-999}"]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: ["/tmp"]
+volumes:
+  nautix-data: {}
