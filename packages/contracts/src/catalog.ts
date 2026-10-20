@@ -236,11 +236,10 @@ export const TEMPLATES: readonly Template[] = [
     icon: "dnsmasq",
     color: "#3B82F6",
     ports: [
-      { containerPort: 53, label: "dns", protocol: "udp", hostPort: 53 },
+      { containerPort: 53, label: "dns", protocol: "udp", hostPort: 5353 },
       { containerPort: 8080, label: "web" },
     ],
     env: { HTTP_USER: "admin", HTTP_PASS: "change-me" },
-    volumes: ["/etc/dnsmasq.conf"],
   },
   {
     id: "kafka",
