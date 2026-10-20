@@ -1,5 +1,4 @@
-import { isIP } from "node:net";
-import { type DnsRecord, HOSTNAME } from "@nautix/contracts";
+import { type DnsRecord, HOSTNAME, isIpAddress } from "@nautix/contracts";
 import { ValidationError } from "../../../shared/domain-error.js";
 
 const BANNER =
@@ -16,7 +15,7 @@ export const buildDnsmasqConfig = (records: DnsRecord[]): string => {
   const lines = [...records]
     .sort((a, b) => a.name.localeCompare(b.name) || a.ip.localeCompare(b.ip))
     .map((r) => {
-      if (!HOSTNAME.test(r.name) || isIP(r.ip) === 0)
+      if (!HOSTNAME.test(r.name) || !isIpAddress(r.ip))
         throw new ValidationError(`invalid record ${r.name} → ${r.ip}`, "errors.dnsInvalidRecord");
       return `address=/${r.name}/${r.ip}`;
     });

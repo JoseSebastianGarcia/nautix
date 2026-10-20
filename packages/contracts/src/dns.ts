@@ -21,10 +21,30 @@ export const isDnsImage = (image: string): boolean =>
 const LABEL = "[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?";
 export const HOSTNAME = new RegExp(`^(${LABEL}\\.)*${LABEL}$`);
 const IPV4 = /^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$/;
-const IPV6 = /^[0-9a-fA-F:]+(%[a-z0-9]+)?$/;
+const HEXTET = /^[0-9a-fA-F]{1,4}$/;
 
-export const isIpAddress = (value: string): boolean =>
-  IPV4.test(value) || (value.includes(":") && IPV6.test(value) && value.length <= 45);
+/** Strict IPv6 (no zone id): up to 8 groups, one `::` at most, optional dotted IPv4 tail. */
+const isIpv6 = (value: string): boolean => {
+  if (!value.includes(":") || value.length > 45) return false;
+  const halves = value.split("::");
+  if (halves.length > 2) return false;
+  const parse = (part: string): string[] | null => (part === "" ? [] : part.split(":"));
+  const head = parse(halves[0] ?? "");
+  const tail = halves.length === 2 ? parse(halves[1] ?? "") : [];
+  if (!head || !tail) return false;
+  const groups = [...head, ...tail];
+  let width = 0;
+  for (const [i, g] of groups.entries()) {
+    if (i === groups.length - 1 && g.includes(".")) {
+      if (!IPV4.test(g)) return false;
+      width += 2;
+    } else if (HEXTET.test(g)) width += 1;
+    else return false;
+  }
+  return halves.length === 2 ? width <= 7 : width === 8;
+};
+
+export const isIpAddress = (value: string): boolean => IPV4.test(value) || isIpv6(value);
 
 export const ipFamily = (value: string): 4 | 6 => (value.includes(":") ? 6 : 4);
 

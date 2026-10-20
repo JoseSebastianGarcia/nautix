@@ -47,8 +47,34 @@ describe("DNS contracts", () => {
       "x".repeat(64) + ".lab",
     ])
       expect(() => rec(bad, "10.0.0.1")).toThrow();
-    for (const ip of ["", "256.0.0.1", "1.2.3", "hello", "10.0.0.1/24"])
+    for (const ip of [
+      "",
+      "256.0.0.1",
+      "1.2.3",
+      "hello",
+      "10.0.0.1/24",
+      "fd00:::1",
+      "1:2:3:4:5:6:7:8:9",
+      "12345::1",
+      "g::1",
+      "1::2::3",
+      "::1::",
+      "fd00::1\nserver=8.8.8.8",
+    ])
       expect(() => rec("a.lab", ip)).toThrow();
+  });
+
+  it("accepts the usual IPv6 forms", () => {
+    for (const ip of [
+      "::1",
+      "::",
+      "fd00::1",
+      "2001:db8::ff00:42:8329",
+      "1:2:3:4:5:6:7:8",
+      "::ffff:192.168.1.1",
+      "fe80::1",
+    ])
+      expect(rec("a.lab", ip).ip).toBe(ip);
   });
 
   it("allows one IPv4 and one IPv6 per name, not two of the same family", () => {
