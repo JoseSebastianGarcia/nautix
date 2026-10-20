@@ -29,6 +29,8 @@ export const Container = z.object({
   ports: z.array(PortBinding),
   networks: z.array(z.string()),
   labels: z.record(z.string(), z.string()),
+  /** IP address on each network (only while the container runs): what a DNS record should point to. */
+  ips: z.record(z.string(), z.string()).optional(),
   /** True for the container running Nautix itself (set by the API, never by the engine). */
   isSelf: z.boolean().optional(),
 });

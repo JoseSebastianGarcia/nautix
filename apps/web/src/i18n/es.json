@@ -562,7 +562,12 @@
     "sinceAll": "Cualquier momento",
     "since_300": "Últimos 5 minutos",
     "since_3600": "Última hora",
-    "since_86400": "Últimas 24 horas"
+    "since_86400": "Últimas 24 horas",
+    "ips": "Direcciones IP",
+    "noIps": "Todavía no tiene dirección.",
+    "ipsStopped": "Un contenedor detenido no tiene dirección. Iniciálo para verla.",
+    "ipsHint": "Los otros contenedores de la misma red lo alcanzan por esta dirección (o por su nombre). Para apuntar tu propio dominio a él,",
+    "ipsGoDns": "agregalo en Recursos → DNS."
   },
   "system": {
     "title": "Sistema",
@@ -813,6 +818,7 @@
     "applyHint": "Escribe los registros en el contenedor y lo reinicia (cerca de un segundo sin DNS).",
     "unsaved": "Cambios sin guardar",
     "applied": "Registros DNS aplicados",
-    "rejected": "El servidor DNS rechazó los registros"
+    "rejected": "El servidor DNS rechazó los registros",
+    "pickContainer": "Usar la IP de un contenedor"
   }
 }

@@ -230,7 +230,7 @@ export class DockerSocketEngine extends DockerEngine {
         Created: number;
         Ports: { IP?: string; PrivatePort: number; PublicPort?: number; Type: string }[];
         Labels: Record<string, string> | null;
-        NetworkSettings?: { Networks?: Record<string, unknown> };
+        NetworkSettings?: { Networks?: Record<string, { IPAddress?: string }> };
       }[]
     >("GET", "/containers/json?all=true");
     return rows.map((r) => ({
@@ -247,6 +247,11 @@ export class DockerSocketEngine extends DockerEngine {
         type: p.Type,
       })),
       networks: Object.keys(r.NetworkSettings?.Networks ?? {}),
+      ips: Object.fromEntries(
+        Object.entries(r.NetworkSettings?.Networks ?? {}).flatMap(([name, n]) =>
+          n.IPAddress ? [[name, n.IPAddress]] : [],
+        ),
+      ),
       labels: r.Labels ?? {},
     }));
   }

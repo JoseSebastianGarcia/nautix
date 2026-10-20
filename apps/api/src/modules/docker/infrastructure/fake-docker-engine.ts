@@ -156,8 +156,24 @@ export class FakeDockerEngine extends DockerEngine {
     };
   }
 
+  /** Demo addresses: inside the network's subnet, stable per container. */
+  private ipsOf(c: Container): Record<string, string> {
+    if (c.state !== "running") return {};
+    const last = 2 + (Number.parseInt(c.id.slice(0, 2), 16) % 250);
+    return Object.fromEntries(
+      c.networks.map((name) => {
+        const subnet = [...this.networks.values()].find((n) => n.name === name)?.subnet;
+        const prefix = (subnet ?? "172.17.0.0/16").split(".").slice(0, 3);
+        return [name, `${prefix[0]}.${prefix[1]}.${subnet ? prefix[2] : "0"}.${last}`];
+      }),
+    );
+  }
+
   async listContainers(): Promise<Container[]> {
-    return [...this.containers.values()].map((c) => structuredClone(c));
+    return [...this.containers.values()].map((c) => ({
+      ...structuredClone(c),
+      ips: this.ipsOf(c),
+    }));
   }
 
   async inspectContainers(ids: string[]): Promise<ContainerDetails[]> {
@@ -252,7 +268,11 @@ export class FakeDockerEngine extends DockerEngine {
           Labels: c.labels,
         },
         HostConfig: { RestartPolicy: { Name: this.restart.get(id) ?? "unless-stopped" } },
-        NetworkSettings: { Networks: Object.fromEntries(c.networks.map((n) => [n, {}])) },
+        NetworkSettings: {
+          Networks: Object.fromEntries(
+            c.networks.map((n) => [n, { IPAddress: this.ipsOf(c)[n] ?? "" }]),
+          ),
+        },
       };
     }
     if (kind === "network") {

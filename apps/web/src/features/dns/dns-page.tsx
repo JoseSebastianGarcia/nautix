@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { api } from "../../app/api.js";
+import { useContainers } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { useToasts } from "../../components/toast-store.js";
 import { Button, Field, Input } from "../../components/ui.js";
@@ -98,6 +99,14 @@ function Editor({ server }: { server: DnsServer }) {
   const [draft, setDraft] = useState<DnsRecord[]>(NO_RECORDS);
   const [form, setForm] = useState({ name: "", ip: "" });
   const [editing, setEditing] = useState<number | null>(null);
+  const { data: containers = [] } = useContainers();
+  const addresses = containers.flatMap((c) =>
+    Object.entries(c.ips ?? {}).map(([network, ip]) => ({
+      key: `${c.id}/${network}`,
+      label: `${c.name} · ${network} · ${ip}`,
+      ip,
+    })),
+  );
   const [output, setOutput] = useState("");
 
   useEffect(() => {
@@ -167,6 +176,21 @@ function Editor({ server }: { server: DnsServer }) {
             placeholder="192.168.1.20"
             aria-invalid={form.ip !== "" && !ipOk}
           />
+          {addresses.length > 0 && (
+            <select
+              aria-label={t("dns.pickContainer")}
+              value=""
+              onChange={(e) => setForm({ ...form, ip: e.target.value })}
+              className="mt-1 rounded-lg border border-line bg-bg0 px-2 py-1 text-xs text-fg"
+            >
+              <option value="">{t("dns.pickContainer")}…</option>
+              {addresses.map((a) => (
+                <option key={a.key} value={a.ip}>
+                  {a.label}
+                </option>
+              ))}
+            </select>
+          )}
         </Field>
         <Button write variant="primary" type="submit" disabled={!canAdd}>
           <Plus size={14} /> {editing === null ? t("dns.add") : t("common.save")}

@@ -160,6 +160,21 @@ describe("against a real Docker daemon", () => {
     expect(recent).not.toContain("hola mundo");
   });
 
+  it("reports the IP each container has on its network", async () => {
+    const list = (await call("GET", "/containers")).json as {
+      name: string;
+      ips: Record<string, string>;
+    }[];
+    const web = list.find((c) => c.name === `${PREFIX}web`);
+    const real = JSON.parse(
+      docker("inspect", "-f", "{{json .NetworkSettings.Networks}}", `${PREFIX}web`),
+    ) as Record<string, { IPAddress: string }>;
+    expect(web?.ips).toEqual(
+      Object.fromEntries(Object.entries(real).map(([n, v]) => [n, v.IPAddress])),
+    );
+    expect(Object.values(web?.ips ?? {})[0]).toMatch(/^\d+\.\d+\.\d+\.\d+$/);
+  });
+
   it("opens a real tunnel between two networks and only that port crosses", async () => {
     await call("POST", "/networks", { name: `${PREFIX}b`, internal: true });
     const nets = (await call("GET", "/networks")).json as Net[];

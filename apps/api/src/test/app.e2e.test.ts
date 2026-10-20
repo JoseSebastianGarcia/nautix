@@ -1163,6 +1163,19 @@ describe("image tools and system commands", () => {
     expect((await call("GET", "/dns/dns1/lookup?host=bad%20host")).res.status).toBe(422);
   });
 
+  it("lists the IP of running containers on each network", async () => {
+    const list = (await call("GET", "/containers")).json as {
+      name: string;
+      state: string;
+      networks: string[];
+      ips: Record<string, string>;
+    }[];
+    const traefik = list.find((c) => c.name === "traefik");
+    expect(Object.keys(traefik?.ips ?? {}).sort()).toEqual([...(traefik?.networks ?? [])].sort());
+    for (const ip of Object.values(traefik?.ips ?? {})) expect(ip).toMatch(/^\d+\.\d+\.\d+\.\d+$/);
+    for (const c of list.filter((x) => x.state !== "running")) expect(c.ips).toEqual({});
+  });
+
   it("reports info, version and disk usage", async () => {
     expect(
       ((await call("GET", "/system/info")).json as { ServerVersion: string }).ServerVersion,

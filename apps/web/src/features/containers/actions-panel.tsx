@@ -9,6 +9,7 @@ import { keys, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { useToasts } from "../../components/toast-store.js";
 import { Button, ConfirmDialog, Field, Input, ShowCommand } from "../../components/ui.js";
+import { IpCard } from "./ip-card.js";
 import { Card, SIGNALS } from "./panels.js";
 
 const REFRESH = [keys.containers, keys.networks];
@@ -72,6 +73,10 @@ export function ActionsPanel({ container: c }: { container: Container }) {
           <Lock size={16} className="mt-0.5 shrink-0" /> {t("self.lockedNote")}
         </p>
       )}
+
+      <div className="lg:col-span-2">
+        <IpCard container={c} />
+      </div>
 
       <Card title={t("details.lifecycle")}>
         <div className="flex flex-wrap items-end gap-2">

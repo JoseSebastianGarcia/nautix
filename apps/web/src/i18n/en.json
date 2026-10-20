@@ -562,7 +562,12 @@
     "sinceAll": "Any time",
     "since_300": "Last 5 minutes",
     "since_3600": "Last hour",
-    "since_86400": "Last 24 hours"
+    "since_86400": "Last 24 hours",
+    "ips": "IP addresses",
+    "noIps": "No address yet.",
+    "ipsStopped": "A stopped container has no address. Start it to see it.",
+    "ipsHint": "Other containers on the same network reach it by this address (or by its name). To point your own domain at it,",
+    "ipsGoDns": "add it in Resources → DNS."
   },
   "system": {
     "title": "System",
@@ -813,6 +818,7 @@
     "applyHint": "Writes the records into the container and restarts it (about a second without DNS).",
     "unsaved": "Unsaved changes",
     "applied": "DNS records applied",
-    "rejected": "The DNS server rejected the records"
+    "rejected": "The DNS server rejected the records",
+    "pickContainer": "Use the IP of a container"
   }
 }
