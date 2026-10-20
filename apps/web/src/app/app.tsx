@@ -10,6 +10,9 @@ import { VolumesPage } from "../features/resources/volumes-page.js";
 import { useSession } from "./queries.js";
 import { Shell } from "./shell.js";
 
+const TerminalPage = lazy(() =>
+  import("../features/terminal/terminal-page.js").then((m) => ({ default: m.TerminalPage })),
+);
 const TopologyPage = lazy(() =>
   import("../features/topology/topology-page.js").then((m) => ({ default: m.TopologyPage })),
 );
@@ -36,6 +39,14 @@ export function App() {
               }
             />
             <Route path="containers" element={<ContainersPage />} />
+            <Route
+              path="terminal/:id"
+              element={
+                <Suspense fallback={null}>
+                  <TerminalPage />
+                </Suspense>
+              }
+            />
             <Route path="images" element={<ImagesPage />} />
             <Route path="volumes" element={<VolumesPage />} />
             <Route path="networks" element={<NetworksPage />} />

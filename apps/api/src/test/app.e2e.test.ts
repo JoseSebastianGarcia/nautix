@@ -6,6 +6,7 @@ import type { INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import cookieParser from "cookie-parser";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { WebSocket } from "ws";
 import { AppModule } from "../app.module.js";
 import type { AppConfig } from "../shared/config.js";
 import { ProblemFilter } from "../shared/problem.filter.js";
@@ -177,5 +178,36 @@ describe("events stream", () => {
     }
     abort.abort();
     expect(text).toContain('"kind":"volume"');
+  });
+});
+
+describe("terminal websocket", () => {
+  const open = (containerId: string, headers: Record<string, string>) =>
+    new Promise<{ ws: WebSocket; error?: string }>((resolve) => {
+      const ws = new WebSocket(
+        `${base.replace("http", "ws")}/ws/terminal/${containerId}?cols=80&rows=24`,
+        { headers },
+      );
+      ws.on("open", () => resolve({ ws }));
+      ws.on("unexpected-response", (_req, res) => resolve({ ws, error: String(res.statusCode) }));
+      ws.on("error", () => undefined);
+    });
+
+  it("refuses connections without a session or with a foreign origin", async () => {
+    const host = new URL(base).host;
+    expect((await open("abc", { origin: `http://${host}` })).error).toBe("401");
+    expect((await open("abc", { origin: "http://evil.example", cookie })).error).toBe("403");
+  });
+
+  it("bridges a shell session for an authenticated same-origin client", async () => {
+    const { ws, error } = await open("abc", { origin: base, cookie });
+    expect(error).toBeUndefined();
+    const chunks: string[] = [];
+    ws.on("message", (d: Buffer) => chunks.push(d.toString()));
+    await new Promise((r) => setTimeout(r, 50));
+    ws.send(Buffer.from("hi\r"));
+    await new Promise((r) => setTimeout(r, 100));
+    ws.close();
+    expect(chunks.join("")).toContain("you typed: hi");
   });
 });

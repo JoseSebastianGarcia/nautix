@@ -1,8 +1,18 @@
 import type { Container, ContainerAction, Network } from "@nautix/contracts";
 import { useQuery } from "@tanstack/react-query";
-import { Lock, Play, RotateCw, ShieldAlert, Square, Trash2, Unplug } from "lucide-react";
+import {
+  Lock,
+  Play,
+  RotateCw,
+  ShieldAlert,
+  Square,
+  SquareTerminal,
+  Trash2,
+  Unplug,
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
 import { keys } from "../../app/queries.js";
@@ -101,6 +111,12 @@ function ContainerInspector({
             <Button onClick={() => act.mutate("restart")} disabled={act.isPending}>
               <RotateCw size={14} /> {t("containers.restart")}
             </Button>
+            <Link
+              to={`/terminal/${c.id}`}
+              className="inline-flex items-center gap-2 rounded-lg border border-line bg-bg1 px-3 py-1.5 text-sm font-medium hover:bg-bg2"
+            >
+              <SquareTerminal size={14} /> {t("terminal.open_btn")}
+            </Link>
           </>
         ) : (
           <Button variant="primary" onClick={() => act.mutate("start")} disabled={act.isPending}>

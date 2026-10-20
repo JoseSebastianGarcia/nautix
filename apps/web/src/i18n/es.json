@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Nautix", "tagline": "Docker, en visual." },
+  "app": {
+    "name": "Nautix",
+    "tagline": "Docker, en visual."
+  },
   "nav": {
     "topology": "Topología",
     "containers": "Contenedores",
@@ -35,8 +38,15 @@
     "refresh": "Actualizar",
     "none": "ninguna"
   },
-  "theme": { "dark": "Oscuro", "light": "Claro", "system": "Sistema", "label": "Tema" },
-  "language": { "label": "Idioma" },
+  "theme": {
+    "dark": "Oscuro",
+    "light": "Claro",
+    "system": "Sistema",
+    "label": "Tema"
+  },
+  "language": {
+    "label": "Idioma"
+  },
   "engine": {
     "connected": "Motor conectado",
     "disconnected": "Motor inaccesible",
@@ -165,5 +175,13 @@
     "conflict": "Conflicto con el estado actual",
     "imagePullFailed": "No se pudo descargar la imagen",
     "validation": "Revisá el formulario"
+  },
+  "terminal": {
+    "title": "Terminal",
+    "connecting": "conectando…",
+    "open": "conectado",
+    "closed": "desconectado",
+    "reconnect": "Reconectar",
+    "open_btn": "Terminal"
   }
 }

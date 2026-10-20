@@ -1,7 +1,8 @@
 import type { Container, ContainerAction } from "@nautix/contracts";
-import { Play, RotateCw, Square, Trash2 } from "lucide-react";
+import { Play, RotateCw, Square, SquareTerminal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
 import { keys, useContainers } from "../../app/queries.js";
@@ -67,6 +68,13 @@ export function ContainersPage() {
                     >
                       <Square size={14} />
                     </Button>
+                    <Link
+                      to={`/terminal/${c.id}`}
+                      aria-label={`${t("terminal.open_btn")} ${c.name}`}
+                      className="inline-flex items-center rounded-lg border border-line bg-bg1 px-3 py-1.5 hover:bg-bg2"
+                    >
+                      <SquareTerminal size={14} />
+                    </Link>
                     <Button
                       aria-label={`${t("containers.restart")} ${c.name}`}
                       title={cli.containerAction("restart", c.name)}

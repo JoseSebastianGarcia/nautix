@@ -35,3 +35,6 @@ The spec's lime/cyan palette is replaced by a violet accent (matches the approve
 
 ## ADR-010 — No shadcn/ui yet
 Small hand-written components (`components/ui.tsx`) cover M1. Adopt shadcn when the component count justifies it.
+
+## ADR-011 — Web terminal
+`/ws/terminal/:containerId` (library `ws`, MIT). Binary frames carry stdin/stdout, text frames carry JSON control (`resize`). The server requires the session cookie and a same-host `Origin` (browsers always send it; its absence is refused). The adapter creates a Docker exec with `Tty:true` running `bash` or `sh` *inside the container* and hijacks the connection; there is no host shell. Every open/close is written as a JSON audit line. Output arriving before the WebSocket subscribes is buffered, so the first prompt isn't lost.
