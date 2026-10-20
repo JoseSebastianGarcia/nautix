@@ -2,7 +2,7 @@
 
 Nautix is a self-hosted web app to manage Docker (think Coolify/Portainer): start it with one command, open `http://localhost:3737`, manage containers, images, volumes, networks, Compose and builds. It covers **every command in `docker --help`** (visual action or web terminal) and adds visual editors for networks, Compose and Dockerfile.
 
-Product of **patterna.dev** · SSPL-1.0 · UI in **English + Spanish** · **dark + light** theme.
+Product of **Patterna** · SSPL-1.0 · UI in **English + Spanish** · **dark + light** theme.
 
 ## Stack (fixed)
 
