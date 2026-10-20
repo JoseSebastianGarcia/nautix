@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Nautix.SharedKernel\Nautix.SharedKernel.csproj" />
     <ProjectReference Include="..\Nautix.Ui\Nautix.Ui.csproj" />
+    <ProjectReference Include="..\Nautix.Ui.Wpf\Nautix.Ui.Wpf.csproj" />
     <ProjectReference Include="..\Modules\Containers\Nautix.Containers.Infrastructure\Nautix.Containers.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Images\Nautix.Images.Infrastructure\Nautix.Images.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Networks\Nautix.Networks.Infrastructure\Nautix.Networks.Infrastructure.csproj" />

@@ -77,7 +77,6 @@
       "nautix.containers.domain": {
         "type": "Project",
         "dependencies": {
-          "Nautix.Images.Domain": "[1.0.0, )",
           "Nautix.SharedKernel": "[1.0.0, )"
         }
       },
@@ -358,6 +357,12 @@
         "type": "Project",
         "dependencies": {
           "Nautix.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "nautix.ui.wpf": {
+        "type": "Project",
+        "dependencies": {
+          "Nautix.Ui": "[1.0.0, )"
         }
       },
       "nautix.volumes.application": {
