@@ -1,0 +1,12 @@
+services:
+    web:
+        image: nginx
+        ports:
+            - "80:80"
+        environment:
+            A: b
+    db:
+        image: postgres
+networks:
+   front:
+      driver: bridge

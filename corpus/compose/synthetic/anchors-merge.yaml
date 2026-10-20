@@ -1,0 +1,27 @@
+# anchors and merge keys
+x-common: &common
+  restart: unless-stopped
+  environment: &env
+    LOG_LEVEL: info
+    TZ: UTC
+  logging:
+    driver: json-file
+
+services:
+  web:
+    <<: *common
+    image: nginx:1.27
+    ports:
+      - "80:80"
+    environment:
+      <<: *env
+      MODE: web
+  worker:
+    <<: [*common]
+    image: &workerimg ghcr.io/acme/worker:1.0
+    command: ["run", "--queue", "default"]
+  cron:
+    <<: *common
+    image: *workerimg
+volumes:
+  data: &vol {}

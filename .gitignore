@@ -426,3 +426,7 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+# Third-party corpus files downloaded by the S1 fetch command (licenses vary; never commit)
+corpus/compose/downloaded/
+corpus/dockerfile/downloaded/

@@ -1,0 +1,14 @@
+services:
+  web:
+    image: 'nginx:latest'
+    command: "echo \"hi\" é 😀"
+    environment:
+      - 'A=it''s'
+      - "B=tab\there"
+      - C=plain 🚀
+    labels:
+      emoji: "🙂🙂"
+      sq: 'x'
+      colon: "a: b"
+  db:
+    image: postgres

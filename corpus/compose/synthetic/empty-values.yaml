@@ -1,0 +1,12 @@
+services:
+  web:
+    image: nginx
+    environment:
+      A:
+      B: ~
+      C: ""
+    depends_on:
+volumes:
+  data:
+networks:
+  front:

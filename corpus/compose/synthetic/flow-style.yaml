@@ -1,0 +1,8 @@
+version: "3.8"
+services:
+  web: {image: nginx, ports: ["80:80", "443:443"], environment: {A: 1, B: "two"}}
+  db:
+    image: postgres:16
+    environment: [POSTGRES_USER=app, POSTGRES_PASSWORD=secret]
+    healthcheck: {test: ["CMD", "pg_isready"], interval: 5s}
+networks: {default: {name: net}}

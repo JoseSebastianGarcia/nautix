@@ -1,0 +1,36 @@
+name: demo
+include:
+  - path: ./other.yaml
+x-defaults: &defaults
+  restart: always
+services:
+  base:
+    image: busybox
+    profiles: ["debug"]
+  web:
+    <<: *defaults
+    extends:
+      service: base
+    image: nginx
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 50M
+    secrets:
+      - source: token
+        target: /run/secrets/token
+    configs:
+      - my_config
+secrets:
+  token:
+    file: ./token.txt
+configs:
+  my_config:
+    content: |
+      hello

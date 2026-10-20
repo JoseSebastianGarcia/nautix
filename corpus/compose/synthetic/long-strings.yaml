@@ -1,0 +1,27 @@
+services:
+  app:
+    image: app:1
+    command: >
+      sh -c "
+      echo start &&
+      exec run
+      "
+    entrypoint: |
+      #!/bin/sh
+      set -e
+      exec "$@"
+
+    environment:
+      LONG: "a very long
+        double quoted
+        string"
+      PLAIN: this is a plain
+        multi line scalar
+      KEEP: |+
+        keep trailing
+
+    labels:
+      - "one"
+      - "two"
+  other:
+    image: other:2

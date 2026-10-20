@@ -1,0 +1,7 @@
+? [a, b]
+: value
+services:
+  web: !!map
+    image: !!str nginx
+    count: !!int "3"
+    note: &n !custom thing
