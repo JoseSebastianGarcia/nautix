@@ -1,13 +1,18 @@
 import { Inject } from "@nestjs/common";
 import { CommandHandler, type ICommandHandler } from "@nestjs/cqrs";
 import { DockerEngine } from "../ports/docker-engine.js";
+import { SelfGuard } from "../self-guard.js";
 import { RemoveContainerCommand } from "./remove-container.command.js";
 
 @CommandHandler(RemoveContainerCommand)
 export class RemoveContainerHandler implements ICommandHandler<RemoveContainerCommand, void> {
-  constructor(@Inject(DockerEngine) private readonly engine: DockerEngine) {}
+  constructor(
+    @Inject(DockerEngine) private readonly engine: DockerEngine,
+    @Inject(SelfGuard) private readonly guard: SelfGuard,
+  ) {}
 
-  execute(c: RemoveContainerCommand): Promise<void> {
-    return this.engine.removeContainer(c.id, c.force);
+  async execute(c: RemoveContainerCommand): Promise<void> {
+    await this.guard.assertAllowed(c.id, c.confirm);
+    await this.engine.removeContainer(c.id, c.force);
   }
 }

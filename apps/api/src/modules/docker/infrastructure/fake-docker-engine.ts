@@ -56,6 +56,7 @@ export class FakeDockerEngine extends DockerEngine {
     this.seedContainer("traefik", "traefik:v3.1", [edge.id, backend.id], [80]);
     this.seedContainer("kong", "kong:3.7", [backend.id], [8000]);
     this.seedContainer("postgres", "postgres:16-alpine", [backend.id], []);
+    this.seedContainer("nautix", "ghcr.io/patterna-dev/nautix:latest", [bridge.id], []);
     this.seedContainer("standalone", "nginx:1.27-alpine", [bridge.id], [80]);
   }
 

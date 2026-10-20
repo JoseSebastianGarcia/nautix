@@ -29,6 +29,8 @@ export const Container = z.object({
   ports: z.array(PortBinding),
   networks: z.array(z.string()),
   labels: z.record(z.string(), z.string()),
+  /** True for the container running Nautix itself (set by the API, never by the engine). */
+  isSelf: z.boolean().optional(),
 });
 export type Container = z.infer<typeof Container>;
 
@@ -92,7 +94,11 @@ export type CreateVolume = z.infer<typeof CreateVolume>;
 export const PullImage = z.object({ reference: z.string().min(1).max(255) });
 export type PullImage = z.infer<typeof PullImage>;
 
-export const ConnectNetwork = z.object({ containerId: z.string().min(1) });
+export const ConnectNetwork = z.object({
+  containerId: z.string().min(1),
+  /** Container name typed by the user; required to touch Nautix's own container. */
+  confirm: z.string().optional(),
+});
 export type ConnectNetwork = z.infer<typeof ConnectNetwork>;
 
 export const ContainerAction = z.enum(["start", "stop", "restart", "kill", "pause", "unpause"]);

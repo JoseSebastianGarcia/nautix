@@ -49,7 +49,11 @@ import { ListVolumesQuery } from "../application/queries/list-volumes.query.js";
 import { WatchEventsQuery } from "../application/queries/watch-events.query.js";
 import type { ComposeDocument } from "../domain/compose-export.js";
 
-const Force = z.object({ force: z.enum(["true", "false"]).default("false") });
+const Force = z.object({
+  force: z.enum(["true", "false"]).default("false"),
+  confirm: z.string().optional(),
+});
+const Confirm = z.object({ confirm: z.string().optional() });
 const ExportQuery = z.object({
   network: z.string().optional(),
   includeEnv: z.enum(["true", "false"]).default("false"),
@@ -113,8 +117,10 @@ export class DockerController {
 
   @Post("containers/:id/:action")
   @HttpCode(204)
-  async action(@Param("id") id: string, @Param("action") action: string) {
-    await this.commands.execute(new ContainerActionCommand(id, parse(ContainerAction, action)));
+  async action(@Param("id") id: string, @Param("action") action: string, @Query() query: unknown) {
+    await this.commands.execute(
+      new ContainerActionCommand(id, parse(ContainerAction, action), parse(Confirm, query).confirm),
+    );
   }
 
   @Delete("containers/:id")

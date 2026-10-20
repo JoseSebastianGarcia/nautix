@@ -53,6 +53,11 @@ export function ContainerNode({ data, selected }: NodeProps<ContainerFlowNode>) 
             className={`h-2 w-2 shrink-0 rounded-full ${STATE_COLOR[c.state] ?? "bg-dim"}`}
           />
           <span className="truncate text-sm font-semibold">{c.name}</span>
+          {c.isSelf && (
+            <span className="rounded bg-accent-soft px-1 text-[10px] font-semibold text-accent">
+              {t("self.badge")}
+            </span>
+          )}
         </div>
         <div className="truncate font-mono text-[11px] text-dim">{c.image}</div>
         <div className="mt-0.5 flex items-center gap-1 text-[10px]">

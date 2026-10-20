@@ -182,7 +182,8 @@
     "inUse": "Todavía está en uso",
     "conflict": "Conflicto con el estado actual",
     "imagePullFailed": "No se pudo descargar la imagen",
-    "validation": "Revisá el formulario"
+    "validation": "Revisá el formulario",
+    "selfProtected": "Este es el contenedor que ejecuta Nautix. Confirmá escribiendo su nombre."
   },
   "terminal": {
     "title": "Terminal",
@@ -191,5 +192,11 @@
     "closed": "desconectado",
     "reconnect": "Reconectar",
     "open_btn": "Terminal"
+  },
+  "self": {
+    "badge": "Nautix",
+    "title": "Este es Nautix",
+    "body": "Detenerlo, reiniciarlo o eliminarlo dejará esta interfaz inaccesible. Escribí el nombre del contenedor para continuar.",
+    "typeName": "Nombre del contenedor"
   }
 }

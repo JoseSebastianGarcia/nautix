@@ -182,7 +182,8 @@
     "inUse": "It is still in use",
     "conflict": "Conflict with the current state",
     "imagePullFailed": "Could not pull the image",
-    "validation": "Please check the form"
+    "validation": "Please check the form",
+    "selfProtected": "This is the container running Nautix. Confirm by typing its name."
   },
   "terminal": {
     "title": "Terminal",
@@ -191,5 +192,11 @@
     "closed": "disconnected",
     "reconnect": "Reconnect",
     "open_btn": "Terminal"
+  },
+  "self": {
+    "badge": "Nautix",
+    "title": "This is Nautix itself",
+    "body": "Stopping, restarting or removing it will make this interface unavailable. Type the container name to continue.",
+    "typeName": "Container name"
   }
 }

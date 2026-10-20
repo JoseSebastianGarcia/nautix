@@ -164,6 +164,24 @@ describe("docker api (fake engine)", () => {
     expect(withEnv.json.yaml).toContain("topsecret");
   });
 
+  it("protects the container that runs Nautix itself", async () => {
+    const list = (await call("GET", "/containers")).json as {
+      id: string;
+      name: string;
+      isSelf?: boolean;
+    }[];
+    const self = list.find((c) => c.isSelf);
+    expect(self?.name).toBe("nautix");
+    const refused = await call("POST", `/containers/${self?.id}/stop`);
+    expect(refused.res.status).toBe(409);
+    expect(refused.json.hintKey).toBe("errors.selfProtected");
+    expect((await call("DELETE", `/containers/${self?.id}?force=true`)).res.status).toBe(409);
+    expect((await call("POST", `/containers/${self?.id}/stop?confirm=nautix`)).res.status).toBe(
+      204,
+    );
+    expect((await call("POST", `/containers/${self?.id}/start`)).res.status).toBe(204);
+  });
+
   it("validates input", async () => {
     const bad = await call("POST", "/networks", { name: "bad name!" });
     expect(bad.res.status).toBe(422);

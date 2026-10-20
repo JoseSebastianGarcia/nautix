@@ -7,7 +7,7 @@ import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
 import { keys, useContainers } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
-import { Button, ConfirmDialog } from "../../components/ui.js";
+import { Button, ConfirmDialog, TypeConfirmDialog } from "../../components/ui.js";
 import { LogoBadge } from "../topology/logo-badge.js";
 import { PageHeader, Table, Td } from "./table.js";
 
@@ -15,14 +15,18 @@ export function ContainersPage() {
   const { t } = useTranslation();
   const { data = [] } = useContainers();
   const [target, setTarget] = useState<Container | null>(null);
+  const [pendingSelf, setPendingSelf] = useState<{ c: Container; run: () => void } | null>(null);
   const act = useApiMutation(
-    ({ id, action }: { id: string; action: ContainerAction }) => api.containerAction(id, action),
+    ({ c, action }: { c: Container; action: ContainerAction }) =>
+      api.containerAction(c.id, action, c.isSelf ? c.name : undefined),
     [keys.containers],
   );
   const remove = useApiMutation(
-    (id: string) => api.removeContainer(id, true),
+    (c: Container) => api.removeContainer(c.id, true, c.isSelf ? c.name : undefined),
     [keys.containers, keys.networks],
   );
+  // Nautix's own container needs its name typed before anything that could take it down.
+  const guard = (c: Container, run: () => void) => (c.isSelf ? setPendingSelf({ c, run }) : run());
 
   return (
     <div className="p-6">
@@ -64,7 +68,7 @@ export function ContainersPage() {
                     <Button
                       aria-label={`${t("containers.stop")} ${c.name}`}
                       title={cli.containerAction("stop", c.name)}
-                      onClick={() => act.mutate({ id: c.id, action: "stop" })}
+                      onClick={() => guard(c, () => act.mutate({ c, action: "stop" }))}
                     >
                       <Square size={14} />
                     </Button>
@@ -78,7 +82,7 @@ export function ContainersPage() {
                     <Button
                       aria-label={`${t("containers.restart")} ${c.name}`}
                       title={cli.containerAction("restart", c.name)}
-                      onClick={() => act.mutate({ id: c.id, action: "restart" })}
+                      onClick={() => guard(c, () => act.mutate({ c, action: "restart" }))}
                     >
                       <RotateCw size={14} />
                     </Button>
@@ -87,7 +91,7 @@ export function ContainersPage() {
                   <Button
                     aria-label={`${t("containers.start")} ${c.name}`}
                     title={cli.containerAction("start", c.name)}
-                    onClick={() => act.mutate({ id: c.id, action: "start" })}
+                    onClick={() => act.mutate({ c, action: "start" })}
                   >
                     <Play size={14} />
                   </Button>
@@ -104,12 +108,18 @@ export function ContainersPage() {
           </tr>
         ))}
       </Table>
+      <TypeConfirmDialog
+        open={pendingSelf !== null}
+        name={pendingSelf?.c.name ?? ""}
+        onConfirm={() => pendingSelf?.run()}
+        onClose={() => setPendingSelf(null)}
+      />
       <ConfirmDialog
         open={target !== null}
         title={t("topology.removeContainerTitle", { name: target?.name ?? "" })}
         body={t("topology.removeContainerBody", { image: target?.image ?? "" })}
         command={target ? cli.removeContainer(target.name, true) : ""}
-        onConfirm={() => target && remove.mutate(target.id)}
+        onConfirm={() => target && guard(target, () => remove.mutate(target))}
         onClose={() => setTarget(null)}
       />
     </div>
