@@ -1,7 +1,7 @@
 # 00 — Product
 
 ## Goal
-Free, Apache-2.0, self-hosted web UI for Docker. One command to start, browser to use. Works on Linux and on Windows 11+ (private WSL2 engine, no Docker Desktop).
+Free, SSPL-1.0, self-hosted web UI for Docker. One command to start, browser to use. Works on Linux and on Windows 11+ (private WSL2 engine, no Docker Desktop).
 
 ## Scope (v1)
 1. Install: `install.sh` (Linux), `install.ps1` (Windows/WSL2), reference `compose.yaml`.

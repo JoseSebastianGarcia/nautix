@@ -89,3 +89,6 @@ Swarm lives in its own module behind a `SwarmEngine` port (socket adapter, in-me
 
 ## ADR-026 — License: Apache-2.0
 The project moved from MIT to Apache-2.0 (explicit patent grant, `NOTICE` file). All code so far was written for patterna.dev, so relicensing needs no third-party consent; contributions from now on are accepted under Apache-2.0. Dependencies must stay compatible (MIT, Apache-2.0, BSD, ISC, MPL ok; GPL, AGPL, SSPL, BUSL no), enforced by `scripts/check-licenses.mjs`.
+
+## ADR-027 — License: SSPL-1.0
+The project moved from Apache-2.0 to the Server Side Public License v1 to discourage third parties from offering Nautix as a hosted service without opening their service stack. The text in `LICENSE` is the unmodified SSPL v1 (MongoDB's copy); the copyright notice is in `NOTICE`. SSPL is source-available and not OSI-approved: some distributions and companies do not allow it. The repository was private when this changed, so no one received earlier versions under MIT or Apache-2.0. Dependencies still must not be GPL, AGPL, SSPL or BUSL (`scripts/check-licenses.mjs`): permissive dependencies (MIT, Apache-2.0, BSD, ISC, MPL) can be combined with SSPL code.
