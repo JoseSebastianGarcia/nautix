@@ -30,4 +30,7 @@ RUN mkdir /data && chown node:node /data
 USER node
 VOLUME /data
 EXPOSE 3737
+# Works with HTTPS (self-signed/local CA) and plain HTTP.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "const m=require('node:'+(process.env.NAUTIX_TLS||process.env.NAUTIX_TLS_CERT?'https':'http'));m.get({host:'127.0.0.1',port:process.env.NAUTIX_PORT,path:'/api/v1/health',rejectUnauthorized:false},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 CMD ["node", "dist/main.js"]

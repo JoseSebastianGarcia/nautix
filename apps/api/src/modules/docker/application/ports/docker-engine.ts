@@ -77,7 +77,7 @@ export abstract class DockerEngine {
   abstract disconnectNetwork(networkId: string, containerId: string): Promise<void>;
 
   abstract listImages(): Promise<Image[]>;
-  abstract pullImage(reference: string): Promise<void>;
+  abstract pullImage(reference: string, auth?: RegistryAuth): Promise<void>;
   abstract pullImageIfMissing(reference: string): Promise<void>;
   abstract removeImage(id: string, force: boolean): Promise<void>;
 

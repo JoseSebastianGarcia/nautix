@@ -1,6 +1,26 @@
 import { PassThrough, type Readable } from "node:stream";
-import { ImageReference, PushImage, RegistryAuth, TagImage } from "@nautix/contracts";
-import { Body, Controller, Get, HttpCode, Inject, Post, Query, Req, Res } from "@nestjs/common";
+import {
+  ImageReference,
+  PushImage,
+  RegistryAuth,
+  type RegistryInfo,
+  SaveRegistry,
+  TagImage,
+} from "@nautix/contracts";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  Res,
+} from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import type { Request, Response } from "express";
 import { z } from "zod";
@@ -10,9 +30,12 @@ import { AdminOnly } from "../../auth/presentation/admin-only.decorator.js";
 import { ImportImageCommand } from "../application/commands/import-image.command.js";
 import { LoadImageCommand } from "../application/commands/load-image.command.js";
 import { PushImageCommand } from "../application/commands/push-image.command.js";
+import { RemoveRegistryCommand } from "../application/commands/remove-registry.command.js";
+import { SaveRegistryCommand } from "../application/commands/save-registry.command.js";
 import { TagImageCommand } from "../application/commands/tag-image.command.js";
 import { TestRegistryAuthCommand } from "../application/commands/test-registry-auth.command.js";
 import { GetImageHistoryQuery } from "../application/queries/get-image-history.query.js";
+import { ListRegistriesQuery } from "../application/queries/list-registries.query.js";
 import { SaveImageQuery } from "../application/queries/save-image.query.js";
 import { SearchImagesQuery } from "../application/queries/search-images.query.js";
 
@@ -123,5 +146,24 @@ export class ImageToolsController {
         new TestRegistryAuthCommand(parse(RegistryAuth, body)),
       ),
     };
+  }
+
+  @Get("registries")
+  registries() {
+    return this.queries.execute<ListRegistriesQuery, RegistryInfo[]>(new ListRegistriesQuery());
+  }
+
+  /** Verifies the login with the registry, then stores it encrypted. The password is never returned. */
+  @Put("registries")
+  saveRegistry(@Body() body: unknown) {
+    return this.commands.execute<SaveRegistryCommand, RegistryInfo>(
+      new SaveRegistryCommand(parse(SaveRegistry, body)),
+    );
+  }
+
+  @Delete("registries/:server")
+  @HttpCode(204)
+  async removeRegistry(@Param("server") server: string) {
+    await this.commands.execute(new RemoveRegistryCommand(server));
   }
 }

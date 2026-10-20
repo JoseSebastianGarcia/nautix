@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import Database from "better-sqlite3";
 import cookieParser from "cookie-parser";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
@@ -734,6 +735,42 @@ describe("image tools and system commands", () => {
         }
       ).status,
     ).toBe("Login Succeeded");
+  });
+
+  it("keeps registry logins encrypted and uses them for push", async () => {
+    expect(
+      (
+        await call("PUT", "/registries", {
+          server: "https://index.docker.io/v1/",
+          username: "me",
+          password: "wrong",
+        })
+      ).res.status,
+    ).toBe(422);
+    expect(((await call("GET", "/registries")).json as unknown[]).length).toBe(0);
+
+    const saved = await call("PUT", "/registries", {
+      server: "https://index.docker.io/v1/",
+      username: "me",
+      password: "hunter2-secret",
+    });
+    expect(saved.json).toEqual({ server: "docker.io", username: "me" });
+    expect((await call("GET", "/registries")).json).toEqual([
+      { server: "docker.io", username: "me" },
+    ]);
+    expect(JSON.stringify((await call("GET", "/registries")).json)).not.toContain("hunter2");
+
+    const db = new Database(join(dataDir, "nautix.db"), { readonly: true });
+    const row = db.prepare("SELECT secret FROM registries").get() as { secret: string };
+    db.close();
+    expect(row.secret).not.toContain("hunter2");
+
+    // No credentials in the request: the saved login for docker.io is used.
+    const pushed = await call("POST", "/images/push", { reference: "private/app:1" });
+    expect(pushed.res.status).toBe(201);
+
+    expect((await call("DELETE", "/registries/docker.io")).res.status).toBe(204);
+    expect((await call("DELETE", "/registries/docker.io")).res.status).toBe(404);
   });
 
   it("reports info, version and disk usage", async () => {

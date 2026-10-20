@@ -197,7 +197,7 @@
     "createdBy": "Creado por",
     "pushing": "Subiendo {{ref}}…",
     "pushed": "{{ref}} subida",
-    "credentialsNote": "Las credenciales se envían una vez al motor para autenticar este push. No se guardan ni se registran.",
+    "credentialsNote": "Dejalo vacío para usar el acceso guardado en Ajustes → Registries. Las credenciales escritas acá se envían una vez al motor y no se guardan ni se registran.",
     "registryServer": "Registro (opcional)",
     "registryHint": "Vacío para Docker Hub",
     "testLogin": "Probar login",
@@ -334,7 +334,17 @@
     "tlsTrustWindows": "Windows: doble clic en el archivo → Instalar certificado → Equipo local → Entidades de certificación raíz de confianza. Reiniciá el navegador.",
     "tlsTrustMac": "macOS: abrilo en Acceso a Llaveros y marcalo como Confiar siempre.",
     "tlsTrustLinux": "Linux/WSL: copialo a /usr/local/share/ca-certificates/nautix.crt y ejecutá update-ca-certificates. Si el navegador corre en Windows, usá el paso de Windows.",
-    "tlsTrustFirefox": "Firefox tiene su propio almacén: Ajustes → Privacidad → Certificados → Importar (o activá security.enterprise_roots.enabled)."
+    "tlsTrustFirefox": "Firefox tiene su propio almacén: Ajustes → Privacidad → Certificados → Importar (o activá security.enterprise_roots.enabled).",
+    "registries": "Registries",
+    "registriesHint": "Los accesos guardados se usan para descargar y subir imágenes sin escribir credenciales.",
+    "addRegistry": "Agregar registry",
+    "registryServer": "Registry",
+    "registryPassword": "Contraseña o token de acceso",
+    "registryStored": "Nautix verifica el acceso con el registry y guarda la contraseña cifrada (AES-256-GCM) en su volumen de datos. No se vuelve a mostrar.",
+    "registrySaved": "Sesión iniciada en {{server}}",
+    "registryRemove": "Quitar",
+    "registryRemoveTitle": "¿Quitar el acceso a {{server}}?",
+    "registryRemoveBody": "Las descargas y subidas a este registry volverán a pedir credenciales."
   },
   "compose": {
     "title": "Proyectos Compose",

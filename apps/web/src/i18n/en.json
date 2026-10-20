@@ -197,7 +197,7 @@
     "createdBy": "Created by",
     "pushing": "Pushing {{ref}}…",
     "pushed": "{{ref}} pushed",
-    "credentialsNote": "Credentials are sent once to the engine to authenticate this push. They are not stored or logged.",
+    "credentialsNote": "Leave empty to use the login saved in Settings → Registries. Credentials typed here are sent once to the engine and are not stored or logged.",
     "registryServer": "Registry (optional)",
     "registryHint": "Leave empty for Docker Hub",
     "testLogin": "Test login",
@@ -334,7 +334,17 @@
     "tlsTrustWindows": "Windows: double-click the file → Install certificate → Local machine → Trusted Root Certification Authorities. Restart the browser.",
     "tlsTrustMac": "macOS: open the file in Keychain Access, then set it to Always Trust.",
     "tlsTrustLinux": "Linux/WSL: copy it to /usr/local/share/ca-certificates/nautix.crt and run update-ca-certificates. If the browser runs on Windows, use the Windows step.",
-    "tlsTrustFirefox": "Firefox keeps its own store: Settings → Privacy → Certificates → Import (or enable security.enterprise_roots.enabled)."
+    "tlsTrustFirefox": "Firefox keeps its own store: Settings → Privacy → Certificates → Import (or enable security.enterprise_roots.enabled).",
+    "registries": "Registries",
+    "registriesHint": "Saved logins are used to pull and push images without typing credentials.",
+    "addRegistry": "Add registry",
+    "registryServer": "Registry",
+    "registryPassword": "Password or access token",
+    "registryStored": "Nautix checks the login with the registry first, then keeps the password encrypted (AES-256-GCM) in its data volume. It is never shown again.",
+    "registrySaved": "Signed in to {{server}}",
+    "registryRemove": "Remove",
+    "registryRemoveTitle": "Remove login for {{server}}?",
+    "registryRemoveBody": "Pulls and pushes to this registry will need credentials again."
   },
   "compose": {
     "title": "Compose projects",

@@ -613,7 +613,7 @@ export class DockerSocketEngine extends DockerEngine {
     }));
   }
 
-  async pullImage(reference: string): Promise<void> {
+  async pullImage(reference: string, auth?: RegistryAuth): Promise<void> {
     const sep = reference.lastIndexOf(":");
     const hasTag = sep > reference.lastIndexOf("/");
     const from = hasTag ? reference.slice(0, sep) : reference;
@@ -621,6 +621,8 @@ export class DockerSocketEngine extends DockerEngine {
     const reply = await this.call(
       "POST",
       `/images/create?fromImage=${encodeURIComponent(from)}&tag=${encodeURIComponent(tag)}`,
+      undefined,
+      auth ? this.authHeader(auth) : undefined,
     );
     this.assertOk(reply);
     for (const line of reply.body.toString("utf8").split("\n")) {

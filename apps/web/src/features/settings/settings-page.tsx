@@ -18,6 +18,7 @@ export function SettingsPage() {
     <div className="flex flex-col gap-10 p-6">
       <UsersSection />
       <TokensSection />
+      <RegistriesSection />
       <TlsSection />
     </div>
   );
@@ -412,6 +413,108 @@ function TlsSection() {
           </div>
         </form>
       </Dialog>
+    </section>
+  );
+}
+
+function RegistriesSection() {
+  const { t } = useTranslation();
+  const { data: registries = [] } = useQuery({ queryKey: ["registries"], queryFn: api.registries });
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ server: "docker.io", username: "", password: "" });
+  const [target, setTarget] = useState<string | null>(null);
+  const save = useApiMutation(
+    () => api.saveRegistry(form),
+    [["registries"]],
+    () => t("settings.registrySaved", { server: form.server }),
+  );
+  const remove = useApiMutation((server: string) => api.removeRegistry(server), [["registries"]]);
+
+  return (
+    <section>
+      <PageHeader
+        title={t("settings.registries")}
+        actions={
+          <Button variant="primary" onClick={() => setAdding(true)}>
+            <Plus size={14} /> {t("settings.addRegistry")}
+          </Button>
+        }
+      />
+      <p className="mb-3 text-xs text-dim">{t("settings.registriesHint")}</p>
+      <Table
+        head={[t("settings.registryServer"), t("auth.username"), t("common.actions")]}
+        empty={registries.length === 0}
+      >
+        {registries.map((r) => (
+          <tr key={r.server}>
+            <Td mono>{r.server}</Td>
+            <Td mono>{r.username}</Td>
+            <Td>
+              <Button
+                variant="danger"
+                aria-label={`${t("settings.registryRemove")} ${r.server}`}
+                onClick={() => setTarget(r.server)}
+              >
+                <Trash2 size={14} />
+              </Button>
+            </Td>
+          </tr>
+        ))}
+      </Table>
+      <Dialog open={adding} onClose={() => setAdding(false)} title={t("settings.addRegistry")}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save.mutate(undefined, {
+              onSuccess: () => {
+                setAdding(false);
+                setForm({ server: "docker.io", username: "", password: "" });
+              },
+            });
+          }}
+        >
+          <Field label={t("settings.registryServer")} hint={t("images.registryHint")}>
+            <Input
+              value={form.server}
+              onChange={(e) => setForm({ ...form, server: e.target.value })}
+              placeholder="docker.io"
+              required
+            />
+          </Field>
+          <Field label={t("auth.username")}>
+            <Input
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              autoComplete="off"
+              required
+            />
+          </Field>
+          <Field label={t("settings.registryPassword")}>
+            <Input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              autoComplete="new-password"
+              required
+            />
+          </Field>
+          <p className="text-xs text-dim">{t("settings.registryStored")}</p>
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setAdding(false)}>{t("common.cancel")}</Button>
+            <Button variant="primary" type="submit" disabled={save.isPending}>
+              {t("common.save")}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+      <ConfirmDialog
+        open={target !== null}
+        title={t("settings.registryRemoveTitle", { server: target ?? "" })}
+        body={t("settings.registryRemoveBody")}
+        onConfirm={() => target && remove.mutate(target)}
+        onClose={() => setTarget(null)}
+      />
     </section>
   );
 }

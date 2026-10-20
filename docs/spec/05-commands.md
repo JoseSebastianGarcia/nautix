@@ -9,7 +9,7 @@ Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 
 `Done` = reachable in the UI with the flags people use daily. `Partial` = works, with gaps named in the table below. `Planned` = not built yet (milestone in the M column).
 
-Gaps in `Partial` rows: **run** has no healthcheck or resource limits at creation (use Update afterwards) · **ps** has no filters · **login/logout** do not keep registries (credentials are sent once per push; a stateless login check exists) · **compose** covers up/down/pull/config, not ps/logs/build · **volume** has no file browser or update · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls (no since/until).
+Gaps in `Partial` rows: **run** has no healthcheck or resource limits at creation (use Update afterwards) · **ps** has no filters · **compose** covers up/down/pull/config, not ps/logs/build · **volume** has no file browser or update · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls (no since/until).
 
 ## Common (13)
 
@@ -23,8 +23,8 @@ Gaps in `Partial` rows: **run** has no healthcheck or resource limits at creatio
 | pull | API (stream) | Images → Pull dialog with layer progress | M1 | Done |
 | push | API (stream, auth) | Images → Push (registry selector) | M1 | Done |
 | images | API | Images list (dangling, digests, tree view) | M1 | Done |
-| login | CLI + SecretStore | Registries → Add/Sign in | M1 | Partial |
-| logout | CLI + SecretStore | Registries → Sign out | M1 | Partial |
+| login | CLI + SecretStore | Registries → Add/Sign in | M1 | Done |
+| logout | CLI + SecretStore | Registries → Sign out | M1 | Done |
 | search | API | Images → Search Hub (stars, official) | M1 | Done |
 | version | API + CLI | About / System → Versions | M1 | Done |
 | info | API | System → Info (formatted + raw) | M1 | Done |

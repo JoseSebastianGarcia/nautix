@@ -363,3 +363,14 @@ export const EngineEvent = z.object({
   name: z.string().nullable(),
 });
 export type EngineEvent = z.infer<typeof EngineEvent>;
+
+/** A saved registry login. The password is encrypted at rest and never returned. */
+export const RegistryInfo = z.object({ server: z.string(), username: z.string() });
+export type RegistryInfo = z.infer<typeof RegistryInfo>;
+
+export const SaveRegistry = z.object({
+  server: z.string().min(1).max(255),
+  username: z.string().min(1).max(256),
+  password: z.string().min(1).max(4096),
+});
+export type SaveRegistry = z.infer<typeof SaveRegistry>;

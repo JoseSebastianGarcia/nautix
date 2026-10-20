@@ -29,6 +29,8 @@ import type {
   PrunePreview,
   PruneResult,
   RegistryAuth,
+  RegistryInfo,
+  SaveRegistry,
   Session,
   Template,
   TlsCustomCertificate,
@@ -81,6 +83,10 @@ export const api = {
   createToken: (b: CreateToken) =>
     request<{ id: string; token: string }>("POST", "/settings/tokens", b),
   revokeToken: (id: string) => request<void>("DELETE", `/settings/tokens/${id}`),
+  registries: () => request<RegistryInfo[]>("GET", "/registries"),
+  saveRegistry: (b: SaveRegistry) => request<RegistryInfo>("PUT", "/registries", b),
+  removeRegistry: (server: string) =>
+    request<void>("DELETE", `/registries/${encodeURIComponent(server)}`),
   tls: () => request<TlsStatus>("GET", "/settings/tls"),
   setTlsHosts: (hosts: string[]) => request<TlsStatus>("PUT", "/settings/tls/hosts", { hosts }),
   setTlsCustom: (b: TlsCustomCertificate) => request<TlsStatus>("PUT", "/settings/tls/custom", b),

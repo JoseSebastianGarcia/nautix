@@ -2,6 +2,7 @@ import { hostname } from "node:os";
 import { type DynamicModule, Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 import { APP_CONFIG, type AppConfig } from "../../shared/config.js";
+import { openDatabase } from "../../shared/sqlite-database.js";
 import { ApplyGatewayHandler } from "./application/commands/apply-gateway.handler.js";
 import { CommitContainerHandler } from "./application/commands/commit-container.handler.js";
 import { ConnectNetworkHandler } from "./application/commands/connect-network.handler.js";
@@ -20,13 +21,16 @@ import { PutArchiveHandler } from "./application/commands/put-archive.handler.js
 import { RemoveContainerHandler } from "./application/commands/remove-container.handler.js";
 import { RemoveImageHandler } from "./application/commands/remove-image.handler.js";
 import { RemoveNetworkHandler } from "./application/commands/remove-network.handler.js";
+import { RemoveRegistryHandler } from "./application/commands/remove-registry.handler.js";
 import { RemoveVolumeHandler } from "./application/commands/remove-volume.handler.js";
 import { RenameContainerHandler } from "./application/commands/rename-container.handler.js";
+import { SaveRegistryHandler } from "./application/commands/save-registry.handler.js";
 import { TagImageHandler } from "./application/commands/tag-image.handler.js";
 import { TestRegistryAuthHandler } from "./application/commands/test-registry-auth.handler.js";
 import { UpdateContainerHandler } from "./application/commands/update-container.handler.js";
 import { WaitContainerHandler } from "./application/commands/wait-container.handler.js";
 import { DockerEngine } from "./application/ports/docker-engine.js";
+import { RegistryStore } from "./application/ports/registry-store.js";
 import { SelfIdentity } from "./application/ports/self-identity.js";
 import { ExportComposeHandler } from "./application/queries/export-compose.handler.js";
 import { ExportContainerHandler } from "./application/queries/export-container.handler.js";
@@ -44,6 +48,7 @@ import { InspectHandler } from "./application/queries/inspect.handler.js";
 import { ListContainersHandler } from "./application/queries/list-containers.handler.js";
 import { ListImagesHandler } from "./application/queries/list-images.handler.js";
 import { ListNetworksHandler } from "./application/queries/list-networks.handler.js";
+import { ListRegistriesHandler } from "./application/queries/list-registries.handler.js";
 import { ListVolumesHandler } from "./application/queries/list-volumes.handler.js";
 import { PreviewPruneHandler } from "./application/queries/preview-prune.handler.js";
 import { SaveImageHandler } from "./application/queries/save-image.handler.js";
@@ -51,9 +56,11 @@ import { SearchImagesHandler } from "./application/queries/search-images.handler
 import { WatchDetailedEventsHandler } from "./application/queries/watch-detailed-events.handler.js";
 import { WatchEventsHandler } from "./application/queries/watch-events.handler.js";
 import { SelfGuard } from "./application/self-guard.js";
+import { AesGcmCipher } from "./infrastructure/aes-gcm-cipher.js";
 import { DockerSocketEngine } from "./infrastructure/docker-socket-engine.js";
 import { FakeDockerEngine } from "./infrastructure/fake-docker-engine.js";
 import { HostnameSelfIdentity } from "./infrastructure/hostname-self-identity.js";
+import { SqliteRegistryStore } from "./infrastructure/sqlite-registry-store.js";
 import { ContainerDetailsController } from "./presentation/container-details.controller.js";
 import { DockerController } from "./presentation/docker.controller.js";
 import { ImageToolsController } from "./presentation/image-tools.controller.js";
@@ -92,6 +99,9 @@ const HANDLERS = [
   LoadImageHandler,
   ImportImageHandler,
   PushImageHandler,
+  SaveRegistryHandler,
+  RemoveRegistryHandler,
+  ListRegistriesHandler,
   TestRegistryAuthHandler,
   PruneResourcesHandler,
   PreviewPruneHandler,
@@ -122,6 +132,11 @@ export class DockerModule {
       ],
       providers: [
         { provide: APP_CONFIG, useValue: config },
+        {
+          provide: RegistryStore,
+          useFactory: () =>
+            new SqliteRegistryStore(openDatabase(config.dataDir), new AesGcmCipher(config.dataDir)),
+        },
         {
           provide: DockerEngine,
           useFactory: () =>
