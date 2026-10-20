@@ -142,6 +142,7 @@
       "database": "Bases de datos",
       "cache": "Caché",
       "broker": "Mensajería",
+      "identity": "Identidad",
       "observability": "Observabilidad",
       "automation": "Automatización",
       "app": "Aplicaciones",

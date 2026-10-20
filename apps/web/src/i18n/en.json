@@ -142,6 +142,7 @@
       "database": "Databases",
       "cache": "Cache",
       "broker": "Messaging",
+      "identity": "Identity",
       "observability": "Observability",
       "automation": "Automation",
       "app": "Apps",

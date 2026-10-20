@@ -7,6 +7,7 @@ export type TemplateCategory =
   | "observability"
   | "automation"
   | "dns"
+  | "identity"
   | "app"
   | "custom";
 
@@ -268,6 +269,48 @@ export const TEMPLATES: readonly Template[] = [
     // The image has no default config. Deploy it, then press "Save and apply" in the DNS tab:
     // Nautix writes /etc/coredns/Corefile and starts it.
     command: ["-conf", "/etc/coredns/Corefile"],
+  },
+  {
+    id: "keycloak",
+    name: "Keycloak",
+    category: "identity",
+    image: "keycloak/keycloak:26.8.1",
+    description: "Identity provider (SSO, OIDC, SAML, LDAP) in dev mode; the admin user is below",
+    icon: "keycloak",
+    color: "#4D4D4D",
+    ports: [{ containerPort: 8080, label: "console", hostPort: 8081 }],
+    // Dev mode keeps data in an embedded database and needs no TLS: fine to try it out.
+    // For production add a PostgreSQL container and switch to `start`. Change this password first.
+    env: { KC_BOOTSTRAP_ADMIN_USERNAME: "admin", KC_BOOTSTRAP_ADMIN_PASSWORD: "change-me" },
+    command: ["start-dev"],
+    volumes: ["/opt/keycloak/data"],
+  },
+  {
+    id: "pocket-id",
+    name: "Pocket ID",
+    category: "identity",
+    image: "pocketid/pocket-id:v2.18.0",
+    description: "Simple OIDC provider with passkey login, one container (set ENCRYPTION_KEY)",
+    icon: "openid",
+    color: "#F78C40",
+    ports: [{ containerPort: 1411, label: "web", hostPort: 1411 }],
+    // ENCRYPTION_KEY protects the stored secrets: use your own random value of 16+ characters.
+    // APP_URL must be the address you open it with, or logins will be refused.
+    env: { APP_URL: "http://localhost:1411", ENCRYPTION_KEY: "change-me-use-16-or-more-chars" },
+    volumes: ["/app/data"],
+  },
+  {
+    id: "casdoor",
+    name: "Casdoor",
+    category: "identity",
+    image: "casbin/casdoor-all-in-one:4.22.0",
+    description:
+      "Identity and access management with its own database included (OAuth, SAML, LDAP)",
+    icon: "casdoor",
+    color: "#5734D3",
+    ports: [{ containerPort: 8000, label: "web", hostPort: 8000 }],
+    // The first login is built-in: change that admin password right away.
+    volumes: ["/var/lib/mysql"],
   },
   {
     id: "kafka",
