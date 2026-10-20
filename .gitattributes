@@ -1,2 +1,4 @@
 # Corpus files must keep their exact bytes (CRLF, BOM, missing final newline are test inputs).
 corpus/compose/synthetic/* -text
+*.sh text eol=lf
+*.ps1 text eol=crlf

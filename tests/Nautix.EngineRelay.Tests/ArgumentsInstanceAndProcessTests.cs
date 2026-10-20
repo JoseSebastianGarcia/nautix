@@ -21,13 +21,14 @@ public sealed class ArgumentsInstanceAndProcessTests
     [Fact]
     public void Every_option_is_parsed()
     {
-        var options = RelayArguments.Parse(["--pipe", "p", "--control-pipe", "c", "--distro", "d", "--transport", "socat", "--keep-alive", "false"]).Value;
+        var options = RelayArguments.Parse(["--pipe", "p", "--control-pipe", "c", "--distro", "d", "--transport", "socat", "--keep-alive", "false", "--mutex-name", "Local\\X"]).Value;
 
         options.PipeName.ShouldBe("p");
         options.ControlPipeName.ShouldBe("c");
         options.Distro.ShouldBe("d");
         options.Transport.ShouldBe(EngineTransportKind.Socat);
         options.KeepAlive.ShouldBeFalse();
+        options.MutexName.ShouldBe(@"Local\X");
     }
 
     [Theory]

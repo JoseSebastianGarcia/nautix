@@ -2,7 +2,7 @@ using Nautix.SharedKernel;
 
 namespace Nautix.EngineRelay;
 
-/// <summary>Command line: <c>--pipe</c>, <c>--control-pipe</c>, <c>--distro</c>, <c>--transport dial-stdio|socat</c>, <c>--keep-alive true|false</c>.</summary>
+/// <summary>Command line: <c>--pipe</c>, <c>--control-pipe</c>, <c>--distro</c>, <c>--transport dial-stdio|socat</c>, <c>--keep-alive true|false</c>, <c>--mutex-name</c>.</summary>
 public static class RelayArguments
 {
     public static Result<RelayOptions> Parse(IReadOnlyList<string> args)
@@ -24,6 +24,9 @@ public static class RelayArguments
                     break;
                 case "--control-pipe":
                     options = options with { ControlPipeName = value };
+                    break;
+                case "--mutex-name":
+                    options = options with { MutexName = value };
                     break;
                 case "--distro":
                     options = options with { Distro = value };
