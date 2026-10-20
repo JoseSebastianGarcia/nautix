@@ -659,7 +659,7 @@ describe("image tools and system commands", () => {
     fetch(`${base}/api/v1${path}`, {
       method,
       headers: { cookie, "x-nautix-csrf": "1", "content-type": type },
-      body,
+      body: new Uint8Array(body),
     });
 
   it("tags, shows history, searches, saves, loads and imports", async () => {

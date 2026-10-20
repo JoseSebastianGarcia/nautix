@@ -12,7 +12,6 @@ export function InspectDialog({
   target: { title: string; command: string; key: string; load: () => Promise<unknown> } | null;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
   return (
     <Dialog open={target !== null} onClose={onClose} title={target?.title ?? ""}>
       {target && <Body target={target} onClose={onClose} />}

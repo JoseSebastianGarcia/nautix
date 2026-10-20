@@ -124,7 +124,11 @@ export function StringListEditor({
             placeholder={placeholder}
             value={adding}
             onChange={(e) => setAdding(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              add();
+            }}
           />
           <button
             type="button"
@@ -200,7 +204,11 @@ export function EnvEditor({
             placeholder="value"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              add();
+            }}
           />
           <button
             type="button"

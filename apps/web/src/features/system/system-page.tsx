@@ -145,23 +145,27 @@ function PruneWizard() {
   return (
     <div className="flex max-w-3xl flex-col gap-4">
       <p className="text-sm text-dim">{t("system.pruneIntro")}</p>
-      <div role="radiogroup" aria-label={t("system.pruneWhat")} className="flex flex-wrap gap-2">
+      <fieldset className="flex flex-wrap gap-2">
+        <legend className="sr-only">{t("system.pruneWhat")}</legend>
         {KINDS.map((k) => (
-          <button
+          <label
             key={k}
-            type="button"
-            role="radio"
-            aria-checked={kind === k}
-            onClick={() => {
-              setKind(k);
-              setAll(false);
-            }}
-            className={`rounded-lg border px-3 py-1.5 text-sm ${kind === k ? "border-accent bg-accent-soft text-accent" : "border-line text-dim hover:text-fg"}`}
+            className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm focus-within:outline focus-within:outline-2 focus-within:outline-accent ${kind === k ? "border-accent bg-accent-soft text-accent" : "border-line text-dim hover:text-fg"}`}
           >
+            <input
+              type="radio"
+              name="prune-kind"
+              className="sr-only"
+              checked={kind === k}
+              onChange={() => {
+                setKind(k);
+                setAll(false);
+              }}
+            />
             {t(`system.bucket.${k}`)}
-          </button>
+          </label>
         ))}
-      </div>
+      </fieldset>
       {showAll && (
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} />
