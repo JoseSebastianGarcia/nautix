@@ -1,8 +1,0 @@
-services:
-  web:
-    image: nginx	# tab before comment
-    command: echo	hello	world
-    labels:
-      note: "a	b"
-  db:
-    image: postgres

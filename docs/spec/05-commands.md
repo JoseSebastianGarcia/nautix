@@ -1,8 +1,8 @@
 # 05 — Command coverage matrix (53 commands + global options)
 
-**Rule:** every row must be reachable in the UI as a visual action or, when marked `T`, via the integrated terminal with first-class integration (autocomplete + history). A coverage test (`CommandCoverageTests`) parses `docs/spec/05-commands.md` and fails if a row lacks `Status=Done` at release, or if a command listed by `docker --help` (captured as `corpus/docker-help.txt`) is absent from this table.
+**Rule:** every row must be reachable in the UI as a visual action or, when marked `T`, via the web terminal with first-class integration (autocomplete + history). A coverage test (`command-coverage.test.ts`) parses `docs/spec/05-commands.md` and fails if a row lacks `Status=Done` at release, or if a command listed by `docker --help` (captured as `corpus/docker-help.txt`) is absent from this table.
 
-Route: `API` = Docker Engine API via `IContainerEngine`; `CLI` = Docker CLI via `IDockerCli`/dedicated adapter; `LOCAL` = Nautix-only logic.
+Route: `API` = Docker Engine API via `ContainerEngine`; `CLI` = Docker CLI via `DockerCli`/dedicated adapter; `LOCAL` = Nautix-only logic.
 Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 
 ## Common (13)
@@ -17,8 +17,8 @@ Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 | pull | API (stream) | Images → Pull dialog with layer progress | M1 |
 | push | API (stream, auth) | Images → Push (registry selector) | M1 |
 | images | API | Images list (dangling, digests, tree view) | M1 |
-| login | CLI + ICredentialStore | Registries → Add/Sign in | M1 |
-| logout | CLI + ICredentialStore | Registries → Sign out | M1 |
+| login | CLI + SecretStore | Registries → Add/Sign in | M1 |
+| logout | CLI + SecretStore | Registries → Sign out | M1 |
 | search | API | Images → Search Hub (stars, official) | M1 |
 | version | API + CLI | About / System → Versions | M1 |
 | info | API | System → Info (formatted + raw) | M1 |
@@ -31,7 +31,7 @@ Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 | buildx | CLI | Builds → Builders (create/use/inspect/rm/du/prune/stop) | M4 |
 | compose | CLI | Compose editor operations bar + Projects list | M3 |
 | container | API | Containers (all subcommands in rows below) | M1 |
-| context | CLI + LOCAL | Settings → Contexts (list/create/update/use/inspect/export/import/rm); status-bar context switcher | M1 |
+| context | CLI + LOCAL | Settings → Targets (list/inspect/create/update/use/export/import/rm; v1 shows the local target, remote post-1.0); top-bar target chip | M1 |
 | image | API | Images (all subcommands in rows below) | M1 |
 | manifest | CLI | Images → Manifest (inspect/create/annotate/push/rm) | M5 |
 | network | API | Networks list + graph | M2 |
@@ -53,7 +53,7 @@ Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 |---|---|---|---|
 | attach | API (hijack) | Container → Attach tab (terminal; detach keys) | M1 |
 | commit | API | Container → "Create image from container" | M1 |
-| cp | API (archive) | Container → Files (drag & drop Windows⇄container, tar stream) | M1 |
+| cp | API (archive) | Container → Files (browser upload/download, streamed tar) | M1 |
 | create | API | Run wizard "Create only" | M1 |
 | diff | API | Container → Changes tab | M1 |
 | events | API (stream) | System → Events (filters, pause, export) | M1 |
@@ -84,22 +84,22 @@ Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 
 ## Subcommand coverage
 
-For each management command, `docs/commands/<name>.md` (generated at M1 from `docker <name> --help` captured into `corpus/help/<name>.txt`) lists every subcommand and flag; `CommandCoverageTests` fails when a subcommand present in the corpus is neither implemented as a UI action nor routed to the terminal passthrough. Terminal passthrough counts as `T` and is acceptable only for rarely used flags/subcommands, never for the commands in the Common list.
+For each management command, `docs/commands/<name>.md` (generated at M1 from `docker <name> --help` captured into `corpus/help/<name>.txt`) lists every subcommand and flag; `command-coverage.test.ts` fails when a subcommand present in the corpus is neither implemented as a UI action nor routed to the terminal passthrough. Terminal passthrough counts as `T` and is acceptable only for rarely used flags/subcommands, never for the commands in the Common list.
 
 ## Global options
 
 | Option | Handling |
 |---|---|
-| `--config` | Settings → Advanced (docker config dir); passed as `DOCKER_CONFIG` |
-| `-c, --context` | Status-bar context switcher; every CLI call sets `--context` explicitly |
+| `--config` | Not exposed; each CLI run uses a private temporary `DOCKER_CONFIG` |
+| `-c, --context` | Targets/contexts screen (Settings); every CLI call sets the target explicitly; v1 = local socket only |
 | `-D, --debug` | Settings → Advanced → Debug logging toggle |
-| `-H, --host` | Not exposed (contexts replace it); terminal passthrough allowed |
+| `-H, --host` | Not exposed (targets replace it); blocked in web terminal |
 | `-l, --log-level` | Settings → Advanced → Docker log level (CLI calls) |
-| `--tls`, `--tlscacert`, `--tlscert`, `--tlskey`, `--tlsverify` | Context editor (remote contexts only) |
+| `--tls*` | Post-1.0 (remote targets) |
 | `-v, --version` | About dialog |
 
 ## Cross-cutting action requirements
 
 - Multi-select + bulk actions on all lists (start/stop/restart/kill/rm/pause/unpause/tag/save).
-- Every action shows equivalent CLI (`ICommandPreview`) and writes an entry in the Operations history (command, params without secrets, duration, result).
+- Every action shows equivalent CLI (`CommandPreview`) and writes an entry in the Operations history (command, params without secrets, duration, result).
 - Prune wizards (`container|image|volume|network|builder|system prune`) first compute and show what would be removed (dry-run via list+filters) and the reclaimable size, then require explicit confirmation.

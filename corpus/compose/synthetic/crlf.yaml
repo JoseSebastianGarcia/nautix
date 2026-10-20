@@ -1,9 +1,0 @@
-services:
-  web:
-    image: nginx
-    ports:
-      - "80:80"
-    environment:
-      A: "1"
-  db:
-    image: postgres
