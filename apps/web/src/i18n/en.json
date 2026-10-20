@@ -13,7 +13,8 @@
     "compose": "Compose",
     "system": "System",
     "gateway": "Gateways",
-    "resources": "Resources"
+    "resources": "Resources",
+    "builds": "Builds"
   },
   "common": {
     "cancel": "Cancel",
@@ -581,5 +582,55 @@
     },
     "noUpstreamPath": "{{name}} forwards to a host and port only: destinations like http://service:80/base (with a path) are not accepted. Kong does accept them.",
     "supported": "Supported: Kong, Nginx, Caddy and Traefik."
+  },
+  "builds": {
+    "title": "Builds",
+    "intro": "Write a Dockerfile, check it against Nautix's rules and build an image on this engine. Extra files you add below are the build context.",
+    "template": "Containerize my app",
+    "templates": {
+      "node": "Node.js app",
+      "python": "Python app",
+      "go": "Go app (multi-stage)",
+      "static": "Static site (nginx)"
+    },
+    "stages": "Stages",
+    "issues": "Checks",
+    "noIssues": "No issues found.",
+    "line": "line {{line}}",
+    "fix": "Fix",
+    "tag": "Image name and tag",
+    "target": "Build target",
+    "targetHint": "Stop at a named stage.",
+    "lastStage": "Last stage",
+    "args": "Build arguments",
+    "argsWarning": "Build arguments are stored in the image history: never put secrets here.",
+    "files": "Context files",
+    "filesHint": "Small text files the Dockerfile can COPY (package.json, nginx.conf, ...).",
+    "addFile": "Add file",
+    "filePath": "File path",
+    "fileContent": "File content",
+    "noCache": "Do not use the build cache",
+    "pull": "Always pull newer base images",
+    "build": "Build",
+    "building": "Building…",
+    "blocked": "Fix the errors above to build.",
+    "output": "Build output",
+    "done": "Built {{tag}}",
+    "failed": "The build failed",
+    "rules": {
+      "NX-DF001": "Base image {{image}} is not pinned to a version; builds will change over time.",
+      "NX-DF002": "The container runs as root. Add a USER instruction with an unprivileged user.",
+      "NX-DF003": "No HEALTHCHECK: Docker cannot tell whether the app is actually working.",
+      "NX-DF004": "ADD for a local file: COPY is clearer and has no surprises.",
+      "NX-DF005": "{{name}} looks like a secret and would be saved in the image. Pass it at run time instead.",
+      "NX-DF006": "Piping a download into a shell runs unverified code during the build.",
+      "NX-DF007": "apt-get update on its own gets cached and goes stale; run it together with install.",
+      "NX-DF008": "apt-get install without --no-install-recommends adds unneeded packages.",
+      "NX-DF009": "WORKDIR {{path}} is relative; use an absolute path.",
+      "NX-DF010": "More than one {{keyword}} in the same stage: only the last one counts.",
+      "NX-DF011": "The file must start with FROM (only ARG may come before it).",
+      "NX-DF012": "Unknown instruction {{keyword}}.",
+      "NX-DF013": "{{keyword}} in shell form: the app does not receive stop signals. Use the [\"exec\", \"form\"]."
+    }
   }
 }

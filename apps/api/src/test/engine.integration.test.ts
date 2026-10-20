@@ -233,6 +233,33 @@ describe("against a real Docker daemon", () => {
     expect(file).toContain("/api");
   });
 
+  it("builds an image from a Dockerfile with the real builder and runs it", async () => {
+    const post = (body: unknown) =>
+      fetch(`${base}/api/v1/builds`, {
+        method: "POST",
+        headers: { cookie, "x-nautix-csrf": "1", "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    const res = await post({
+      tag: `${PREFIX}built:1`,
+      dockerfile: `FROM ${IMAGE}\nARG GREETING=hola\nCOPY hello.txt /hello.txt\nRUN echo "$GREETING" > /greeting.txt\nCMD ["cat", "/hello.txt", "/greeting.txt"]\n`,
+      files: [{ path: "hello.txt", content: "from the context\n" }],
+      buildArgs: { GREETING: "buenas" },
+    });
+    const text = await res.text();
+    expect(text.trim().endsWith("NAUTIX-BUILD: ok")).toBe(true);
+    expect(docker("run", "--rm", "--network", "none", `${PREFIX}built:1`)).toBe(
+      "from the context\nbuenas",
+    );
+
+    const failed = await (
+      await post({ tag: `${PREFIX}bad:1`, dockerfile: `FROM ${IMAGE}\nRUN exit 3\n` })
+    ).text();
+    expect(failed).toContain("ERROR:");
+    expect(failed.trim().endsWith("NAUTIX-BUILD: failed")).toBe(true);
+    docker("rmi", "-f", `${PREFIX}built:1`);
+  });
+
   it("removes what it created", async () => {
     const list = (await call("GET", "/containers")).json as Ctr[];
     for (const c of list.filter((c) => c.name.startsWith(PREFIX)))

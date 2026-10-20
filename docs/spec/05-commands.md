@@ -9,7 +9,7 @@ Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 
 `Done` = reachable in the UI with the flags people use daily. `Partial` = works, with gaps named in the table below. `Planned` = not built yet (milestone in the M column).
 
-Gaps in `Partial` rows: **run** has no healthcheck or resource limits at creation (use Update afterwards) · **ps** has no filters · **compose** covers up/down/pull/config, not ps/logs/build · **volume** has no file browser or update · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls (no since/until).
+Gaps in `Partial` rows: **build** uses the engine's classic builder: no BuildKit DAG, secrets, buildx or bake, and the context is the typed Dockerfile plus small text files (no directory upload) · **run** has no healthcheck or resource limits at creation (use Update afterwards) · **ps** has no filters · **compose** covers up/down/pull/config, not ps/logs/build · **volume** has no file browser or update · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls (no since/until).
 
 ## Common (13)
 
@@ -18,7 +18,7 @@ Gaps in `Partial` rows: **run** has no healthcheck or resource limits at creatio
 | run | API (create+start; pull if needed) | "Run container" wizard (image, name, ports, env, volumes, network, resources, restart policy, healthcheck); also Images → Run | M1 | Partial |
 | exec | API | Container → Exec tab (terminal) / one-shot command dialog | M1 | Done |
 | ps | API | Containers list (filters: status, label, compose project, name) | M1 | Partial |
-| build | CLI (buildx) | Builds → New build | M4 | Planned |
+| build | API (classic builder) | Resources → Builds (Dockerfile editor, lint, stage graph, args, target, context files) | M4 | Partial |
 | bake | CLI (buildx bake) | Builds → Bake | M4 | Planned |
 | pull | API (stream) | Images → Pull dialog with layer progress | M1 | Done |
 | push | API (stream, auth) | Images → Push (registry selector) | M1 | Done |

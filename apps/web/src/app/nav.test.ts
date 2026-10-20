@@ -2,8 +2,15 @@ import { describe, expect, it } from "vitest";
 import { isActivePath, isResourcePath } from "./nav.js";
 
 describe("navigation", () => {
-  it("the Resources entry covers containers, images, volumes and networks (and details)", () => {
-    for (const p of ["/containers", "/containers/abc123", "/images", "/volumes", "/networks"]) {
+  it("the Resources entry covers containers, images, volumes, networks and builds (and details)", () => {
+    for (const p of [
+      "/containers",
+      "/containers/abc123",
+      "/images",
+      "/volumes",
+      "/networks",
+      "/builds",
+    ]) {
       expect(isActivePath("/containers", p)).toBe(true);
       expect(isResourcePath(p)).toBe(true);
     }

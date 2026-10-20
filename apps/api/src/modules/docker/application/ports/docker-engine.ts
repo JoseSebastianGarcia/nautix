@@ -36,6 +36,14 @@ export interface ActionOptions {
 export type EngineEventKind = "container" | "network" | "image" | "volume";
 
 /** Port to the Docker engine. Adapters: DockerSocketEngine (real), FakeDockerEngine (demo/tests). */
+export interface BuildOptions {
+  tag: string;
+  buildArgs: Record<string, string>;
+  target?: string;
+  noCache: boolean;
+  pull: boolean;
+}
+
 export abstract class DockerEngine {
   abstract info(): Promise<EngineInfo>;
   /** Stream of "something of this kind changed" events; ends when the signal aborts. */
@@ -88,6 +96,8 @@ export abstract class DockerEngine {
   abstract importImage(tar: Readable, repository: string, tag: string): Promise<string>;
   abstract searchImages(term: string, limit: number): Promise<ImageSearchResult[]>;
   /** Credentials are used for this call only. Returns the engine's progress lines. */
+  /** Builds from a tar build context; yields the builder's output line by line. */
+  abstract buildImage(context: Buffer, options: BuildOptions): AsyncIterable<string>;
   abstract pushImage(reference: string, auth: RegistryAuth | undefined): Promise<string>;
   abstract testRegistryAuth(auth: RegistryAuth): Promise<string>;
 

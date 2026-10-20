@@ -4,6 +4,7 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { APP_CONFIG, type AppConfig } from "../../shared/config.js";
 import { openDatabase } from "../../shared/sqlite-database.js";
 import { ApplyGatewayHandler } from "./application/commands/apply-gateway.handler.js";
+import { BuildImageHandler } from "./application/commands/build-image.handler.js";
 import { CommitContainerHandler } from "./application/commands/commit-container.handler.js";
 import { ConnectNetworkHandler } from "./application/commands/connect-network.handler.js";
 import { ContainerActionHandler } from "./application/commands/container-action.handler.js";
@@ -61,6 +62,7 @@ import { DockerSocketEngine } from "./infrastructure/docker-socket-engine.js";
 import { FakeDockerEngine } from "./infrastructure/fake-docker-engine.js";
 import { HostnameSelfIdentity } from "./infrastructure/hostname-self-identity.js";
 import { SqliteRegistryStore } from "./infrastructure/sqlite-registry-store.js";
+import { BuildController } from "./presentation/build.controller.js";
 import { ContainerDetailsController } from "./presentation/container-details.controller.js";
 import { DockerController } from "./presentation/docker.controller.js";
 import { ImageToolsController } from "./presentation/image-tools.controller.js";
@@ -99,6 +101,7 @@ const HANDLERS = [
   LoadImageHandler,
   ImportImageHandler,
   PushImageHandler,
+  BuildImageHandler,
   SaveRegistryHandler,
   RemoveRegistryHandler,
   ListRegistriesHandler,
@@ -126,6 +129,7 @@ export class DockerModule {
       imports: [CqrsModule],
       controllers: [
         ContainerDetailsController,
+        BuildController,
         ImageToolsController,
         SystemController,
         DockerController,

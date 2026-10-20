@@ -1,5 +1,6 @@
 import type {
   ApiTokenInfo,
+  BuildRequest,
   CommitContainer,
   ComposeAction,
   ComposeProject,
@@ -243,4 +244,34 @@ export const api = {
   volumes: () => request<Volume[]>("GET", "/volumes"),
   createVolume: (name: string) => request<void>("POST", "/volumes", { name }),
   removeVolume: (name: string) => request<void>("DELETE", `/volumes/${encodeURIComponent(name)}`),
+};
+
+/** `docker build` from the editor: streams the builder output, resolves with whether it succeeded. */
+export const buildImage = async (
+  body: BuildRequest,
+  onText: (chunk: string) => void,
+  signal?: AbortSignal,
+): Promise<boolean> => {
+  const res = await fetch("/api/v1/builds", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "x-nautix-csrf": "1", "content-type": "application/json" },
+    body: JSON.stringify(body),
+    ...(signal ? { signal } : {}),
+  });
+  if (!res.ok || !res.body) {
+    const problem = (await res.json().catch(() => ({}))) as { code?: string; hintKey?: string };
+    throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let all = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const text = decoder.decode(value, { stream: true });
+    all += text;
+    onText(text);
+  }
+  return all.trimEnd().endsWith("NAUTIX-BUILD: ok");
 };

@@ -13,7 +13,8 @@
     "compose": "Compose",
     "system": "Sistema",
     "gateway": "Gateways",
-    "resources": "Recursos"
+    "resources": "Recursos",
+    "builds": "Builds"
   },
   "common": {
     "cancel": "Cancelar",
@@ -581,5 +582,55 @@
     },
     "noUpstreamPath": "{{name}} reenvía solo a un host y puerto: no acepta destinos como http://servicio:80/base (con ruta). Kong sí los acepta.",
     "supported": "Compatibles: Kong, Nginx, Caddy y Traefik."
+  },
+  "builds": {
+    "title": "Builds",
+    "intro": "Escribí un Dockerfile, revisalo con las reglas de Nautix y construí una imagen en este motor. Los archivos extra que agregues abajo son el contexto del build.",
+    "template": "Containerizar mi app",
+    "templates": {
+      "node": "App Node.js",
+      "python": "App Python",
+      "go": "App Go (multi-stage)",
+      "static": "Sitio estático (nginx)"
+    },
+    "stages": "Etapas",
+    "issues": "Revisiones",
+    "noIssues": "Sin problemas.",
+    "line": "línea {{line}}",
+    "fix": "Corregir",
+    "tag": "Nombre y tag de la imagen",
+    "target": "Etapa objetivo",
+    "targetHint": "Detenerse en una etapa con nombre.",
+    "lastStage": "Última etapa",
+    "args": "Argumentos de build",
+    "argsWarning": "Los argumentos quedan en el historial de la imagen: nunca pongas secretos acá.",
+    "files": "Archivos de contexto",
+    "filesHint": "Archivos de texto chicos que el Dockerfile puede copiar con COPY (package.json, nginx.conf, ...).",
+    "addFile": "Agregar archivo",
+    "filePath": "Ruta del archivo",
+    "fileContent": "Contenido del archivo",
+    "noCache": "No usar la caché de build",
+    "pull": "Descargar siempre imágenes base más nuevas",
+    "build": "Construir",
+    "building": "Construyendo…",
+    "blocked": "Corregí los errores de arriba para construir.",
+    "output": "Salida del build",
+    "done": "Se construyó {{tag}}",
+    "failed": "El build falló",
+    "rules": {
+      "NX-DF001": "La imagen base {{image}} no tiene versión fija; los builds cambiarán con el tiempo.",
+      "NX-DF002": "El contenedor corre como root. Agregá un USER sin privilegios.",
+      "NX-DF003": "Sin HEALTHCHECK: Docker no puede saber si la app realmente funciona.",
+      "NX-DF004": "ADD de un archivo local: COPY es más claro y sin sorpresas.",
+      "NX-DF005": "{{name}} parece un secreto y quedaría guardado en la imagen. Pasalo al ejecutar el contenedor.",
+      "NX-DF006": "Pasar una descarga a un shell ejecuta código sin verificar durante el build.",
+      "NX-DF007": "apt-get update solo queda en caché y se desactualiza; ejecutalo junto con install.",
+      "NX-DF008": "apt-get install sin --no-install-recommends agrega paquetes innecesarios.",
+      "NX-DF009": "WORKDIR {{path}} es relativo; usá una ruta absoluta.",
+      "NX-DF010": "Hay más de un {{keyword}} en la misma etapa: solo cuenta el último.",
+      "NX-DF011": "El archivo debe empezar con FROM (solo ARG puede ir antes).",
+      "NX-DF012": "Instrucción desconocida: {{keyword}}.",
+      "NX-DF013": "{{keyword}} en forma shell: la app no recibe las señales de parada. Usá la forma [\"exec\", \"form\"]."
+    }
   }
 }

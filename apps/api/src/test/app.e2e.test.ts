@@ -833,6 +833,39 @@ describe("image tools and system commands", () => {
     rmSync(join(dataDir, "restore-pending"), { recursive: true, force: true });
   });
 
+  it("builds an image from a typed Dockerfile and streams the output", async () => {
+    const post = (body: unknown) =>
+      fetch(`${base}/api/v1/builds`, {
+        method: "POST",
+        headers: { cookie, "x-nautix-csrf": "1", "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    const ok = await post({ tag: "demo/built:1", dockerfile: 'FROM alpine:3.20\nCMD ["sh"]\n' });
+    expect(ok.status).toBe(200);
+    const text = await ok.text();
+    expect(text).toContain("Step 1/2");
+    expect(text.trim().endsWith("NAUTIX-BUILD: ok")).toBe(true);
+    const images = (await call("GET", "/images")).json as { tags: string[] }[];
+    expect(images.some((i) => i.tags.includes("demo/built:1"))).toBe(true);
+
+    const bad = await (
+      await post({ tag: "demo/bad:1", dockerfile: "FROM alpine:3.20\nRUN BROKEN-STEP\n" })
+    ).text();
+    expect(bad).toContain("ERROR:");
+    expect(bad.trim().endsWith("NAUTIX-BUILD: failed")).toBe(true);
+
+    expect(
+      (
+        await post({
+          tag: "demo/x:1",
+          dockerfile: "FROM a",
+          files: [{ path: "../etc/x", content: "" }],
+        })
+      ).status,
+    ).toBe(422);
+    expect((await post({ tag: "bad tag!", dockerfile: "FROM a" })).status).toBe(422);
+  });
+
   it("reports info, version and disk usage", async () => {
     expect(
       ((await call("GET", "/system/info")).json as { ServerVersion: string }).ServerVersion,

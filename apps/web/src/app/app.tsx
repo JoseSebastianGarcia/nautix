@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "../components/ui.js";
 import { AuthPage } from "../features/auth/auth-page.js";
+import { BuildsPage } from "../features/builds/builds-page.js";
 import { ComposeProjectsPage } from "../features/compose/compose-projects-page.js";
 import { ContainerPage } from "../features/containers/container-page.js";
 import { GatewayPage } from "../features/gateway/gateway-page.js";
@@ -61,6 +62,7 @@ export function App() {
             <Route path="images" element={<ImagesPage />} />
             <Route path="volumes" element={<VolumesPage />} />
             <Route path="networks" element={<NetworksPage />} />
+            <Route path="builds" element={<BuildsPage />} />
             <Route path="compose" element={<ComposeProjectsPage />} />
             <Route
               path="compose/:name"

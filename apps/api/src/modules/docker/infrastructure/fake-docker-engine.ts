@@ -28,6 +28,7 @@ import { Injectable } from "@nestjs/common";
 import { ConflictError, NotFoundError, ValidationError } from "../../../shared/domain-error.js";
 import {
   type ActionOptions,
+  type BuildOptions,
   DockerEngine,
   type EngineEventKind,
   type InspectKind,
@@ -519,6 +520,27 @@ export class FakeDockerEngine extends DockerEngine {
       },
     ];
     return catalog.filter((c) => c.name.includes(term.toLowerCase())).slice(0, limit);
+  }
+
+  async *buildImage(context: Buffer, options: BuildOptions): AsyncIterable<string> {
+    if (context.includes("BROKEN-STEP"))
+      throw new ValidationError(
+        "The command '/bin/sh -c BROKEN-STEP' returned a non-zero code: 127",
+        "errors.buildFailed",
+      );
+    yield "Step 1/2 : FROM alpine:3.20";
+    yield " ---> demo";
+    yield 'Step 2/2 : CMD ["sh"]';
+    const ref = options.tag.includes(":") ? options.tag : `${options.tag}:latest`;
+    this.images.set(ref, {
+      id: `sha256:${newId()}`,
+      tags: [ref],
+      size: 7_000_000,
+      createdAt: Math.floor(Date.now() / 1000),
+      inUse: false,
+    });
+    this.emit("image");
+    yield `Successfully tagged ${ref}`;
   }
 
   async pushImage(reference: string, auth: RegistryAuth | undefined): Promise<string> {

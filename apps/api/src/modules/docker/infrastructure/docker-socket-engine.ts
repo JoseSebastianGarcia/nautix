@@ -1,5 +1,5 @@
 import { type IncomingMessage, request } from "node:http";
-import type { Readable } from "node:stream";
+import { Readable } from "node:stream";
 import type {
   CommitContainer,
   Container,
@@ -34,6 +34,7 @@ import {
 } from "../../../shared/domain-error.js";
 import {
   type ActionOptions,
+  type BuildOptions,
   DockerEngine,
   type EngineEventKind,
   type InspectKind,
@@ -720,6 +721,47 @@ export class DockerSocketEngine extends DockerEngine {
         }
       : {};
     return { "X-Registry-Auth": Buffer.from(JSON.stringify(payload)).toString("base64url") };
+  }
+
+  async *buildImage(context: Buffer, options: BuildOptions): AsyncIterable<string> {
+    const q = new URLSearchParams({
+      t: options.tag,
+      rm: "1",
+      forcerm: "1",
+      dockerfile: "Dockerfile",
+    });
+    if (Object.keys(options.buildArgs).length)
+      q.set("buildargs", JSON.stringify(options.buildArgs));
+    if (options.target) q.set("target", options.target);
+    if (options.noCache) q.set("nocache", "1");
+    if (options.pull) q.set("pull", "1");
+    const res = await this.stream("POST", `/build?${q.toString()}`, Readable.from([context]));
+    let pending = "";
+    for await (const chunk of res) {
+      pending += (chunk as Buffer).toString("utf8");
+      let nl = pending.indexOf("\n");
+      while (nl >= 0) {
+        const line = pending.slice(0, nl);
+        pending = pending.slice(nl + 1);
+        yield* this.buildLine(line);
+        nl = pending.indexOf("\n");
+      }
+    }
+    if (pending.trim()) yield* this.buildLine(pending);
+  }
+
+  private *buildLine(line: string): Iterable<string> {
+    if (!line.trim()) return;
+    let msg: { stream?: string; status?: string; error?: string; aux?: unknown };
+    try {
+      msg = JSON.parse(line);
+    } catch {
+      yield line;
+      return;
+    }
+    if (msg.error) throw new ValidationError(msg.error, "errors.buildFailed");
+    if (msg.stream) yield msg.stream.replace(/\n$/, "");
+    else if (msg.status) yield msg.status;
   }
 
   async pushImage(reference: string, auth: RegistryAuth | undefined): Promise<string> {

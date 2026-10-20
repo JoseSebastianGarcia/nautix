@@ -374,3 +374,23 @@ export const SaveRegistry = z.object({
   password: z.string().min(1).max(4096),
 });
 export type SaveRegistry = z.infer<typeof SaveRegistry>;
+
+const BuildFilePath = z
+  .string()
+  .regex(/^[A-Za-z0-9._-][A-Za-z0-9._/-]{0,98}$/, "invalid path")
+  .refine((p) => !p.split("/").some((part) => part === ".." || part === ""), "invalid path");
+
+/** A build whose context is the Dockerfile plus a few small text files typed in the editor. */
+export const BuildRequest = z.object({
+  tag: ImageReference,
+  dockerfile: z.string().min(1).max(200_000),
+  files: z
+    .array(z.object({ path: BuildFilePath, content: z.string().max(1_000_000) }))
+    .max(50)
+    .default([]),
+  buildArgs: z.record(z.string().max(128), z.string().max(4096)).default({}),
+  target: z.string().max(128).optional(),
+  noCache: z.boolean().default(false),
+  pull: z.boolean().default(false),
+});
+export type BuildRequest = z.infer<typeof BuildRequest>;
