@@ -1,4 +1,10 @@
-import type { CustomTemplateInput, Network, RestartPolicy, Template } from "@nautix/contracts";
+import {
+  type CustomTemplateInput,
+  checkFixedIp,
+  type Network,
+  type RestartPolicy,
+  type Template,
+} from "@nautix/contracts";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -84,6 +90,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
   const [volumes, setVolumes] = useState<string[]>(() => [...(tpl?.volumes ?? [])]);
   const [command, setCommand] = useState(() => (tpl?.command ? joinCommand(tpl.command) : ""));
   const [createOnly, setCreateOnly] = useState(false);
+  const [fixedIp, setFixedIp] = useState("");
   const [healthcheck, setHealthcheck] = useState("");
   const [memoryMb, setMemoryMb] = useState("");
   const [cpus, setCpus] = useState("");
@@ -93,6 +100,16 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
   const portsValid = ports.every(
     (p) => validPort(p.containerPort) && (p.hostPort === "" || validPort(p.hostPort)),
   );
+  const taken = target.network
+    ? containers.flatMap((c) => {
+        const used = c.ips?.[target.network?.name ?? ""];
+        return used ? [used] : [];
+      })
+    : [];
+  const ipProblem =
+    fixedIp.trim() && target.network
+      ? checkFixedIp(fixedIp.trim(), target.network.subnet, taken)
+      : null;
   const limitsValid =
     (memoryMb === "" || (Number(memoryMb) >= 6 && Number.isInteger(Number(memoryMb)))) &&
     (cpus === "" || Number(cpus) >= 0.01);
@@ -101,6 +118,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
     image.trim() !== "" &&
     portsValid &&
     limitsValid &&
+    ipProblem === null &&
     (!saveAs || templateName.trim() !== "");
 
   const deploy = useApiMutation(
@@ -120,6 +138,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
         volumes: namedVolumes(name, volumes),
         ...(command.trim() ? { command: splitCommand(command) } : {}),
         ...(createOnly ? { start: false } : {}),
+        ...(fixedIp.trim() && target.network ? { ipAddress: fixedIp.trim() } : {}),
         ...(healthcheck.trim() ? { healthcheck: { command: healthcheck.trim() } } : {}),
         ...(memoryMb || cpus
           ? {
@@ -351,6 +370,22 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
               />
             </Field>
           </div>
+          {target.network && (
+            <Field
+              label={t("topology.fixedIp")}
+              hint={t("topology.fixedIpHint", { subnet: target.network.subnet ?? "?" })}
+            >
+              <Input
+                value={fixedIp}
+                onChange={(e) => setFixedIp(e.target.value)}
+                placeholder={t("topology.fixedIpAuto")}
+                aria-invalid={ipProblem !== null}
+              />
+              {ipProblem && (
+                <p className="text-xs text-danger">{t(`errors.fixedIp_${ipProblem}`)}</p>
+              )}
+            </Field>
+          )}
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

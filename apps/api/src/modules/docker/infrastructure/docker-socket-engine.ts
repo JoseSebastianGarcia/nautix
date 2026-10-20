@@ -332,6 +332,15 @@ export class DockerSocketEngine extends DockerEngine {
               },
             }
           : {}),
+        ...(spec.networkName && spec.ipv4Address
+          ? {
+              NetworkingConfig: {
+                EndpointsConfig: {
+                  [spec.networkName]: { IPAMConfig: { IPv4Address: spec.ipv4Address } },
+                },
+              },
+            }
+          : {}),
         HostConfig: {
           ...(spec.memoryBytes ? { Memory: spec.memoryBytes } : {}),
           ...(spec.nanoCpus ? { NanoCpus: spec.nanoCpus } : {}),
@@ -606,9 +615,10 @@ export class DockerSocketEngine extends DockerEngine {
     return this.send("DELETE", `/networks/${encodeURIComponent(id)}`);
   }
 
-  connectNetwork(networkId: string, containerId: string): Promise<void> {
+  connectNetwork(networkId: string, containerId: string, ipv4Address?: string): Promise<void> {
     return this.send("POST", `/networks/${encodeURIComponent(networkId)}/connect`, {
       Container: containerId,
+      ...(ipv4Address ? { EndpointConfig: { IPAMConfig: { IPv4Address: ipv4Address } } } : {}),
     });
   }
 

@@ -143,6 +143,8 @@ export const api = {
     request<void>("POST", `/plugins/${encodeURIComponent(name)}/disable`),
   removePlugin: (name: string, force: boolean) =>
     request<void>("DELETE", `/plugins/${encodeURIComponent(name)}?force=${force}`),
+  setFixedIp: (id: string, network: string, ip: string | null) =>
+    request<void>("PUT", `/containers/${id}/fixed-ip`, { network, ip }),
   dnsServers: () => request<DnsServer[]>("GET", "/dns"),
   dnsRecords: (name: string) => request<DnsRecord[]>("GET", `/dns/${name}/records`),
   saveDnsRecords: (name: string, records: DnsRecord[]) =>

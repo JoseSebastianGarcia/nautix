@@ -21,6 +21,8 @@ export interface EngineContainerSpec {
     retries: number;
     startPeriodNs: number;
   };
+  /** Fixed IPv4 on `networkName`. */
+  ipv4Address?: string;
   memoryBytes?: number;
   nanoCpus?: number;
   /** Network the container joins at creation; undefined = engine default bridge. */
@@ -69,6 +71,7 @@ export const buildContainerSpec = (
           },
         }
       : {}),
+    ...(request.ipAddress && networkName ? { ipv4Address: request.ipAddress } : {}),
     ...(request.limits?.memoryMb ? { memoryBytes: request.limits.memoryMb * 1024 * 1024 } : {}),
     ...(request.limits?.cpus ? { nanoCpus: Math.round(request.limits.cpus * 1e9) } : {}),
     ...(networkName ? { networkName } : {}),

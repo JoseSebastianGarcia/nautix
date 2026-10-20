@@ -7,6 +7,7 @@ import {
   CreateVolume,
   KILL_SIGNALS,
   PullImage,
+  SetFixedIp,
 } from "@nautix/contracts";
 import {
   Body,
@@ -18,6 +19,7 @@ import {
   type MessageEvent,
   Param,
   Post,
+  Put,
   Query,
   Req,
   Sse,
@@ -42,6 +44,7 @@ import { RemoveContainerCommand } from "../application/commands/remove-container
 import { RemoveImageCommand } from "../application/commands/remove-image.command.js";
 import { RemoveNetworkCommand } from "../application/commands/remove-network.command.js";
 import { RemoveVolumeCommand } from "../application/commands/remove-volume.command.js";
+import { SetFixedIpCommand } from "../application/commands/set-fixed-ip.command.js";
 import type { EngineEventKind } from "../application/ports/docker-engine.js";
 import { BrowseVolumeQuery } from "../application/queries/browse-volume.query.js";
 import { ExportComposeQuery } from "../application/queries/export-compose.query.js";
@@ -175,6 +178,14 @@ export class DockerController {
     await this.commands.execute(
       new ConnectNetworkCommand(id, parse(ConnectNetwork, body).containerId),
     );
+  }
+
+  /** Pins the container's address on a network, or (`ip: null`) gives it back to Docker. */
+  @Put("containers/:id/fixed-ip")
+  @HttpCode(204)
+  async fixedIp(@Param("id") id: string, @Body() body: unknown) {
+    const b = parse(SetFixedIp, body);
+    await this.commands.execute(new SetFixedIpCommand(id, b.network, b.ip));
   }
 
   @Post("networks/:id/disconnect")

@@ -2,6 +2,7 @@ export * from "./auth.js";
 export * from "./catalog.js";
 export * from "./dns.js";
 export * from "./docker.js";
+export * from "./fixed-ip.js";
 export * from "./gateway.js";
 export * from "./swarm.js";
 export * from "./tls.js";

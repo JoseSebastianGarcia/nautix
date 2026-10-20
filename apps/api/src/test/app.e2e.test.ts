@@ -1176,6 +1176,57 @@ describe("image tools and system commands", () => {
     for (const c of list.filter((x) => x.state !== "running")) expect(c.ips).toEqual({});
   });
 
+  it("gives a container a fixed IP at creation or later, and checks it", async () => {
+    const nets = (await call("GET", "/networks")).json as { id: string; name: string }[];
+    const edge = nets.find((n) => n.name === "edge");
+    const ipsOf = async (name: string) =>
+      (
+        (await call("GET", "/containers")).json as { name: string; ips: Record<string, string> }[]
+      ).find((c) => c.name === name)?.ips;
+    const make = (name: string, ipAddress?: string, networkId: string | null = edge?.id ?? null) =>
+      call("POST", "/containers", {
+        name,
+        image: "nginx:1.27-alpine",
+        networkId,
+        ...(ipAddress ? { ipAddress } : {}),
+      });
+
+    expect((await make("fixed1", "172.30.0.50")).res.status).toBe(201);
+    expect(await ipsOf("fixed1")).toEqual({ edge: "172.30.0.50" });
+    expect((await make("fixed2", "172.30.0.50")).res.status).toBe(409);
+    expect((await make("fixed3", "172.31.0.9")).res.status).toBe(422);
+    expect((await make("fixed4", "172.30.0.1")).res.status).toBe(422);
+    expect((await make("fixed5", "999.1.1.1")).res.status).toBe(422);
+    expect((await make("fixed6", "172.30.0.60", null)).res.status).toBe(422);
+
+    await make("later");
+    expect(
+      (await call("PUT", "/containers/later/fixed-ip", { network: "edge", ip: "172.30.0.77" })).res
+        .status,
+    ).toBe(204);
+    expect(await ipsOf("later")).toEqual({ edge: "172.30.0.77" });
+    expect(
+      (await call("PUT", "/containers/later/fixed-ip", { network: "edge", ip: "172.30.0.50" })).res
+        .status,
+    ).toBe(409);
+    expect(
+      (await call("PUT", "/containers/later/fixed-ip", { network: "backend", ip: "172.31.0.9" }))
+        .res.status,
+    ).toBe(409);
+    expect(
+      (await call("PUT", "/containers/later/fixed-ip", { network: "nope", ip: "172.30.0.9" })).res
+        .status,
+    ).toBe(404);
+    expect(
+      (await call("PUT", "/containers/later/fixed-ip", { network: "edge", ip: null })).res.status,
+    ).toBe(204);
+    expect((await ipsOf("later"))?.edge).not.toBe("172.30.0.77");
+    expect(
+      (await call("PUT", "/containers/nautix/fixed-ip", { network: "bridge", ip: "172.17.0.9" }))
+        .res.status,
+    ).toBe(403);
+  });
+
   it("reports info, version and disk usage", async () => {
     expect(
       ((await call("GET", "/system/info")).json as { ServerVersion: string }).ServerVersion,

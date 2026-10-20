@@ -22,6 +22,9 @@ describe("error hints", () => {
     for (const file of files(SRC))
       for (const m of readFileSync(file, "utf8").matchAll(/"errors\.([A-Za-z]+)"/g))
         hints.add(m[1] as string);
+    // hints built at run time from a fixed list of reasons
+    for (const reason of ["invalid", "noSubnet", "outsideSubnet", "reserved", "gateway"])
+      hints.add(`fixedIp_${reason}`);
     expect(hints.size).toBeGreaterThan(20);
     for (const lang of ["en", "es"]) {
       const errors = (

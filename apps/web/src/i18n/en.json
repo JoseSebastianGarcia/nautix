@@ -173,7 +173,10 @@
     "healthcheckHint": "Runs inside the container every 30 s; exit code 0 means healthy.",
     "memoryMb": "Memory limit (MB)",
     "cpus": "CPU limit",
-    "createOnly": "Create only, do not start (docker create)"
+    "createOnly": "Create only, do not start (docker create)",
+    "fixedIp": "Fixed IP (optional)",
+    "fixedIpHint": "Inside {{subnet}}. Leave empty and Docker picks one; it can change if the container is recreated.",
+    "fixedIpAuto": "Automatic"
   },
   "containers": {
     "title": "Containers",
@@ -318,7 +321,16 @@
     "swarmRejected": "The swarm rejected the request",
     "dnsInvalidRecord": "Invalid domain name or IP address",
     "notDns": "This container is not a DNS server Nautix can edit",
-    "dnsNotRunning": "The DNS container is not running"
+    "dnsNotRunning": "The DNS container is not running",
+    "fixedIpNeedsNetwork": "A fixed IP needs a network you created (not the default bridge)",
+    "fixedIpInUse": "That address is already used by another container",
+    "fixedIp_invalid": "That is not a valid IPv4 address",
+    "fixedIp_noSubnet": "The network has no IPv4 subnet to take the address from",
+    "fixedIp_outsideSubnet": "The address is outside the network's subnet",
+    "fixedIp_reserved": "That address is the network or broadcast address",
+    "fixedIp_gateway": "That address (the first one) belongs to the network's gateway",
+    "notOnNetwork": "The container is not on that network",
+    "fixedIp_inUse": "Another container already uses that address"
   },
   "terminal": {
     "title": "Terminal",
@@ -567,7 +579,15 @@
     "noIps": "No address yet.",
     "ipsStopped": "A stopped container has no address. Start it to see it.",
     "ipsHint": "Other containers on the same network reach it by this address (or by its name). To point your own domain at it,",
-    "ipsGoDns": "add it in Resources → DNS."
+    "ipsGoDns": "add it in Resources → DNS.",
+    "fixIp": "Fix this IP",
+    "fixIpTitle": "Address on {{network}}",
+    "fixIpBody": "A fixed address stays the same when the container restarts, so a domain pointed at it keeps working.",
+    "fixIpLabel": "IP address",
+    "fixIpWarning": "Nautix reconnects the container to this network to apply it: connections through this network drop for a moment.",
+    "fixIpAuto": "Back to automatic",
+    "fixIpSet": "Fix it",
+    "fixIpDone": "Address updated"
   },
   "system": {
     "title": "System",

@@ -127,6 +127,11 @@ export const CreateContainer = z.object({
   restartPolicy: RestartPolicy.default("unless-stopped"),
   command: z.array(z.string()).optional(),
   volumes: z.array(z.string()).default([]),
+  /** Optional fixed IPv4 on `networkId` (must be inside the network's subnet and unused). */
+  ipAddress: z
+    .string()
+    .regex(/^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$/, "invalid IPv4 address")
+    .optional(),
   /** false = `docker create`: the container is made but not started. */
   start: z.boolean().default(true),
   /** Shell command run inside the container; exit 0 = healthy. */

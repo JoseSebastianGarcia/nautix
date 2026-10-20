@@ -173,7 +173,10 @@
     "healthcheckHint": "Se ejecuta dentro del contenedor cada 30 s; código de salida 0 significa saludable.",
     "memoryMb": "Límite de memoria (MB)",
     "cpus": "Límite de CPU",
-    "createOnly": "Solo crear, sin iniciar (docker create)"
+    "createOnly": "Solo crear, sin iniciar (docker create)",
+    "fixedIp": "IP fija (opcional)",
+    "fixedIpHint": "Dentro de {{subnet}}. Si lo dejás vacío Docker elige una; puede cambiar si recreás el contenedor.",
+    "fixedIpAuto": "Automática"
   },
   "containers": {
     "title": "Contenedores",
@@ -318,7 +321,16 @@
     "swarmRejected": "El swarm rechazó la solicitud",
     "dnsInvalidRecord": "Nombre de dominio o dirección IP inválidos",
     "notDns": "Este contenedor no es un servidor DNS que Nautix pueda editar",
-    "dnsNotRunning": "El contenedor DNS no está en ejecución"
+    "dnsNotRunning": "El contenedor DNS no está en ejecución",
+    "fixedIpNeedsNetwork": "Una IP fija necesita una red que hayas creado (no el bridge por defecto)",
+    "fixedIpInUse": "Esa dirección ya la usa otro contenedor",
+    "fixedIp_invalid": "No es una dirección IPv4 válida",
+    "fixedIp_noSubnet": "La red no tiene una subred IPv4 de la que tomar la dirección",
+    "fixedIp_outsideSubnet": "La dirección está fuera de la subred de la red",
+    "fixedIp_reserved": "Esa dirección es la de red o la de broadcast",
+    "fixedIp_gateway": "Esa dirección (la primera) es la del gateway de la red",
+    "notOnNetwork": "El contenedor no está en esa red",
+    "fixedIp_inUse": "Otro contenedor ya usa esa dirección"
   },
   "terminal": {
     "title": "Terminal",
@@ -567,7 +579,15 @@
     "noIps": "Todavía no tiene dirección.",
     "ipsStopped": "Un contenedor detenido no tiene dirección. Iniciálo para verla.",
     "ipsHint": "Los otros contenedores de la misma red lo alcanzan por esta dirección (o por su nombre). Para apuntar tu propio dominio a él,",
-    "ipsGoDns": "agregalo en Recursos → DNS."
+    "ipsGoDns": "agregalo en Recursos → DNS.",
+    "fixIp": "Fijar esta IP",
+    "fixIpTitle": "Dirección en {{network}}",
+    "fixIpBody": "Una dirección fija se mantiene cuando el contenedor se reinicia, así un dominio apuntado a ella sigue funcionando.",
+    "fixIpLabel": "Dirección IP",
+    "fixIpWarning": "Nautix reconecta el contenedor a esta red para aplicarlo: las conexiones por esta red se cortan un momento.",
+    "fixIpAuto": "Volver a automática",
+    "fixIpSet": "Fijar",
+    "fixIpDone": "Dirección actualizada"
   },
   "system": {
     "title": "Sistema",

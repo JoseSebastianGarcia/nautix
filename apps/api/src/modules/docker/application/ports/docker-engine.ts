@@ -84,7 +84,12 @@ export abstract class DockerEngine {
   abstract listNetworks(): Promise<Network[]>;
   abstract createNetwork(request: CreateNetwork): Promise<{ id: string }>;
   abstract removeNetwork(id: string): Promise<void>;
-  abstract connectNetwork(networkId: string, containerId: string): Promise<void>;
+  /** `ipv4Address` pins the container's address on that network. */
+  abstract connectNetwork(
+    networkId: string,
+    containerId: string,
+    ipv4Address?: string,
+  ): Promise<void>;
   abstract disconnectNetwork(networkId: string, containerId: string): Promise<void>;
 
   abstract listImages(): Promise<Image[]>;

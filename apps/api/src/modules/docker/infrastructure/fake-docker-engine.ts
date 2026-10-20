@@ -46,6 +46,8 @@ interface FakeNetwork extends Omit<Network, "containerIds"> {
 export class FakeDockerEngine extends DockerEngine {
   private containers = new Map<string, Container>();
   private networks = new Map<string, FakeNetwork>();
+  /** Fixed addresses by container id, then network name. */
+  private fixedIps = new Map<string, Record<string, string>>();
   private images = new Map<string, Image>();
   private volumes = new Map<string, Volume>();
   private logs = new Map<string, string>();
@@ -162,6 +164,8 @@ export class FakeDockerEngine extends DockerEngine {
     const last = 2 + (Number.parseInt(c.id.slice(0, 2), 16) % 250);
     return Object.fromEntries(
       c.networks.map((name) => {
+        const fixed = this.fixedIps.get(c.id)?.[name];
+        if (fixed) return [name, fixed];
         const subnet = [...this.networks.values()].find((n) => n.name === name)?.subnet;
         const prefix = (subnet ?? "172.17.0.0/16").split(".").slice(0, 3);
         return [name, `${prefix[0]}.${prefix[1]}.${subnet ? prefix[2] : "0"}.${last}`];
@@ -218,6 +222,7 @@ export class FakeDockerEngine extends DockerEngine {
       ? [...this.networks.values()].find((n) => n.name === spec.networkName)
       : [...this.networks.values()].find((n) => n.name === "bridge");
     if (target) this.attach(target.id, id);
+    if (target && spec.ipv4Address) this.fixedIps.set(id, { [target.name]: spec.ipv4Address });
     this.logs.set(id, "");
     this.env.set(
       id,
@@ -441,10 +446,17 @@ export class FakeDockerEngine extends DockerEngine {
     this.networks.delete(id);
   }
 
-  async connectNetwork(networkId: string, containerId: string): Promise<void> {
+  async connectNetwork(
+    networkId: string,
+    containerId: string,
+    ipv4Address?: string,
+  ): Promise<void> {
     this.emit("network");
     this.emit("container");
     this.attach(networkId, containerId);
+    const name = this.networks.get(networkId)?.name;
+    if (name && ipv4Address)
+      this.fixedIps.set(containerId, { ...this.fixedIps.get(containerId), [name]: ipv4Address });
   }
 
   async disconnectNetwork(networkId: string, containerId: string): Promise<void> {
@@ -455,6 +467,9 @@ export class FakeDockerEngine extends DockerEngine {
     if (!net) throw new NotFoundError("network not found", "errors.notFound");
     net.members.delete(containerId);
     c.networks = c.networks.filter((n) => n !== net.name);
+    const fixed = { ...this.fixedIps.get(containerId) };
+    delete fixed[net.name];
+    this.fixedIps.set(containerId, fixed);
   }
 
   async listImages(): Promise<Image[]> {

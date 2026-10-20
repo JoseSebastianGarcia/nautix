@@ -27,6 +27,7 @@ import { RemoveRegistryHandler } from "./application/commands/remove-registry.ha
 import { RemoveVolumeHandler } from "./application/commands/remove-volume.handler.js";
 import { RenameContainerHandler } from "./application/commands/rename-container.handler.js";
 import { SaveRegistryHandler } from "./application/commands/save-registry.handler.js";
+import { SetFixedIpHandler } from "./application/commands/set-fixed-ip.handler.js";
 import { TagImageHandler } from "./application/commands/tag-image.handler.js";
 import { TestRegistryAuthHandler } from "./application/commands/test-registry-auth.handler.js";
 import { UpdateContainerHandler } from "./application/commands/update-container.handler.js";
@@ -105,6 +106,7 @@ const HANDLERS = [
   ImportImageHandler,
   PushImageHandler,
   BuildImageHandler,
+  SetFixedIpHandler,
   ApplyDnsHandler,
   LookupDnsHandler,
   BrowseVolumeHandler,

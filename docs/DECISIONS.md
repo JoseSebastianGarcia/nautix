@@ -111,3 +111,6 @@ The DNS tab edits records for `dockurr/dnsmasq` containers only: the image reads
 
 ## ADR-033 — Menu: four entries
 Gateways and DNS moved into the Resources tabs (Containers, Images, Volumes, Networks, Builds, Gateways, DNS, Swarm) because they are things you configure on resources, so the top bar is now Topology, Resources, Compose and System (Settings stays the gear). Supersedes the five-entry layout of ADR-020.
+
+## ADR-034 — Fixed IPs are optional
+By default Docker assigns the address. A container can be given a fixed IPv4 on a network you created, at deploy time (`ipAddress`) or later (`PUT /containers/:id/fixed-ip`, `ip: null` hands it back to Docker). The address must lie in the network's subnet, not be its network, broadcast or first (gateway) address, and not be used by another container there; the same check runs in the browser and the API (`checkFixedIp`). Docker only takes the address when a container joins a network, so changing it on a running container reconnects it to that network (a short drop of connections through it; if the new address is refused the container is put back automatically). The default bridge and IPv6 are not covered. Verified against a real daemon: the address survives restarts, a duplicate is refused, and pin/release work on an existing container.

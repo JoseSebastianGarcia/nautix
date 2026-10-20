@@ -175,6 +175,71 @@ describe("against a real Docker daemon", () => {
     expect(Object.values(web?.ips ?? {})[0]).toMatch(/^\d+\.\d+\.\d+\.\d+$/);
   });
 
+  it("pins a container's IP at creation and later, and keeps it across restarts", async () => {
+    expect(
+      (await call("POST", "/networks", { name: `${PREFIX}ip`, internal: true })).res.status,
+    ).toBe(201);
+    const nets = (await call("GET", "/networks")).json as {
+      id: string;
+      name: string;
+      subnet: string | null;
+    }[];
+    const b = nets.find((n) => n.name === `${PREFIX}ip`);
+    const [a1, a2, a3] = (b?.subnet ?? "172.0.0.0/16").split("/")[0]?.split(".") ?? [];
+    const ipA = `${a1}.${a2}.${a3}.200`;
+    const ipB = `${a1}.${a2}.${a3}.201`;
+    const created = await call("POST", "/containers", {
+      name: `${PREFIX}pinned`,
+      image: IMAGE,
+      networkId: b?.id,
+      restartPolicy: "no",
+      command: ["sleep", "300"],
+      ipAddress: ipA,
+    });
+    expect(created.res.status, JSON.stringify(created.json)).toBe(201);
+    const ipOf = (name: string) =>
+      docker(
+        "inspect",
+        "-f",
+        `{{(index .NetworkSettings.Networks "${PREFIX}ip").IPAddress}}`,
+        name,
+      );
+    expect(ipOf(`${PREFIX}pinned`)).toBe(ipA);
+    docker("restart", "-t", "0", `${PREFIX}pinned`);
+    expect(ipOf(`${PREFIX}pinned`)).toBe(ipA);
+
+    // a second container cannot take it
+    const dup = await call("POST", "/containers", {
+      name: `${PREFIX}dup`,
+      image: IMAGE,
+      networkId: b?.id,
+      restartPolicy: "no",
+      command: ["sleep", "5"],
+      ipAddress: ipA,
+    });
+    expect(dup.res.status).toBe(409);
+
+    // pin an existing container, then release it
+    const svc = `${PREFIX}mover`;
+    await call("POST", "/containers", {
+      name: svc,
+      image: IMAGE,
+      networkId: b?.id,
+      restartPolicy: "no",
+      command: ["sleep", "60"],
+    });
+    expect(
+      (await call("PUT", `/containers/${svc}/fixed-ip`, { network: `${PREFIX}ip`, ip: ipB })).res
+        .status,
+    ).toBe(204);
+    expect(ipOf(svc)).toBe(ipB);
+    expect(
+      (await call("PUT", `/containers/${svc}/fixed-ip`, { network: `${PREFIX}ip`, ip: null })).res
+        .status,
+    ).toBe(204);
+    expect(ipOf(svc)).toMatch(/^\d+\.\d+\.\d+\.\d+$/);
+  });
+
   it("opens a real tunnel between two networks and only that port crosses", async () => {
     await call("POST", "/networks", { name: `${PREFIX}b`, internal: true });
     const nets = (await call("GET", "/networks")).json as Net[];
