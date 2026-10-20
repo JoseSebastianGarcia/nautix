@@ -1,0 +1,24 @@
+# Run Nautix from the Docker Hub image (no build needed):
+#   export NAUTIX_IMAGE=<dockerhub-user>/nautix
+#   export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
+#   docker compose -f compose.hub.yaml up -d
+#   docker compose -f compose.hub.yaml logs nautix     # one-time setup token
+# Open https://localhost:3737 (see Settings → HTTPS certificate to make the browser trust it).
+services:
+  nautix:
+    image: ${NAUTIX_IMAGE:?set NAUTIX_IMAGE, for example myuser/nautix}:${NAUTIX_VERSION:-latest}
+    restart: unless-stopped
+    # Bound to localhost only. Put a reverse proxy with TLS in front to reach it remotely.
+    ports: ["127.0.0.1:3737:3737"]
+    environment:
+      NAUTIX_TLS: auto
+      NAUTIX_TLS_HOSTS: ${NAUTIX_TLS_HOSTS:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   # root-equivalent on the host
+      - nautix-data:/data
+    group_add: ["${DOCKER_GID:-999}"]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: ["/tmp"]
+volumes:
+  nautix-data: {}

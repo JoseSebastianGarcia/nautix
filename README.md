@@ -41,6 +41,8 @@ docker compose up -d --build
 docker compose logs nautix     # setup token
 ```
 
+From the published image (no build): see `compose.hub.yaml` and `docs/PUBLISHING.md`.
+
 Set `DOCKER_GID` to your docker socket's group id (`stat -c %g /var/run/docker.sock`) if it is not 999.
 
 ### Development
@@ -48,12 +50,13 @@ Set `DOCKER_GID` to your docker socket's group id (`stat -c %g /var/run/docker.s
 ```bash
 pnpm dev              # API on :3737 (tsx watch) + web on :5173 with proxy
 pnpm lint && pnpm typecheck && pnpm test
+pnpm test:integration   # needs a Docker daemon: runs the API against the real engine (containers, tunnels, gateways, builds, swarm)
 ```
 
 ## How the canvas works
 
 - **Box = Docker network.** Containers inside a box share its network. Create a box with *New network* (isolated by default: no internet in or out).
-- **Drag a template** (Traefik, Nginx, Caddy, Kong, APISIX, WSO2, Postgres, Redis, RabbitMQ, …) onto a box to deploy it there, or onto the empty canvas / *External* frame to deploy it outside any shared network.
+- **Drag a template** (Traefik, Nginx, Caddy, HAProxy, Kong, APISIX, WSO2, Postgres, Redis, RabbitMQ, …) onto a box to deploy it there, or onto the empty canvas / *External* frame to deploy it outside any shared network.
 - **Outside the boxes is protected too:** published ports bind to `127.0.0.1` only. Exposing `0.0.0.0` needs an explicit checkbox and is flagged in amber.
 - **Drag a container** to another box to move it (asks for confirmation and shows the `docker` commands).
 - Select a container to see its logs, join it to more networks (a reverse proxy in two boxes bridges them) or open a **web terminal** (`docker exec` inside the container, never on the host).
@@ -61,14 +64,18 @@ pnpm lint && pnpm typecheck && pnpm test
 - Data directories of database templates use named volumes (`<name>-data`), so they survive recreating the container.
 - The UI updates live from the daemon's event stream.
 - **Compose editor** (`Compose` in the top bar): visual canvas and YAML tab in sync, undo/redo, live checks (unknown networks, duplicate ports, public ports, privileged features), and Up / Down / Pull / Validate. Visual edits keep your comments and layout of the file.
+- **Your own templates**: *New template* in the panel (or tick *save as template* when deploying) keeps an image with its ports, variables, volumes and command under "My images"; edit or delete them there.
 - **Any image**: deploy anything with its ports, environment variables, data volumes, command and restart policy, and save it to the panel to reuse. Also built in: SQL Server, Kafka and n8n.
 - **Tunnels between boxes**: drag from one box's connector dot to another's to expose one TCP port of a service across two otherwise isolated networks (a tiny socat forwarder; nothing is published on the host).
 - **DNS for your own domains**: AdGuard Home, Pi-hole and dnsmasq are in the palette (53/udp and 53/tcp supported; any image can publish UDP ports).
-- **Docker commands**: 36 of the 59 top-level commands are fully covered and 8 partly (see `docs/spec/05-commands.md`, checked by a test against `docker --help`). Container pages cover inspect/stats/top/diff/rename/update/wait/commit/export/cp; images cover tag/history/save/load/import/search/push; **System** has info, disk usage, a prune wizard with preview, and live events.
+- **Docker commands**: most of the 59 top-level commands are covered (see `docs/spec/05-commands.md`, checked by a test against `docker --help`; `bake`, `builder`, `buildx`, `context`, `manifest` and `checkpoint` are not built). Container pages cover inspect/stats/top/diff/rename/update/wait/commit/export/cp and logs with a time window; run has healthcheck, memory/CPU limits and *create only*; the containers list filters by name, state, Compose project and label; images cover tag/history/save/load/import/search/push; volumes can be browsed read-only; **System** has info, disk usage, a prune wizard with preview, live events and plugins.
+- **Builds** (Resources → Builds): Dockerfile editor with 13 lint rules and one-click fixes, stage graph, "containerize my app" templates (Node, Python, Go, static site), build args, target and context files, with the build output streamed live.
+- **Swarm** (Resources → Swarm): init/join/leave, nodes, services (scale, update, logs, tasks), stacks, secrets and configs, join tokens and autolock.
+- **Settings**: users and roles, API tokens, saved registry logins (passwords encrypted with AES-256-GCM), the HTTPS certificate, backup/restore and an audit log of every change.
 - **Gateways and proxies page**: Kong (gateway) and Nginx, Caddy, Traefik, HAProxy (proxies) are configured from one table, with no config files or curl. Map paths and domains to services in a table (pick a service on a shared network or a tunnel); Nautix saves them and applies them with no config files or curl.
 - **Brand logos**: files live in `apps/web/public/brand/` (full logo, header emblem) plus the favicon; light and dark variants follow the theme.
 - **Nautix is locked**: its own container can't be stopped, restarted, removed or edited from the UI or API.
-- Where things are stored: everything lives in the data directory (`/data`, volume `nautix-data` with Docker): `nautix.db` (SQLite) holds users, sessions, API tokens, canvas layout, saved templates and Compose projects.
+- Where things are stored: everything lives in the data directory (`/data`, volume `nautix-data` with Docker): `nautix.db` (SQLite) holds users, sessions, API tokens, canvas layout, saved templates, Compose projects, gateway routes, registry logins (encrypted) and the audit log; `.key` is the encryption key and `tls/` the certificates. Back them up together (Settings → Backup).
 - Every action has a **Show command** with the equivalent `docker` CLI line.
 
 ## Docs

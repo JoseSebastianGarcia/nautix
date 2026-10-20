@@ -12,7 +12,7 @@
     "build": "pnpm -r build",
     "start": "node apps/api/dist/main.js",
     "demo": "NAUTIX_ENGINE=fake node apps/api/dist/main.js",
-    "lint": "biome check . && node scripts/check-layers.mjs",
+    "lint": "biome check . && node scripts/check-layers.mjs && node scripts/check-licenses.mjs",
     "test": "pnpm -r test",
     "test:integration": "pnpm --filter @nautix/api test:integration",
     "typecheck": "pnpm -r typecheck"
