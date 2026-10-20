@@ -8,10 +8,13 @@ import express from "express";
 import { AppModule } from "./app.module.js";
 import { loadConfig } from "./shared/config.js";
 import { ProblemFilter } from "./shared/problem.filter.js";
+import { loadTls } from "./shared/tls.js";
 
 const config = loadConfig();
+const tls = await loadTls(config);
 const app = await NestFactory.create<NestExpressApplication>(AppModule.register(config), {
   logger: ["error", "warn"],
+  ...(tls ? { httpsOptions: tls } : {}),
 });
 
 app.use(cookieParser());
@@ -35,4 +38,6 @@ if (existsSync(join(config.webDist, "index.html"))) {
 }
 
 await app.listen(config.port, config.host);
-console.log(`Nautix listening on http://${config.host}:${config.port} (engine: ${config.engine})`);
+console.log(
+  `Nautix listening on ${tls ? "https" : "http"}://${config.host}:${config.port} (engine: ${config.engine})`,
+);

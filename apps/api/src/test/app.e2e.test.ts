@@ -43,6 +43,7 @@ beforeAll(async () => {
     dockerSocket: "",
     webDist: "",
     secureCookies: false,
+    tls: { mode: "off" },
   };
   const logs: string[] = [];
   vi.spyOn(console, "log").mockImplementation((m: string) => logs.push(String(m)));

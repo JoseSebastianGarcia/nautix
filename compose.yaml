@@ -1,6 +1,6 @@
 # Start Nautix:   docker compose up -d --build
 # Setup token:    docker compose logs nautix
-# Open:           http://localhost:3737
+# Open:           https://localhost:3737   (self-signed certificate: accept the browser warning once)
 #
 # DOCKER_GID must be the group id of the docker socket on the host:
 #   export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
@@ -10,6 +10,13 @@ services:
     restart: unless-stopped
     # Bound to localhost only. Put a reverse proxy with TLS in front to reach it remotely.
     ports: ["127.0.0.1:3737:3737"]
+    environment:
+      # HTTPS with a self-signed certificate kept in the data volume. Add the names/IPs you use
+      # to reach Nautix: NAUTIX_TLS_HOSTS=nautix.lan,192.168.1.10
+      # Your own certificate instead: mount it and set NAUTIX_TLS_CERT / NAUTIX_TLS_KEY (remove NAUTIX_TLS).
+      # Plain HTTP (e.g. behind your own TLS proxy): remove NAUTIX_TLS.
+      NAUTIX_TLS: auto
+      NAUTIX_TLS_HOSTS: ${NAUTIX_TLS_HOSTS:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock   # root-equivalent on the host
       - nautix-data:/data

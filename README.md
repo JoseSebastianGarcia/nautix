@@ -29,6 +29,8 @@ No Docker handy? Try the simulated engine:
 pnpm demo
 ```
 
+HTTPS: `docker compose` serves `https://localhost:3737` with a self-signed certificate generated into the data volume (accept the browser warning once; the cookie is then `Secure`). To reach it by name or IP set `NAUTIX_TLS_HOSTS=nautix.lan,192.168.1.10` and recreate the container (the certificate is reissued when a host is missing). To use your own certificate set `NAUTIX_TLS_CERT` and `NAUTIX_TLS_KEY` (PEM paths). Without any of these (`pnpm start`), it serves plain HTTP on 127.0.0.1.
+
 Custom socket / port / data dir: `NAUTIX_DOCKER_SOCKET`, `NAUTIX_PORT`, `NAUTIX_HOST`, `NAUTIX_DATA` (SQLite lives there).
 
 ### With Docker

@@ -71,3 +71,6 @@ The Gateway page works with any supported gateway or reverse proxy. The kind is 
 
 ## ADR-020 — Simplified navigation
 Five top-level entries: Topology, Resources (containers, images, volumes, networks as a secondary tab bar), Compose, Gateways, System. Settings is a gear next to logout (admin only).
+
+## ADR-021 — Native HTTPS
+`NAUTIX_TLS=auto` makes the API serve HTTPS itself with an ECDSA self-signed certificate (`selfsigned`, MIT) stored in `<data>/tls`, valid for localhost, 127.0.0.1, ::1 and `NAUTIX_TLS_HOSTS`; it is reissued when it expires within 30 days or a requested host is missing. `NAUTIX_TLS_CERT` + `NAUTIX_TLS_KEY` use the operator's own PEM files instead. Either way session cookies become `Secure` (the same-host Origin checks and `wss://` for the terminal already follow the page scheme). No HSTS is sent, so a browser warning on a self-signed certificate can still be bypassed. Default for `pnpm start` stays plain HTTP on 127.0.0.1; the compose file enables `auto`.
