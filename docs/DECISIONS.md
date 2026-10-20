@@ -94,4 +94,60 @@ New entries go at the end; never edit an accepted ADR, supersede it.
 - **Decision:** Commit `corpus/compose/manifest.json` (URL, sha256, size, upstream license per file) and a `fetch` command; downloaded files go to `corpus/compose/downloaded/` (git-ignored). Synthetic files authored for this project are committed (MIT) with `-text` in `.gitattributes` so their exact bytes (CRLF, BOM, missing final newline) survive checkout. CI fetches before running the gate; a hash mismatch excludes the file and is reported.
 - **Consequences:** Corpus tests need network (CI has it; offline runs use the synthetic set). Pins must be refreshed deliberately when upstream changes. If the owner wants the permissive subset (CC0 `docker/awesome-compose`) committed, that is a one-line change plus notices.
 
-<!-- Pending ADRs required by M0 (filled as spikes complete): rootfs base, graph canvas (S2), terminal control (S4), editor (S5), charts, credential helper, localization formatting. -->
+## ADR-013 — Terminal control: xterm.js in WebView2 over our own ConPTY (not `Microsoft.Terminal.Wpf`)
+
+- **Status:** Proposed — **needs owner approval; confirmed or rejected by S4 results.**
+- **Context:** `03-ui-wpf.md` says to evaluate `Microsoft.Terminal.Wpf` first and fall back to "a custom VT renderer (use a maintained VT parser library)". Checked 2026-10-20: nuget.org lists `Microsoft.Terminal.Wpf` 1.0 with no license metadata, and its `.nupkg` returns `404 BlobNotFound`; it is unusable. A custom renderer means writing selection, scrollback, alternate screen, mouse reporting, wide glyphs, IME and accessibility ourselves.
+- **Decision (proposed):** Render with **xterm.js 6.0.0** (MIT; used by VS Code) inside **WebView2** (SDK is BSD-3-Clause; the runtime ships with Windows 11), fed by our own ConPTY wrapper (`ConPtySession`, the prototype of `ConPtyTerminalAdapter`). Theme colours come from the `Nx.*` tokens. Assets are fetched by pinned SHA-512, not committed.
+- **Evidence so far:** spike S4 compiles; behaviour unverified (see `spikes/S4-terminal/README.md`). Gate: shell + vim + `docker exec -it` + resize render correctly, asserted from xterm's buffer.
+- **Consequences:** Adds WebView2 processes (extra memory while a terminal is open; to measure in M1 against the 250 MB idle budget). The spec's "custom VT renderer" remains the fallback if S4 fails or the owner rejects the WebView dependency. `03-ui-wpf.md` must be updated if approved.
+
+## ADR-014 — The engine distro keep-alive defaults to ON
+
+- **Status:** Proposed — owner decision (M1).
+- **Context:** WSL stops a distro with no process started from Windows. `02-engine.md` says the relay holds `sleep infinity` "while ≥ 1 client or `engine.keepAlive` is true" without a default. With the default off, running `docker run -d …` and closing every terminal would stop the VM and kill the container.
+- **Decision (proposed):** `engine.keepAlive` defaults to **true**; the relay releases the keep-alive 30 s after the last client only when the user turned it off. Cost: the WSL VM stays resident (its memory is bounded by `.wslconfig`, and is outside the GUI's 250 MB budget).
+- **Consequences:** The Settings module exposes the toggle with this explanation; `RelayOptions.KeepAlive` already defaults to true.
+
+## ADR-015 — Docker API client: `Docker.DotNet.Enhanced`, not `Docker.DotNet`
+
+- **Status:** Proposed — validated by the S3 run.
+- **Context:** `Docker.DotNet` 3.125.15 (nuget, 2023) is unmaintained. `02-engine.md` says "if the library lags, add a typed `HttpClient`; do not fork silently". A maintained fork exists: **Docker.DotNet.Enhanced 4.3.3** (MIT, `testcontainers/Docker.DotNet`, net8–net10 targets). Its API is **different**: `DockerClientBuilder` (`WithEndpoint`, `WithTimeout`, `WithTransportOptions(NPipe|Unix|NativeHttp|LegacyHttp)`), built-in docker-context resolution (`WithContext`), `MultiplexedStream` that already demultiplexes stdcopy, `SaveImageAsync`. The spec's `DockerClientConfiguration` example does not exist in it.
+- **Decision (proposed):** Use the Enhanced fork behind `IContainerEngine`; no private fork is created. Still wrap everything behind our port so the library can be replaced.
+- **Consequences:** `StdCopyDemuxer` may become unnecessary for API streams (re-evaluate in M1); the S3 harness exercises logs follow, pull, save, events and 100 concurrent clients through the relay. If the npipe transport misbehaves with the message-mode relay pipe, S3 will show it.
+
+## ADR-016 — Plural formatting: `.One`/`.Other` keys, no extra library
+
+- **Status:** Accepted.
+- **Decision:** Plural-sensitive strings use two keys, `<Base>.One` and `<Base>.Other`, with the count as `{0}`. `ILocalizer.GetPlural(baseKey, count, args…)` selects the form through `PluralRules` (English and Spanish: exactly 1 is "one"; 0 and everything else "other"). A resource test requires both forms in both languages and the count in the text. No SmartFormat dependency.
+- **Consequences:** Adding a language with more plural categories means extending `PluralCategory`/`PluralRules` and the resource tests together.
+
+## ADR-017 — Root filesystem of the engine distro: Debian 13 (trixie) slim
+
+- **Status:** Accepted for the start of M1, subject to the S3 provisioning run.
+- **Context:** `02-engine.md` prefers Debian slim for systemd and moby packages over Alpine.
+- **Decision:** Base the distro on Debian 13 slim, taken from the Debian Docker-images maintainers' repository (`debuerreotype/docker-debian-artifacts`, branch `dist-amd64`, `trixie/slim/oci/blobs/rootfs.tar.gz`; 29,843,350 bytes; SHA-256 `ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e`, verified 2026-10-20). Its content is a plain gzip tar that `wsl --import` accepts. It does **not** contain systemd, so provisioning installs `systemd`, `systemd-sysv`, `dbus`, `iptables`, then Docker Engine from Docker's official apt repository (`docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`). `daemon.json` omits `hosts` (the packaged unit already passes `-H fd://`; both together stop dockerd).
+- **Consequences:** M1's CI job `build/engine-rootfs/` must re-pin the hash on every rootfs refresh and keep the Docker apt repository key fingerprint pinned; the first-run wizard needs network for apt unless the rootfs is pre-built with Docker inside (recommended before v1.0 to meet the "< 10 min" criterion and to avoid depending on live apt mirrors).
+
+## ADR-018 — Credential helper for registries
+
+- **Status:** Proposed — owner decision (needed before M1 registries work).
+- **Context:** `06-...` requires credentials only in Windows Credential Manager, never plaintext in `config.json`, and leaves "wincred vs a Nautix helper" to M1. The standalone Windows `docker.exe` zip contains no credential helper (`docker-credential-wincred.exe` ships with Docker Desktop), so Nautix must supply one.
+- **Options:** (a) ship the upstream `docker-credential-wincred.exe` (MIT, `docker/docker-credential-helpers`), pinned and checksum-verified, with `credsStore: "wincred"` in Nautix's `DOCKER_CONFIG`; (b) write `docker-credential-nautix.exe` (about 150 lines, `get`/`store`/`erase`/`list`) that uses target names `Nautix/registry/<host>`.
+- **Recommendation:** (a). It is smaller attack surface on a security path, battle-tested, and other docker tools can share the entries. Cost: the Credential Manager target is the registry URL, not `Nautix/registry/<host>` as the spec wrote; `ICredentialStore` talks to the helper protocol instead of calling `CredRead` directly. Choose (b) only if namespacing under `Nautix/` is a hard requirement.
+- **Consequences:** Needs the helper's checksum in `build/checksums.json` and a download step in `InstallClientTools`.
+
+## ADR-019 — Charts: start with an in-house lightweight control; decide LiveCharts2 vs ScottPlot only if needed
+
+- **Status:** Proposed — final choice at M1 as the spec says.
+- **Context:** Facts checked 2026-10-20: `ScottPlot.WPF` 5.1.59 (MIT) depends on `SkiaSharp.Views.WPF` 3.119 **and** OpenTK + OpenTK.GLWpfControl; `LiveChartsCore.SkiaSharpView.WPF` 2.0.5 (MIT) depends on `SkiaSharp.Views.WPF` 3.119 and `SkiaSharp.HarfBuzz`. Both therefore ship SkiaSharp native binaries. The Dashboard needs a few small live line/area charts (CPU, memory, network, disk), a handful of series with a few hundred points at 1 Hz.
+- **Decision (proposed):** Build a small `Sparkline`/`AreaChart` control (StreamGeometry, theme tokens, no dependency) behind `IChartHost`, and adopt LiveCharts2 or ScottPlot only if the Stats view needs zoom, axes and tooltips beyond it. In M1 measure all three on 12 series × 300 points at 1 Hz (working set and CPU) before committing.
+- **Consequences:** If rejected, pick ScottPlot for raw speed or LiveCharts2 for animated styling; both are MIT and already vetted for license.
+
+## ADR-020 — Pending evidence: graph canvas (S2) and editor (S5)
+
+- **Status:** Proposed — **no decision possible without the S2 and S5 runs.**
+- **Graph canvas:** Nodify 7.3.0 (MIT) is the spec's first choice. S2 measures frame pacing (pan, zoom, drag at zoom 0.35 and 1.0, with and without Nodify's optimization flags). If a gated scenario fails, the custom `DrawingVisual` renderer behind `IGraphCanvas` becomes an M0 task.
+- **Editor:** AvalonEdit 6.3.1.120 (MIT) is the spec's first choice; Monaco in WebView2 only if S5 fails folding/diagnostics/latency needs. If ADR-013 (WebView2) is approved, WebView2 is no longer an extra dependency for Monaco, which makes that fallback cheaper.
+
+<!-- M0 ADR checklist: rootfs ✔ (ADR-017) · YAML parser ✔ (ADR-011) · graph canvas (S2) ADR-020 pending data · terminal ADR-013 proposed · editor (S5) ADR-020 pending data · charts ADR-019 proposed · credential helper ADR-018 proposed · localization formatting ✔ (ADR-016). -->

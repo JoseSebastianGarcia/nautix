@@ -21,10 +21,23 @@ public sealed class LocalizerTests
     {
         var localizer = new Localizer(LanguageSetting.Spanish);
 
-        localizer.Get("Common.Items.Count", 1234.5).ShouldBe("1234,5 elementos");
+        localizer.GetPlural("Common.Items.Count", 1234).ShouldBe("1234 elementos");
+        localizer.Get("Common.Items.Count.Other", 1234.5).ShouldBe("1234,5 elementos");
 
         localizer.SetCulture(LanguageSetting.English);
-        localizer.Get("Common.Items.Count", 1234.5).ShouldBe("1234.5 items");
+        localizer.Get("Common.Items.Count.Other", 1234.5).ShouldBe("1234.5 items");
+    }
+
+    [Theory]
+    [InlineData("en", 0, "0 items")]
+    [InlineData("en", 1, "1 item")]
+    [InlineData("en", 2, "2 items")]
+    [InlineData("es", 0, "0 elementos")]
+    [InlineData("es", 1, "1 elemento")]
+    [InlineData("es", 5, "5 elementos")]
+    public void Plural_lookup_selects_the_form_for_the_count(string language, long count, string expected)
+    {
+        new Localizer(CultureInfo.GetCultureInfo(language)).GetPlural("Common.Items.Count", count).ShouldBe(expected);
     }
 
     [Fact]

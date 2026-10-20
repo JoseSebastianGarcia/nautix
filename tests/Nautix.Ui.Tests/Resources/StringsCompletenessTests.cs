@@ -39,6 +39,27 @@ public sealed partial class StringsCompletenessTests
     }
 
     [Fact]
+    public void Plural_keys_always_come_in_one_other_pairs_and_carry_the_count()
+    {
+        foreach (var keys in new[] { _en.Keys, _es.Keys })
+        {
+            var bases = keys.Where(k => k.EndsWith(".One", StringComparison.Ordinal) || k.EndsWith(".Other", StringComparison.Ordinal))
+                .Select(k => k[..k.LastIndexOf('.')])
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            foreach (var baseKey in bases)
+            {
+                keys.ShouldContain(baseKey + ".One");
+                keys.ShouldContain(baseKey + ".Other");
+            }
+        }
+
+        var counted = _en.Keys.Where(k => k.EndsWith(".One", StringComparison.Ordinal) || k.EndsWith(".Other", StringComparison.Ordinal));
+        counted.Where(k => !_en[k].Contains("{0}", StringComparison.Ordinal)).ShouldBeEmpty("plural forms must show the count as {0}");
+    }
+
+    [Fact]
     public void Placeholder_check_detects_a_mismatch()
     {
         Placeholders("{0} of {1}").SetEquals(Placeholders("{0} de")).ShouldBeFalse();

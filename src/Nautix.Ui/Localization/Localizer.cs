@@ -39,6 +39,13 @@ public sealed class Localizer : ILocalizer
         return args is { Length: > 0 } ? string.Format(culture, format, args) : format;
     }
 
+    public string GetPlural(string baseKey, long count, params object[] args)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseKey);
+        var suffix = PluralRules.Suffix(PluralRules.Select(_culture, count));
+        return Get($"{baseKey}.{suffix}", [count, .. args]);
+    }
+
     public void SetCulture(CultureInfo culture)
     {
         ArgumentNullException.ThrowIfNull(culture);
