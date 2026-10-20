@@ -1,16 +1,5 @@
 import { useState } from "react";
 
-/**
- * Where the circular emblem sits inside the square brand images (fractions of the image width),
- * so the header can show just the emblem, cropped, without a second asset.
- */
-const EMBLEM = { centerX: 0.535, centerY: 0.405, diameter: 0.57 };
-
-export const emblemBox = (size: number): { width: number; left: number; top: number } => {
-  const width = size / EMBLEM.diameter;
-  return { width, left: size / 2 - EMBLEM.centerX * width, top: size / 2 - EMBLEM.centerY * width };
-};
-
 function VectorMark({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
@@ -29,27 +18,16 @@ function VectorMark({ size }: { size: number }) {
 function Emblem({ size, theme }: { size: number; theme: "light" | "dark" }) {
   const [missing, setMissing] = useState(false);
   if (missing) return <VectorMark size={size} />;
-  const box = emblemBox(size);
   return (
-    <span
-      className="relative inline-block overflow-hidden rounded-full"
-      style={{ width: size, height: size }}
-    >
-      <img
-        src={`/brand/logo-${theme}.png`}
-        alt=""
-        aria-hidden="true"
-        onError={() => setMissing(true)}
-        style={{
-          position: "absolute",
-          maxWidth: "none",
-          width: box.width,
-          left: box.left,
-          top: box.top,
-          mixBlendMode: theme === "light" ? "multiply" : "lighten",
-        }}
-      />
-    </span>
+    <img
+      src={`/brand/emblem-${theme}.png`}
+      alt=""
+      aria-hidden="true"
+      width={size}
+      height={size}
+      className="rounded-full"
+      onError={() => setMissing(true)}
+    />
   );
 }
 

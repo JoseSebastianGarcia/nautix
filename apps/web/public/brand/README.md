@@ -1,9 +1,7 @@
 # Brand images
 
-Put the two logo files here (PNG or SVG, square, with their own background):
+- `logo-light.png` / `logo-dark.png` — full logo (square, own background) for the light / dark theme: login screen and GitHub README.
+- `emblem-light.png` / `emblem-dark.png` — circular emblem (transparent corners) shown in the header.
+- `../favicon.png`, `../apple-touch-icon.png` — browser tab and home-screen icons (the dark emblem reads well on both tab themes).
 
-- `logo-light.png` — the version for the **light** theme (dark artwork on white)
-- `logo-dark.png` — the version for the **dark** theme (glowing artwork on black)
-
-Nautix picks the right one by theme (login screen) and falls back to the built-in vector mark
-when a file is missing. The README also uses them on GitHub.
+Nautix falls back to a built-in vector mark when a file is missing.
