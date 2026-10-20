@@ -10,6 +10,7 @@ describe("navigation", () => {
       "/volumes",
       "/networks",
       "/builds",
+      "/gateway",
       "/dns",
     ]) {
       expect(isActivePath("/containers", p)).toBe(true);
@@ -23,7 +24,6 @@ describe("navigation", () => {
     expect(isActivePath("/", "/")).toBe(true);
     expect(isActivePath("/", "/compose")).toBe(false);
     expect(isActivePath("/compose", "/compose/stack1")).toBe(true);
-    expect(isActivePath("/gateway", "/gateway")).toBe(true);
     expect(isActivePath("/system", "/gateway")).toBe(false);
   });
 
