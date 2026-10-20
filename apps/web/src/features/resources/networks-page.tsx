@@ -1,11 +1,12 @@
 import type { Network } from "@nautix/contracts";
-import { Plus, Trash2 } from "lucide-react";
+import { Braces, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
 import { keys, useNetworks } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
+import { InspectDialog } from "../../components/inspect-dialog.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
 import { NetworkDialog } from "../topology/network-dialog.js";
 import { PageHeader, Table, Td } from "./table.js";
@@ -15,6 +16,9 @@ export function NetworksPage() {
   const { data = [] } = useNetworks();
   const [target, setTarget] = useState<Network | null>(null);
   const [creating, setCreating] = useState(false);
+  const [inspecting, setInspecting] = useState<{ key: string; name: string; id: string } | null>(
+    null,
+  );
   const remove = useApiMutation((id: string) => api.removeNetwork(id), [keys.networks]);
 
   return (
@@ -48,19 +52,41 @@ export function NetworksPage() {
             <Td>{n.internal ? t("topology.isolated") : t("topology.bridged")}</Td>
             <Td>{n.containerIds.length}</Td>
             <Td>
-              <Button
-                write
-                variant="danger"
-                disabled={n.system || n.containerIds.length > 0}
-                aria-label={`${t("common.delete")} ${n.name}`}
-                onClick={() => setTarget(n)}
-              >
-                <Trash2 size={14} />
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  aria-label={`${t("images.inspect")} ${n.name}`}
+                  title={t("images.inspect")}
+                  onClick={() => setInspecting({ key: n.id, name: n.name, id: n.id })}
+                >
+                  <Braces size={14} />
+                </Button>
+                <Button
+                  write
+                  variant="danger"
+                  disabled={n.system || n.containerIds.length > 0}
+                  aria-label={`${t("common.delete")} ${n.name}`}
+                  onClick={() => setTarget(n)}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
             </Td>
           </tr>
         ))}
       </Table>
+      <InspectDialog
+        target={
+          inspecting
+            ? {
+                title: `${t("images.inspect")}: ${inspecting.name}`,
+                command: `docker network inspect ${inspecting.name}`,
+                key: `networks:${inspecting.key}`,
+                load: () => api.inspect("networks", inspecting.id),
+              }
+            : null
+        }
+        onClose={() => setInspecting(null)}
+      />
       <ConfirmDialog
         open={target !== null}
         title={t("topology.removeNetworkTitle", { name: target?.name ?? "" })}

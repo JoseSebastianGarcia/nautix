@@ -653,3 +653,120 @@ describe("container details (docker inspect/stats/top/diff/rename/update/wait/co
     ).toBe(403);
   });
 });
+
+describe("image tools and system commands", () => {
+  const raw = (method: string, path: string, body: Buffer, type = "application/x-tar") =>
+    fetch(`${base}/api/v1${path}`, {
+      method,
+      headers: { cookie, "x-nautix-csrf": "1", "content-type": type },
+      body,
+    });
+
+  it("tags, shows history, searches, saves, loads and imports", async () => {
+    expect(
+      (
+        await call("POST", "/images/tag", {
+          reference: "nginx:1.27-alpine",
+          repository: "myorg/web",
+          tag: "v1",
+        })
+      ).res.status,
+    ).toBe(204);
+    const images = (await call("GET", "/images")).json as { tags: string[] }[];
+    expect(images.flatMap((i) => i.tags)).toContain("myorg/web:v1");
+    expect(
+      (await call("POST", "/images/tag", { reference: "bad ref!", repository: "x", tag: "y" })).res
+        .status,
+    ).toBe(422);
+
+    const history = (
+      await call("GET", `/images/history?ref=${encodeURIComponent("nginx:1.27-alpine")}`)
+    ).json as { createdBy: string }[];
+    expect(history.length).toBeGreaterThan(0);
+    const search = (await call("GET", "/images/search?term=nginx")).json as {
+      name: string;
+      official: boolean;
+    }[];
+    expect(search.map((r) => r.name)).toContain("nginx");
+
+    const saved = await fetch(
+      `${base}/api/v1/images/save?ref=${encodeURIComponent("nginx:1.27-alpine")}`,
+      { headers: { cookie } },
+    );
+    expect(saved.headers.get("content-type")).toBe("application/x-tar");
+    expect(await saved.text()).toContain("FAKE-IMAGE-TAR");
+
+    const loaded = await raw("POST", "/images/load", Buffer.from("tar"));
+    expect(((await loaded.json()) as { output: string }).output).toContain("Loaded image");
+    const imported = await raw(
+      "POST",
+      "/images/import?repository=rootfs/demo&tag=1",
+      Buffer.from("tar"),
+    );
+    expect(imported.status).toBe(201);
+    const after = (await call("GET", "/images")).json as { tags: string[] }[];
+    expect(after.flatMap((i) => i.tags)).toContain("rootfs/demo:1");
+  });
+
+  it("pushes with one-off credentials and tests a registry login", async () => {
+    await call("POST", "/images/tag", {
+      reference: "nginx:1.27-alpine",
+      repository: "private/app",
+      tag: "1",
+    });
+    expect((await call("POST", "/images/push", { reference: "private/app:1" })).res.status).toBe(
+      422,
+    );
+    const pushed = await call("POST", "/images/push", {
+      reference: "private/app:1",
+      auth: { username: "u", password: "p" },
+    });
+    expect((pushed.json as { output: string }).output).toContain("digest");
+    expect(JSON.stringify(pushed.json)).not.toContain('"p"');
+    expect(
+      (await call("POST", "/registries/test", { username: "u", password: "wrong" })).res.status,
+    ).toBe(422);
+    expect(
+      (
+        (await call("POST", "/registries/test", { username: "u", password: "ok" })).json as {
+          status: string;
+        }
+      ).status,
+    ).toBe("Login Succeeded");
+  });
+
+  it("reports info, version and disk usage", async () => {
+    expect(
+      ((await call("GET", "/system/info")).json as { ServerVersion: string }).ServerVersion,
+    ).toBe("demo");
+    expect(((await call("GET", "/system/version")).json as { ApiVersion: string }).ApiVersion).toBe(
+      "1.43",
+    );
+    const df = (await call("GET", "/system/df")).json as { images: { count: number } };
+    expect(df.images.count).toBeGreaterThan(0);
+  });
+
+  it("previews a prune without changing anything, then prunes after the preview", async () => {
+    await call("POST", "/containers", { name: "to-prune", image: "nginx", networkId: null });
+    const list = (await call("GET", "/containers")).json as { id: string; name: string }[];
+    const id = list.find((c) => c.name === "to-prune")?.id;
+    await call("POST", `/containers/${id}/stop`);
+
+    const preview = (await call("GET", "/system/prune/preview?kind=containers")).json as {
+      items: { name: string }[];
+    };
+    expect(preview.items.map((i) => i.name)).toContain("to-prune");
+    expect(preview.items.map((i) => i.name)).not.toContain("nautix");
+    const stillThere = (await call("GET", "/containers")).json as { name: string }[];
+    expect(stillThere.map((c) => c.name)).toContain("to-prune");
+
+    const result = (await call("POST", "/system/prune", { kind: "containers" })).json as {
+      deleted: number;
+    };
+    expect(result.deleted).toBeGreaterThanOrEqual(1);
+    const gone = (await call("GET", "/containers")).json as { name: string }[];
+    expect(gone.map((c) => c.name)).not.toContain("to-prune");
+    expect(gone.map((c) => c.name)).toContain("nautix");
+    expect((await call("GET", "/system/prune/preview?kind=bogus")).res.status).toBe(422);
+  });
+});

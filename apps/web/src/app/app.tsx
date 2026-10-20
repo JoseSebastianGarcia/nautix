@@ -10,6 +10,7 @@ import { ImagesPage } from "../features/resources/images-page.js";
 import { NetworksPage } from "../features/resources/networks-page.js";
 import { VolumesPage } from "../features/resources/volumes-page.js";
 import { SettingsPage } from "../features/settings/settings-page.js";
+import { SystemPage } from "../features/system/system-page.js";
 import { useSession } from "./queries.js";
 import { Shell } from "./shell.js";
 
@@ -68,6 +69,7 @@ export function App() {
                 </Suspense>
               }
             />
+            <Route path="system" element={<SystemPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

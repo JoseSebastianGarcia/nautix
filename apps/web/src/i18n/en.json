@@ -10,7 +10,8 @@
     "volumes": "Volumes",
     "networks": "Networks",
     "settings": "Settings",
-    "compose": "Compose"
+    "compose": "Compose",
+    "system": "System"
   },
   "common": {
     "cancel": "Cancel",
@@ -177,7 +178,27 @@
     "reference": "Reference (e.g. nginx:1.27-alpine)",
     "removeTitle": "Remove image?",
     "removeBody": "{{name}} will be deleted from this host.",
-    "untagged": "<untagged>"
+    "untagged": "<untagged>",
+    "inspect": "Inspect",
+    "history": "History",
+    "tag": "Tag",
+    "save": "Save as tar",
+    "push": "Push",
+    "search": "Search Docker Hub",
+    "load": "Load archive",
+    "import": "Import tarball",
+    "createdBy": "Created by",
+    "pushing": "Pushing {{ref}}…",
+    "pushed": "{{ref}} pushed",
+    "credentialsNote": "Credentials are sent once to the engine to authenticate this push. They are not stored or logged.",
+    "registryServer": "Registry (optional)",
+    "registryHint": "Leave empty for Docker Hub",
+    "testLogin": "Test login",
+    "official": "official",
+    "uploading": "Uploading archive…",
+    "loadHint": "A .tar produced by docker save. Its images are added to this host.",
+    "importHint": "A .tar of a root filesystem; it becomes a single-layer image.",
+    "chooseFile": "Choose a file"
   },
   "volumes": {
     "title": "Volumes",
@@ -236,7 +257,10 @@
     "tunnelSameNetwork": "Pick two different networks",
     "tunnelToTunnel": "A tunnel cannot point to another tunnel",
     "tunnelTargetNotOnNetwork": "The target is not on the destination network",
-    "uploadTooLarge": "The upload is too large (max 256 MB)"
+    "uploadTooLarge": "The upload is too large (max 256 MB)",
+    "pushFailed": "The push failed",
+    "loginFailed": "Registry login failed",
+    "imageOperationFailed": "The image operation failed"
   },
   "terminal": {
     "title": "Terminal",
@@ -421,5 +445,49 @@
     "export": "Export filesystem (.tar)",
     "isTunnel": "This container is a tunnel between two networks.",
     "details": "Details"
+  },
+  "system": {
+    "title": "System",
+    "tab": {
+      "overview": "Overview",
+      "prune": "Prune wizard",
+      "events": "Events"
+    },
+    "engine": "Engine",
+    "os": "Operating system",
+    "engineVersion": "Engine version",
+    "apiVersion": "API version",
+    "storage": "Storage driver",
+    "rawInfo": "Raw info",
+    "rawVersion": "Raw version",
+    "disk": "Disk usage",
+    "active": "in use",
+    "reclaimable": "reclaimable",
+    "bucket": {
+      "images": "Images",
+      "containers": "Containers",
+      "volumes": "Volumes",
+      "networks": "Networks",
+      "buildCache": "Build cache"
+    },
+    "pruneIntro": "See exactly what would be deleted before anything is removed. Nothing changes until you confirm.",
+    "pruneWhat": "What to clean",
+    "allImages": "Also remove unused images (not only untagged ones)",
+    "allVolumes": "Also remove unused named volumes",
+    "willBeRemoved": "Would remove {{count}}",
+    "nothingToPrune": "Nothing to remove.",
+    "reclaims": "Frees about {{size}}",
+    "prune": "Remove these…",
+    "confirmTitle": "Remove unused {{kind}}?",
+    "confirmBody": "{{count}} items will be deleted. This cannot be undone.",
+    "pruned": "Removed {{count}} items, freed {{size}}",
+    "pause": "Pause",
+    "resume": "Resume",
+    "clear": "Clear",
+    "export": "Export",
+    "time": "Time",
+    "type": "Type",
+    "action": "Action",
+    "waitingEvents": "Waiting for engine events…"
   }
 }

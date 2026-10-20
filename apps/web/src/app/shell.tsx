@@ -1,4 +1,5 @@
 import {
+  Activity,
   Boxes,
   HardDrive,
   Image as ImageIcon,
@@ -26,6 +27,7 @@ const NAV = [
   { to: "/volumes", key: "nav.volumes", icon: HardDrive },
   { to: "/networks", key: "nav.networks", icon: NetworkIcon },
   { to: "/compose", key: "nav.compose", icon: Layers },
+  { to: "/system", key: "nav.system", icon: Activity },
   { to: "/settings", key: "nav.settings", icon: Settings, adminOnly: true },
 ] as const;
 

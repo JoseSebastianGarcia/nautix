@@ -15,11 +15,18 @@ import type {
   CreateTunnel,
   CreateUser,
   CustomTemplateInput,
+  DiskUsage,
   EngineInfo,
   FsChange,
   Image,
+  ImageHistoryEntry,
+  ImageSearchResult,
   Layout,
   Network,
+  PruneKind,
+  PrunePreview,
+  PruneResult,
+  RegistryAuth,
   Session,
   Template,
   UpdateContainer,
@@ -152,6 +159,38 @@ export const api = {
     request<void>("POST", `/networks/${networkId}/connect`, { containerId }),
   disconnect: (networkId: string, containerId: string) =>
     request<void>("POST", `/networks/${networkId}/disconnect`, { containerId }),
+
+  imageHistory: (ref: string) =>
+    request<ImageHistoryEntry[]>("GET", `/images/history?ref=${encodeURIComponent(ref)}`),
+  searchImages: (term: string) =>
+    request<ImageSearchResult[]>("GET", `/images/search?term=${encodeURIComponent(term)}`),
+  tagImage: (reference: string, repository: string, tag: string) =>
+    request<void>("POST", "/images/tag", { reference, repository, tag }),
+  pushImage: (reference: string, auth?: RegistryAuth) =>
+    request<{ output: string }>("POST", "/images/push", { reference, ...(auth ? { auth } : {}) }),
+  testRegistry: (auth: RegistryAuth) =>
+    request<{ status: string }>("POST", "/registries/test", auth),
+  /** Streams a tar file as the request body (docker load / docker import). */
+  uploadImageTar: async (path: "/images/load" | `/images/import?${string}`, file: File) => {
+    const res = await fetch(`/api/v1${path}`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "x-nautix-csrf": "1", "content-type": "application/x-tar" },
+      body: file,
+    });
+    if (!res.ok) {
+      const problem = (await res.json().catch(() => ({}))) as { code?: string; hintKey?: string };
+      throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey);
+    }
+    return (await res.json()) as { output: string };
+  },
+  systemInfo: () => request<Record<string, unknown>>("GET", "/system/info"),
+  systemVersion: () => request<Record<string, unknown>>("GET", "/system/version"),
+  diskUsage: () => request<DiskUsage>("GET", "/system/df"),
+  prunePreview: (kind: PruneKind, all: boolean) =>
+    request<PrunePreview>("GET", `/system/prune/preview?kind=${kind}&all=${all}`),
+  prune: (kind: PruneKind, all: boolean) =>
+    request<PruneResult>("POST", "/system/prune", { kind, all }),
 
   images: () => request<Image[]>("GET", "/images"),
   pullImage: (reference: string) => request<void>("POST", "/images/pull", { reference }),

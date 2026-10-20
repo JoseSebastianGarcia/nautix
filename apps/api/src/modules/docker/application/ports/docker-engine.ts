@@ -7,10 +7,17 @@ import type {
   ContainerStats,
   ContainerTop,
   CreateNetwork,
+  DiskUsage,
+  EngineEvent,
   EngineInfo,
   FsChange,
   Image,
+  ImageHistoryEntry,
+  ImageSearchResult,
   Network,
+  PruneKind,
+  PruneResult,
+  RegistryAuth,
   UpdateContainer,
   Volume,
   WaitResult,
@@ -67,6 +74,23 @@ export abstract class DockerEngine {
   abstract pullImage(reference: string): Promise<void>;
   abstract pullImageIfMissing(reference: string): Promise<void>;
   abstract removeImage(id: string, force: boolean): Promise<void>;
+
+  abstract imageTag(reference: string, repository: string, tag: string): Promise<void>;
+  abstract imageHistory(reference: string): Promise<ImageHistoryEntry[]>;
+  abstract saveImages(references: string[]): Promise<Readable>;
+  abstract loadImages(tar: Readable): Promise<string>;
+  abstract importImage(tar: Readable, repository: string, tag: string): Promise<string>;
+  abstract searchImages(term: string, limit: number): Promise<ImageSearchResult[]>;
+  /** Credentials are used for this call only. Returns the engine's progress lines. */
+  abstract pushImage(reference: string, auth: RegistryAuth | undefined): Promise<string>;
+  abstract testRegistryAuth(auth: RegistryAuth): Promise<string>;
+
+  abstract rawInfo(): Promise<unknown>;
+  abstract version(): Promise<unknown>;
+  abstract diskUsage(): Promise<DiskUsage>;
+  abstract prune(kind: PruneKind, all: boolean): Promise<PruneResult>;
+  /** Detailed engine events (unlike `events`, which only says what kind of thing changed). */
+  abstract detailedEvents(signal: AbortSignal): AsyncIterable<EngineEvent>;
 
   abstract listVolumes(): Promise<Volume[]>;
   abstract createVolume(name: string): Promise<void>;

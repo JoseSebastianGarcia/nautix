@@ -9,16 +9,23 @@ import type {
   ContainerStats,
   ContainerTop,
   CreateNetwork,
+  DiskUsage,
+  EngineEvent,
   EngineInfo,
   FsChange,
   Image,
+  ImageHistoryEntry,
+  ImageSearchResult,
   Network,
+  PruneKind,
+  PruneResult,
+  RegistryAuth,
   UpdateContainer,
   Volume,
   WaitResult,
 } from "@nautix/contracts";
 import { Injectable } from "@nestjs/common";
-import { ConflictError, NotFoundError } from "../../../shared/domain-error.js";
+import { ConflictError, NotFoundError, ValidationError } from "../../../shared/domain-error.js";
 import {
   type ActionOptions,
   DockerEngine,
@@ -430,6 +437,195 @@ export class FakeDockerEngine extends DockerEngine {
     const key = [...this.images.entries()].find(([, i]) => i.id === id)?.[0];
     if (!key) throw new NotFoundError("image not found", "errors.notFound");
     this.images.delete(key);
+  }
+
+  async imageTag(reference: string, repository: string, tag: string): Promise<void> {
+    const src = [...this.images.values()].find(
+      (i) => i.tags.includes(reference) || i.id === reference,
+    );
+    if (!src) throw new NotFoundError("image not found", "errors.notFound");
+    const ref = `${repository}:${tag}`;
+    if (!src.tags.includes(ref)) src.tags.push(ref);
+    this.images.set(ref, src);
+    this.emit("image");
+  }
+
+  async imageHistory(reference: string): Promise<ImageHistoryEntry[]> {
+    const img = [...this.images.values()].find(
+      (i) => i.tags.includes(reference) || i.id === reference,
+    );
+    if (!img) throw new NotFoundError("image not found", "errors.notFound");
+    return [
+      { id: img.id, createdAt: img.createdAt, createdBy: 'CMD ["demo"]', size: 0, tags: img.tags },
+      {
+        id: "<missing>",
+        createdAt: img.createdAt,
+        createdBy: "ADD rootfs.tar / # buildkit",
+        size: img.size,
+        tags: [],
+      },
+    ];
+  }
+
+  async saveImages(references: string[]): Promise<Readable> {
+    for (const r of references) await this.imageHistory(r);
+    return Readable.from([Buffer.from(`FAKE-IMAGE-TAR ${references.join(",")}`)]);
+  }
+
+  async loadImages(tar: Readable): Promise<string> {
+    for await (const _chunk of tar) {
+      /* discard */
+    }
+    await this.pullImage("loaded/image:latest");
+    return "Loaded image: loaded/image:latest";
+  }
+
+  async importImage(tar: Readable, repository: string, tag: string): Promise<string> {
+    for await (const _chunk of tar) {
+      /* discard */
+    }
+    await this.pullImage(`${repository}:${tag}`);
+    return `sha256:${newId()}`;
+  }
+
+  async searchImages(term: string, limit: number): Promise<ImageSearchResult[]> {
+    const catalog = [
+      { name: "nginx", description: "Official build of Nginx.", stars: 20000, official: true },
+      {
+        name: "redis",
+        description: "Redis is the world's fastest data platform.",
+        stars: 13000,
+        official: true,
+      },
+      {
+        name: "bitnami/nginx",
+        description: "Bitnami container image for NGINX",
+        stars: 150,
+        official: false,
+      },
+    ];
+    return catalog.filter((c) => c.name.includes(term.toLowerCase())).slice(0, limit);
+  }
+
+  async pushImage(reference: string, auth: RegistryAuth | undefined): Promise<string> {
+    await this.imageHistory(reference);
+    if (reference.startsWith("private/") && !auth)
+      throw new ValidationError("authentication required", "errors.pushFailed");
+    return `The push refers to repository [${reference}]\nlatest: digest: sha256:demo size: 1234`;
+  }
+
+  async testRegistryAuth(auth: RegistryAuth): Promise<string> {
+    if (auth.password === "wrong")
+      throw new ValidationError("registry login failed", "errors.loginFailed");
+    return "Login Succeeded";
+  }
+
+  async rawInfo(): Promise<unknown> {
+    return {
+      ServerVersion: "demo",
+      OperatingSystem: "Nautix demo engine",
+      Containers: this.containers.size,
+      Images: this.images.size,
+      Driver: "overlay2",
+      NCPU: 4,
+      MemTotal: 8 * 1024 ** 3,
+    };
+  }
+
+  async version(): Promise<unknown> {
+    return { Version: "demo", ApiVersion: "1.43", Os: "linux", Arch: "amd64", GoVersion: "demo" };
+  }
+
+  async diskUsage(): Promise<DiskUsage> {
+    const images = [...this.images.values()];
+    const used = new Set([...this.containers.values()].map((c) => c.image));
+    const containers = [...this.containers.values()];
+    return {
+      images: {
+        count: images.length,
+        active: images.filter((i) => i.tags.some((t) => used.has(t))).length,
+        sizeBytes: images.reduce((n, i) => n + i.size, 0),
+        reclaimableBytes: images
+          .filter((i) => !i.tags.some((t) => used.has(t)))
+          .reduce((n, i) => n + i.size, 0),
+      },
+      containers: {
+        count: containers.length,
+        active: containers.filter((c) => c.state === "running").length,
+        sizeBytes: containers.length * 1024,
+        reclaimableBytes: containers.filter((c) => c.state !== "running").length * 1024,
+      },
+      volumes: {
+        count: this.volumes.size,
+        active: 0,
+        sizeBytes: this.volumes.size * 2048,
+        reclaimableBytes: this.volumes.size * 2048,
+      },
+      buildCache: { count: 0, active: 0, sizeBytes: 0, reclaimableBytes: 0 },
+    };
+  }
+
+  async prune(kind: PruneKind, all: boolean): Promise<PruneResult> {
+    let deleted = 0;
+    let reclaimedBytes = 0;
+    if (kind === "containers") {
+      for (const c of [...this.containers.values()]) {
+        if (
+          ["exited", "created", "dead"].includes(c.state) &&
+          !c.labels["nautix.self"] &&
+          c.name !== "nautix"
+        ) {
+          this.containers.delete(c.id);
+          for (const n of this.networks.values()) n.members.delete(c.id);
+          deleted++;
+        }
+      }
+      this.emit("container");
+    } else if (kind === "images") {
+      const used = new Set([...this.containers.values()].map((c) => c.image));
+      for (const [key, i] of [...this.images.entries()]) {
+        const unused = !i.tags.some((t) => used.has(t));
+        if (unused && (i.tags.length === 0 || all)) {
+          this.images.delete(key);
+          deleted++;
+          reclaimedBytes += i.size;
+        }
+      }
+      this.emit("image");
+    } else if (kind === "volumes") {
+      for (const [name, v] of [...this.volumes.entries()]) {
+        if (!v.inUse) {
+          this.volumes.delete(name);
+          deleted++;
+        }
+      }
+      this.emit("volume");
+    } else {
+      for (const [id, n] of [...this.networks.entries()]) {
+        if (!n.system && n.members.size === 0) {
+          this.networks.delete(id);
+          deleted++;
+        }
+      }
+      this.emit("network");
+    }
+    return { deleted, reclaimedBytes };
+  }
+
+  async *detailedEvents(signal: AbortSignal): AsyncIterable<EngineEvent> {
+    try {
+      for await (const [kind] of on(this.bus, "change", { signal })) {
+        yield {
+          time: Math.floor(Date.now() / 1000),
+          type: String(kind),
+          action: "change",
+          id: "demo",
+          name: null,
+        };
+      }
+    } catch (error) {
+      if (!signal.aborted) throw error;
+    }
   }
 
   async listVolumes(): Promise<Volume[]> {

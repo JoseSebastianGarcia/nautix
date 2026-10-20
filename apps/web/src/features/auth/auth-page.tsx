@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
 import { keys } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
-import { Logo } from "../../components/logo.js";
+import { ThemedLogo } from "../../components/themed-logo.js";
 import { Button, Field, Input } from "../../components/ui.js";
 
 export function AuthPage({ session }: { session: Session }) {
@@ -30,7 +30,9 @@ export function AuthPage({ session }: { session: Session }) {
           submit.mutate(undefined, { onSuccess: () => void qc.invalidateQueries() });
         }}
       >
-        <Logo />
+        <div className="flex justify-center">
+          <ThemedLogo size={180} alt={t("app.name")} />
+        </div>
         <h1 className="text-lg font-semibold">
           {setup ? t("auth.setupTitle") : t("auth.loginTitle")}
         </h1>

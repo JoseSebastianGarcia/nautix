@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/brand/logo-dark.png">
+    <img src="apps/web/public/brand/logo-light.png" alt="Nautix" width="220">
+  </picture>
+</p>
+
 # Nautix
 
 Self-hosted web app to manage Docker: containers, images, volumes and networks, with a visual canvas where **networks are boxes** and containers (with their logo) live inside them. MIT · UI in English and Spanish · dark and light themes.

@@ -68,6 +68,22 @@ beforeAll(async () => {
         });
       if (url === "/v1.43/images/nginx/json")
         return send(200, { Config: { Env: ["PATH=/bin"], Cmd: ["nginx"] } });
+      if (url.startsWith("/v1.43/images/myorg/web:v1/history"))
+        return send(200, [
+          { Id: "sha256:a", Created: 5, CreatedBy: "CMD x", Size: 10, Tags: null },
+        ]);
+      if (url.startsWith("/v1.43/images/search"))
+        return send(200, [{ name: "nginx", description: "d", star_count: 7, is_official: true }]);
+      if (url.startsWith("/v1.43/images/private/app/push")) {
+        res.writeHead(200);
+        return res.end(
+          '{"status":"The push refers to repository"}\n{"error":"denied: wrong-secret rejected"}\n',
+        );
+      }
+      if (url.startsWith("/v1.43/containers/prune"))
+        return send(200, { ContainersDeleted: ["a", "b"], SpaceReclaimed: 42 });
+      if (url.startsWith("/v1.43/images/prune"))
+        return send(200, { ImagesDeleted: null, SpaceReclaimed: 0 });
       if (url.startsWith("/v1.43/containers/create")) return send(201, { Id: "new" });
       if (url.includes("/containers/missing/"))
         return send(404, { message: "No such container: missing" });
@@ -127,6 +143,32 @@ describe("DockerSocketEngine", () => {
     expect(body.HostConfig.PortBindings["80/tcp"][0].HostIp).toBe("127.0.0.1");
     expect(body.HostConfig.NetworkMode).toBe("edge");
     expect(body.HostConfig.RestartPolicy).toEqual({ Name: "unless-stopped" });
+  });
+
+  it("maps image history, search and prune results", async () => {
+    expect(await engine.imageHistory("myorg/web:v1")).toEqual([
+      { id: "sha256:a", createdAt: 5, createdBy: "CMD x", size: 10, tags: [] },
+    ]);
+    expect(await engine.searchImages("nginx", 5)).toEqual([
+      { name: "nginx", description: "d", stars: 7, official: true },
+    ]);
+    expect(await engine.prune("containers", false)).toEqual({ deleted: 2, reclaimedBytes: 42 });
+    expect(await engine.prune("images", true)).toEqual({ deleted: 0, reclaimedBytes: 0 });
+    expect(
+      seen.some(
+        (r) =>
+          r.url.includes("/images/prune") &&
+          r.url.includes(encodeURIComponent('"dangling":["false"]')),
+      ),
+    ).toBe(true);
+  });
+
+  it("sends push credentials once in the auth header and never echoes the password back", async () => {
+    await expect(
+      engine.pushImage("private/app:1", { username: "u", password: "wrong-secret" }),
+    ).rejects.toMatchObject({
+      message: expect.not.stringContaining("wrong-secret"),
+    });
   });
 
   it("maps engine errors to domain errors with hint keys", async () => {

@@ -10,7 +10,8 @@
     "volumes": "Volúmenes",
     "networks": "Redes",
     "settings": "Ajustes",
-    "compose": "Compose"
+    "compose": "Compose",
+    "system": "Sistema"
   },
   "common": {
     "cancel": "Cancelar",
@@ -177,7 +178,27 @@
     "reference": "Referencia (ej. nginx:1.27-alpine)",
     "removeTitle": "¿Eliminar imagen?",
     "removeBody": "{{name}} se eliminará de este equipo.",
-    "untagged": "<sin etiqueta>"
+    "untagged": "<sin etiqueta>",
+    "inspect": "Inspeccionar",
+    "history": "Historial",
+    "tag": "Etiquetar",
+    "save": "Guardar como tar",
+    "push": "Subir (push)",
+    "search": "Buscar en Docker Hub",
+    "load": "Cargar archivo",
+    "import": "Importar tarball",
+    "createdBy": "Creado por",
+    "pushing": "Subiendo {{ref}}…",
+    "pushed": "{{ref}} subida",
+    "credentialsNote": "Las credenciales se envían una vez al motor para autenticar este push. No se guardan ni se registran.",
+    "registryServer": "Registro (opcional)",
+    "registryHint": "Vacío para Docker Hub",
+    "testLogin": "Probar login",
+    "official": "oficial",
+    "uploading": "Subiendo archivo…",
+    "loadHint": "Un .tar generado con docker save. Sus imágenes se agregan a este equipo.",
+    "importHint": "Un .tar con un sistema de archivos raíz; se convierte en una imagen de una capa.",
+    "chooseFile": "Elegir un archivo"
   },
   "volumes": {
     "title": "Volúmenes",
@@ -236,7 +257,10 @@
     "tunnelSameNetwork": "Elegí dos redes distintas",
     "tunnelToTunnel": "Un túnel no puede apuntar a otro túnel",
     "tunnelTargetNotOnNetwork": "El destino no está en la red de destino",
-    "uploadTooLarge": "La subida es demasiado grande (máx. 256 MB)"
+    "uploadTooLarge": "La subida es demasiado grande (máx. 256 MB)",
+    "pushFailed": "Falló el push",
+    "loginFailed": "Falló el login en el registro",
+    "imageOperationFailed": "Falló la operación sobre la imagen"
   },
   "terminal": {
     "title": "Terminal",
@@ -421,5 +445,49 @@
     "export": "Exportar sistema de archivos (.tar)",
     "isTunnel": "Este contenedor es un túnel entre dos redes.",
     "details": "Detalles"
+  },
+  "system": {
+    "title": "Sistema",
+    "tab": {
+      "overview": "Resumen",
+      "prune": "Asistente de limpieza",
+      "events": "Eventos"
+    },
+    "engine": "Motor",
+    "os": "Sistema operativo",
+    "engineVersion": "Versión del motor",
+    "apiVersion": "Versión de la API",
+    "storage": "Driver de almacenamiento",
+    "rawInfo": "Info completa",
+    "rawVersion": "Versión completa",
+    "disk": "Uso de disco",
+    "active": "en uso",
+    "reclaimable": "recuperable",
+    "bucket": {
+      "images": "Imágenes",
+      "containers": "Contenedores",
+      "volumes": "Volúmenes",
+      "networks": "Redes",
+      "buildCache": "Caché de build"
+    },
+    "pruneIntro": "Mirá exactamente qué se borraría antes de eliminar nada. No cambia nada hasta que confirmes.",
+    "pruneWhat": "Qué limpiar",
+    "allImages": "Eliminar también las imágenes sin uso (no solo las sin etiqueta)",
+    "allVolumes": "Eliminar también los volúmenes con nombre sin uso",
+    "willBeRemoved": "Se eliminarían {{count}}",
+    "nothingToPrune": "No hay nada para eliminar.",
+    "reclaims": "Libera aproximadamente {{size}}",
+    "prune": "Eliminar estos…",
+    "confirmTitle": "¿Eliminar {{kind}} sin uso?",
+    "confirmBody": "Se borrarán {{count}} elementos. No se puede deshacer.",
+    "pruned": "Se eliminaron {{count}} elementos, se liberaron {{size}}",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "clear": "Limpiar",
+    "export": "Exportar",
+    "time": "Hora",
+    "type": "Tipo",
+    "action": "Acción",
+    "waitingEvents": "Esperando eventos del motor…"
   }
 }

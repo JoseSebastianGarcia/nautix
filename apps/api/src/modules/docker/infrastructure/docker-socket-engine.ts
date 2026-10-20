@@ -9,10 +9,17 @@ import type {
   ContainerStats,
   ContainerTop,
   CreateNetwork,
+  DiskUsage,
+  EngineEvent,
   EngineInfo,
   FsChange,
   Image,
+  ImageHistoryEntry,
+  ImageSearchResult,
   Network,
+  PruneKind,
+  PruneResult,
+  RegistryAuth,
   UpdateContainer,
   Volume,
   WaitResult,
@@ -33,6 +40,7 @@ import {
 } from "../application/ports/docker-engine.js";
 import type { EngineContainerSpec } from "../domain/container-spec.js";
 import { computeStats } from "../domain/container-stats.js";
+import { summarizeDf } from "../domain/disk-usage.js";
 import { demuxStdcopy, isMultiplexed } from "./stdcopy.js";
 
 interface Reply {
@@ -56,7 +64,12 @@ export class DockerSocketEngine extends DockerEngine {
     super();
   }
 
-  private call(method: string, path: string, body?: unknown): Promise<Reply> {
+  private call(
+    method: string,
+    path: string,
+    body?: unknown,
+    extraHeaders: Record<string, string> = {},
+  ): Promise<Reply> {
     return new Promise((resolve, reject) => {
       const payload = body === undefined ? undefined : Buffer.from(JSON.stringify(body));
       const req = request(
@@ -64,9 +77,12 @@ export class DockerSocketEngine extends DockerEngine {
           socketPath: this.socketPath,
           path: `/v1.43${path}`,
           method,
-          headers: payload
-            ? { "Content-Type": "application/json", "Content-Length": payload.length }
-            : {},
+          headers: {
+            ...(payload
+              ? { "Content-Type": "application/json", "Content-Length": payload.length }
+              : {}),
+            ...extraHeaders,
+          },
         },
         (res) => {
           const chunks: Buffer[] = [];
@@ -589,6 +605,210 @@ export class DockerSocketEngine extends DockerEngine {
 
   removeImage(id: string, force: boolean): Promise<void> {
     return this.send("DELETE", `/images/${encodeURIComponent(id)}?force=${force}`);
+  }
+
+  imageTag(reference: string, repository: string, tag: string): Promise<void> {
+    return this.send(
+      "POST",
+      `/images/${encodeURI(reference)}/tag?repo=${encodeURIComponent(repository)}&tag=${encodeURIComponent(tag)}`,
+    );
+  }
+
+  async imageHistory(reference: string): Promise<ImageHistoryEntry[]> {
+    const rows = await this.json<
+      { Id: string; Created: number; CreatedBy: string; Size: number; Tags: string[] | null }[]
+    >("GET", `/images/${encodeURI(reference)}/history`);
+    return rows.map((r) => ({
+      id: r.Id,
+      createdAt: r.Created,
+      createdBy: r.CreatedBy,
+      size: r.Size,
+      tags: r.Tags ?? [],
+    }));
+  }
+
+  saveImages(references: string[]): Promise<Readable> {
+    const names = references.map((r) => `names=${encodeURIComponent(r)}`).join("&");
+    return this.stream("GET", `/images/get?${names}`);
+  }
+
+  /** The load/import endpoints answer with JSON progress lines; keep the human-readable ones. */
+  private async progressText(res: IncomingMessage): Promise<string> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of res) chunks.push(chunk as Buffer);
+    const lines = Buffer.concat(chunks)
+      .toString("utf8")
+      .split("\n")
+      .filter((l) => l.trim());
+    const out: string[] = [];
+    for (const line of lines) {
+      let msg: { stream?: string; status?: string; error?: string; progress?: string; id?: string };
+      try {
+        msg = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (msg.error) throw new ValidationError(msg.error, "errors.imageOperationFailed");
+      const text = msg.stream ?? [msg.id, msg.status].filter(Boolean).join(": ");
+      if (text.trim() && !msg.progress) out.push(text.trim());
+    }
+    return out.slice(-20).join("\n");
+  }
+
+  async loadImages(tar: Readable): Promise<string> {
+    return this.progressText(await this.stream("POST", "/images/load?quiet=false", tar));
+  }
+
+  async importImage(tar: Readable, repository: string, tag: string): Promise<string> {
+    const q = `fromSrc=-&repo=${encodeURIComponent(repository)}&tag=${encodeURIComponent(tag)}`;
+    return this.progressText(await this.stream("POST", `/images/create?${q}`, tar));
+  }
+
+  async searchImages(term: string, limit: number): Promise<ImageSearchResult[]> {
+    const rows = await this.json<
+      { name: string; description: string; star_count: number; is_official: boolean }[]
+    >("GET", `/images/search?term=${encodeURIComponent(term)}&limit=${limit}`);
+    return rows.map((r) => ({
+      name: r.name,
+      description: r.description,
+      stars: r.star_count,
+      official: r.is_official,
+    }));
+  }
+
+  private authHeader(auth: RegistryAuth | undefined): Record<string, string> {
+    const payload = auth
+      ? {
+          username: auth.username,
+          password: auth.password,
+          ...(auth.serveraddress ? { serveraddress: auth.serveraddress } : {}),
+        }
+      : {};
+    return { "X-Registry-Auth": Buffer.from(JSON.stringify(payload)).toString("base64url") };
+  }
+
+  async pushImage(reference: string, auth: RegistryAuth | undefined): Promise<string> {
+    const sep = reference.lastIndexOf(":");
+    const hasTag = sep > reference.lastIndexOf("/");
+    const name = hasTag ? reference.slice(0, sep) : reference;
+    const tag = hasTag ? reference.slice(sep + 1) : "latest";
+    const reply = await this.call(
+      "POST",
+      `/images/${encodeURI(name)}/push?tag=${encodeURIComponent(tag)}`,
+      undefined,
+      this.authHeader(auth),
+    );
+    this.assertOk(reply);
+    const out: string[] = [];
+    for (const line of reply.body.toString("utf8").split("\n")) {
+      if (!line.trim()) continue;
+      const msg = JSON.parse(line) as {
+        status?: string;
+        error?: string;
+        progress?: string;
+        id?: string;
+      };
+      // Never echo anything that could contain the credentials back to the client.
+      if (msg.error)
+        throw new ValidationError(
+          msg.error.replace(auth?.password ?? "\u0000", "***"),
+          "errors.pushFailed",
+        );
+      if (msg.status && !msg.progress) out.push([msg.id, msg.status].filter(Boolean).join(": "));
+    }
+    return out.slice(-20).join("\n");
+  }
+
+  async testRegistryAuth(auth: RegistryAuth): Promise<string> {
+    const reply = await this.call("POST", "/auth", {
+      username: auth.username,
+      password: auth.password,
+      ...(auth.serveraddress ? { serveraddress: auth.serveraddress } : {}),
+    });
+    if (reply.status === 401 || reply.status === 403)
+      throw new ValidationError("registry login failed", "errors.loginFailed");
+    this.assertOk(reply);
+    return (JSON.parse(reply.body.toString("utf8")) as { Status?: string }).Status ?? "OK";
+  }
+
+  rawInfo(): Promise<unknown> {
+    return this.json("GET", "/info");
+  }
+
+  version(): Promise<unknown> {
+    return this.json("GET", "/version");
+  }
+
+  async diskUsage(): Promise<DiskUsage> {
+    return summarizeDf(await this.json("GET", "/system/df"));
+  }
+
+  async prune(kind: PruneKind, all: boolean): Promise<PruneResult> {
+    const path = {
+      containers: "/containers/prune",
+      images: `/images/prune?filters=${encodeURIComponent(JSON.stringify({ dangling: [all ? "false" : "true"] }))}`,
+      volumes: `/volumes/prune?filters=${encodeURIComponent(JSON.stringify({ all: [String(all)] }))}`,
+      networks: "/networks/prune",
+    }[kind];
+    const r = await this.json<{
+      ContainersDeleted?: string[] | null;
+      ImagesDeleted?: unknown[] | null;
+      VolumesDeleted?: string[] | null;
+      NetworksDeleted?: string[] | null;
+      SpaceReclaimed?: number;
+    }>("POST", path);
+    const deleted = (
+      r.ContainersDeleted ??
+      r.ImagesDeleted ??
+      r.VolumesDeleted ??
+      r.NetworksDeleted ??
+      []
+    ).length;
+    return { deleted, reclaimedBytes: r.SpaceReclaimed ?? 0 };
+  }
+
+  async *detailedEvents(signal: AbortSignal): AsyncIterable<EngineEvent> {
+    let delay = 250;
+    while (!signal.aborted) {
+      try {
+        const res = await new Promise<IncomingMessage>((resolve, reject) => {
+          const req = request(
+            { socketPath: this.socketPath, path: "/v1.43/events", method: "GET", signal },
+            resolve,
+          );
+          req.on("error", reject);
+          req.end();
+        });
+        let buffered = "";
+        for await (const chunk of res) {
+          buffered += (chunk as Buffer).toString("utf8");
+          const lines = buffered.split("\n");
+          buffered = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const e = JSON.parse(line) as {
+              time?: number;
+              Type?: string;
+              Action?: string;
+              Actor?: { ID?: string; Attributes?: Record<string, string> };
+            };
+            delay = 250;
+            yield {
+              time: e.time ?? Math.floor(Date.now() / 1000),
+              type: e.Type ?? "",
+              action: e.Action ?? "",
+              id: e.Actor?.ID ?? "",
+              name: e.Actor?.Attributes?.name ?? null,
+            };
+          }
+        }
+      } catch {
+        /* reconnect below */
+      }
+      if (signal.aborted) return;
+      await new Promise((r) => setTimeout(r, delay));
+      delay = Math.min(delay * 2, 8000);
+    }
   }
 
   async listVolumes(): Promise<Volume[]> {

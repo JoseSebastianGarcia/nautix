@@ -118,6 +118,20 @@ button:disabled {
   height: 10px;
 }
 
+/* One logo per theme; only the matching one is displayed. */
+.nx-logo-light,
+.nx-logo-dark {
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+:root[data-theme="light"] .nx-logo-light {
+  display: inline-flex;
+}
+:root[data-theme="dark"] .nx-logo-dark {
+  display: inline-flex;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

@@ -270,3 +270,94 @@ export const KILL_SIGNALS = [
   "SIGUSR2",
   "SIGQUIT",
 ] as const;
+
+/** Same character set Docker allows in references, so the value is safe inside an API path. */
+export const ImageReference = z
+  .string()
+  .min(1)
+  .max(255)
+  .regex(/^[a-zA-Z0-9][a-zA-Z0-9_.:/@-]*$/, "invalid image reference");
+
+export const TagImage = z.object({
+  reference: ImageReference,
+  repository: ImageReference,
+  tag: z
+    .string()
+    .regex(/^[\w][\w.-]{0,127}$/)
+    .default("latest"),
+});
+export type TagImage = z.infer<typeof TagImage>;
+
+export const ImageHistoryEntry = z.object({
+  id: z.string(),
+  createdAt: z.number(),
+  createdBy: z.string(),
+  size: z.number(),
+  tags: z.array(z.string()),
+});
+export type ImageHistoryEntry = z.infer<typeof ImageHistoryEntry>;
+
+export const ImageSearchResult = z.object({
+  name: z.string(),
+  description: z.string(),
+  stars: z.number(),
+  official: z.boolean(),
+});
+export type ImageSearchResult = z.infer<typeof ImageSearchResult>;
+
+/** Credentials are used for one request and never stored or logged. */
+export const RegistryAuth = z.object({
+  username: z.string().min(1).max(256),
+  password: z.string().min(1).max(4096),
+  serveraddress: z.string().max(255).optional(),
+});
+export type RegistryAuth = z.infer<typeof RegistryAuth>;
+
+export const PushImage = z.object({ reference: ImageReference, auth: RegistryAuth.optional() });
+export type PushImage = z.infer<typeof PushImage>;
+
+export const PruneKind = z.enum(["containers", "images", "volumes", "networks"]);
+export type PruneKind = z.infer<typeof PruneKind>;
+
+export const PruneItem = z.object({
+  kind: PruneKind,
+  name: z.string(),
+  size: z.number().optional(),
+});
+export type PruneItem = z.infer<typeof PruneItem>;
+
+export const PrunePreview = z.object({ items: z.array(PruneItem), reclaimableBytes: z.number() });
+export type PrunePreview = z.infer<typeof PrunePreview>;
+
+export const PruneRequest = z.object({
+  kind: PruneKind,
+  /** images: also unused (not only dangling) ones; volumes: also named volumes. */
+  all: z.boolean().default(false),
+});
+export type PruneRequest = z.infer<typeof PruneRequest>;
+
+export const PruneResult = z.object({ deleted: z.number(), reclaimedBytes: z.number() });
+export type PruneResult = z.infer<typeof PruneResult>;
+
+const UsageBucket = z.object({
+  count: z.number(),
+  active: z.number(),
+  sizeBytes: z.number(),
+  reclaimableBytes: z.number(),
+});
+export const DiskUsage = z.object({
+  images: UsageBucket,
+  containers: UsageBucket,
+  volumes: UsageBucket,
+  buildCache: UsageBucket,
+});
+export type DiskUsage = z.infer<typeof DiskUsage>;
+
+export const EngineEvent = z.object({
+  time: z.number(),
+  type: z.string(),
+  action: z.string(),
+  id: z.string(),
+  name: z.string().nullable(),
+});
+export type EngineEvent = z.infer<typeof EngineEvent>;
