@@ -80,10 +80,13 @@ function CommandEditor({
   label,
   command,
   onChange,
+  warnShell = false,
 }: {
   label: string;
   command: Command;
   onChange: (c: Command) => void;
+  /** Shell form stops the app from receiving stop signals (true for CMD / ENTRYPOINT only). */
+  warnShell?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -129,7 +132,7 @@ function CommandEditor({
           onChange={(shell) => onChange({ mode: "shell", shell })}
         />
       )}
-      {command.mode === "shell" && (
+      {warnShell && command.mode === "shell" && (
         <p className="text-xs text-amber">{t("builds.rules.NX-DF013", { keyword: label })}</p>
       )}
     </div>
@@ -211,10 +214,12 @@ function PairInput({
 }
 
 export function BlockForm({
+  keyword,
   form,
   stages,
   onChange,
 }: {
+  keyword: string;
   form: Form;
   /** Names of the earlier stages, offered for `COPY --from`. */
   stages: string[];
@@ -349,8 +354,9 @@ export function BlockForm({
     case "command":
       return (
         <CommandEditor
-          label="CMD / ENTRYPOINT"
+          label={keyword}
           command={form.command}
+          warnShell
           onChange={(command) => onChange({ ...form, command })}
         />
       );

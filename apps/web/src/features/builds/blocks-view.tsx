@@ -148,6 +148,7 @@ export function BlocksView({ text, onChange, issues, stage }: Props) {
           >
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             <span
+              title={t(`builds.blocks.kw.${ins.keyword}`, { defaultValue: "" })}
               className={`w-24 shrink-0 font-mono text-xs font-semibold ${KEYWORD_COLOR[ins.keyword] ?? "text-fg"}`}
             >
               {ins.keyword}
@@ -203,8 +204,19 @@ export function BlocksView({ text, onChange, issues, stage }: Props) {
           </button>
         </div>
         {expanded && (
-          <div className="border-t border-line p-3">
+          <div className="flex flex-col gap-3 border-t border-line p-3">
+            <div className="text-xs text-dim">
+              <p>
+                {t(`builds.blocks.kw.${ins.keyword}`, {
+                  defaultValue: t("builds.blocks.kw.OTHER"),
+                })}
+              </p>
+              <p className="mt-1 text-fg">
+                {t(`builds.blocks.tip.${ins.keyword}`, { defaultValue: "" })}
+              </p>
+            </div>
             <BlockForm
+              keyword={ins.keyword}
               form={form}
               stages={stageNames(stageIndex ?? 0)}
               onChange={(f) => onChange(replaceInstruction(text, ins, ins.keyword, formToArgs(f)))}

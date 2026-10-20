@@ -766,7 +766,27 @@
         "LABEL": "Metadata for the image",
         "STOPSIGNAL": "Signal sent to stop the container",
         "SHELL": "Shell used for shell-form commands",
-        "ONBUILD": "Instruction that runs when this image is used as a base"
+        "ONBUILD": "Instruction that runs when this image is used as a base",
+        "OTHER": "An instruction Nautix has no form for: edit it as text."
+      },
+      "tip": {
+        "FROM": "Every stage starts here. Use a specific version (node:22-alpine), not latest, so builds do not change by surprise. Several FROMs make a multi-stage build: build in one, copy only the result into a small final one.",
+        "RUN": "Runs while the image is built and bakes the result into it. Chain related commands with && so they share one layer, and clean caches in the same command.",
+        "COPY": "Brings files from your build context (or from another stage with \"Copy from\") into the image. Copy dependency files first and the rest later so Docker reuses its cache.",
+        "ADD": "Like COPY, plus downloading URLs and unpacking archives. Prefer COPY unless you need that.",
+        "ENV": "Stays in the image and in every container made from it. Never put passwords here.",
+        "ARG": "Exists only while building, but is visible in the image history. Not for secrets.",
+        "WORKDIR": "Creates the folder if needed and makes it the current one for the next steps and for the container. Always use an absolute path.",
+        "EXPOSE": "Only documents the port; it does not publish it. You publish ports when you run the container.",
+        "USER": "Run as a normal user, not root, so a flaw in the app does not give control of the container.",
+        "CMD": "What runs when the container starts, and what \"docker run image something\" replaces. Prefer the exec form so the app receives stop signals.",
+        "ENTRYPOINT": "The fixed program of the container; CMD then supplies its default arguments.",
+        "HEALTHCHECK": "Docker runs this command periodically and marks the container healthy or unhealthy, so you know the app really answers.",
+        "VOLUME": "Marks a folder whose data should outlive the container. Docker creates an anonymous volume for it if you do not mount one.",
+        "LABEL": "Free-form metadata, for example the image title or source repository.",
+        "STOPSIGNAL": "Signal sent to ask the app to stop (default SIGTERM).",
+        "SHELL": "Changes the shell used by shell-form commands (default /bin/sh -c).",
+        "ONBUILD": "Delayed instruction: it runs when someone builds another image FROM this one."
       }
     }
   },

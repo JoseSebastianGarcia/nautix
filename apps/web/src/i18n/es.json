@@ -766,7 +766,27 @@
         "LABEL": "Metadatos de la imagen",
         "STOPSIGNAL": "Señal que detiene el contenedor",
         "SHELL": "Shell para los comandos en forma shell",
-        "ONBUILD": "Instrucción que corre cuando esta imagen se usa como base"
+        "ONBUILD": "Instrucción que corre cuando esta imagen se usa como base",
+        "OTHER": "Una instrucción para la que Nautix no tiene formulario: editala como texto."
+      },
+      "tip": {
+        "FROM": "Toda etapa empieza acá. Usá una versión concreta (node:22-alpine), no latest, para que los builds no cambien por sorpresa. Varios FROM forman un build multi-etapa: compilás en una y copiás solo el resultado a una final chica.",
+        "RUN": "Se ejecuta al construir la imagen y deja el resultado dentro. Encadená comandos relacionados con && para que compartan una capa y limpiá cachés en el mismo comando.",
+        "COPY": "Trae archivos de tu contexto de build (o de otra etapa con \"Copiar desde\") a la imagen. Copiá primero los archivos de dependencias y después el resto, así Docker reutiliza su caché.",
+        "ADD": "Como COPY, y además descarga URLs y descomprime archivos. Preferí COPY salvo que necesites eso.",
+        "ENV": "Queda en la imagen y en cada contenedor que se cree de ella. Nunca pongas contraseñas acá.",
+        "ARG": "Existe solo durante el build, pero se ve en el historial de la imagen. No es para secretos.",
+        "WORKDIR": "Crea la carpeta si hace falta y la deja como actual para los pasos siguientes y para el contenedor. Usá siempre una ruta absoluta.",
+        "EXPOSE": "Solo documenta el puerto; no lo publica. Los puertos se publican al ejecutar el contenedor.",
+        "USER": "Corré como usuario normal, no root, para que una falla de la app no dé control del contenedor.",
+        "CMD": "Lo que se ejecuta al iniciar el contenedor, y lo que reemplaza \"docker run imagen algo\". Preferí la forma exec para que la app reciba las señales de parada.",
+        "ENTRYPOINT": "El programa fijo del contenedor; CMD aporta sus argumentos por defecto.",
+        "HEALTHCHECK": "Docker ejecuta este comando cada tanto y marca el contenedor como sano o no sano, así sabés que la app realmente responde.",
+        "VOLUME": "Marca una carpeta cuyos datos deberían sobrevivir al contenedor. Docker le crea un volumen anónimo si no montás uno.",
+        "LABEL": "Metadatos libres, por ejemplo el título de la imagen o el repositorio de origen.",
+        "STOPSIGNAL": "Señal con la que se le pide a la app que se detenga (por defecto SIGTERM).",
+        "SHELL": "Cambia el shell que usan los comandos en forma shell (por defecto /bin/sh -c).",
+        "ONBUILD": "Instrucción diferida: se ejecuta cuando alguien construye otra imagen FROM esta."
       }
     }
   },
