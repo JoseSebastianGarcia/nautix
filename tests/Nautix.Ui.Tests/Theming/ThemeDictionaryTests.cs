@@ -61,7 +61,7 @@ public sealed class ThemeDictionaryTests
 
     [Theory]
     [MemberData(nameof(Variants))]
-    public void Accents_reach_3_to_1_on_every_surface_for_icons_lines_and_focus(ThemeVariant variant)
+    public void Accents_reach_4_5_to_1_on_every_surface_so_they_are_safe_as_text(ThemeVariant variant)
     {
         var tokens = ThemeTokens.For(variant);
 
@@ -70,8 +70,21 @@ public sealed class ThemeDictionaryTests
             foreach (var surface in _surfaces)
             {
                 Wcag.ContrastRatio(tokens[accent], tokens[surface])
-                    .ShouldBeGreaterThanOrEqualTo(Wcag.NonTextRatio, $"{variant}: {accent} on {surface}");
+                    .ShouldBeGreaterThanOrEqualTo(Wcag.NormalTextRatio, $"{variant}: {accent} on {surface}");
             }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Variants))]
+    public void Interactive_control_borders_reach_3_to_1_on_every_surface(ThemeVariant variant)
+    {
+        var tokens = ThemeTokens.For(variant);
+
+        foreach (var surface in _surfaces)
+        {
+            Wcag.ContrastRatio(tokens["Nx.LineStrong"], tokens[surface])
+                .ShouldBeGreaterThanOrEqualTo(Wcag.NonTextRatio, $"{variant}: Nx.LineStrong on {surface}");
         }
     }
 
@@ -82,44 +95,6 @@ public sealed class ThemeDictionaryTests
         var tokens = ThemeTokens.For(variant);
 
         Wcag.ContrastRatio(tokens["Nx.OnLime"], tokens["Nx.Lime"]).ShouldBeGreaterThanOrEqualTo(Wcag.NormalTextRatio);
-    }
-
-    // Accents are NOT safe as body text on every surface in the light theme. This test pins the exact set of
-    // failing pairs (see ADR-009) so that changing a token forces a conscious update of the decision.
-    [Fact]
-    public void Accent_as_text_known_gaps_are_exactly_the_documented_ones()
-    {
-        var failing = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var variant in new[] { ThemeVariant.Dark, ThemeVariant.Light })
-        {
-            var tokens = ThemeTokens.For(variant);
-            foreach (var accent in _accentTokens)
-            {
-                foreach (var surface in _surfaces)
-                {
-                    if (Wcag.ContrastRatio(tokens[accent], tokens[surface]) < Wcag.NormalTextRatio)
-                    {
-                        failing.Add($"{variant}:{accent}/{surface}");
-                    }
-                }
-            }
-        }
-
-        failing.ShouldBe(
-        [
-            "Light:Nx.Amber/Nx.Bg0",
-            "Light:Nx.Amber/Nx.Bg1",
-            "Light:Nx.Amber/Nx.Bg2",
-            "Light:Nx.Cyan/Nx.Bg0",
-            "Light:Nx.Cyan/Nx.Bg1",
-            "Light:Nx.Cyan/Nx.Bg2",
-            "Light:Nx.Danger/Nx.Bg2",
-            "Light:Nx.LimeStrong/Nx.Bg0",
-            "Light:Nx.LimeStrong/Nx.Bg1",
-            "Light:Nx.LimeStrong/Nx.Bg2",
-            "Light:Nx.Violet/Nx.Bg0",
-            "Light:Nx.Violet/Nx.Bg2",
-        ]);
     }
 
     private static string PathFor(ThemeVariant variant) =>

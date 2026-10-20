@@ -6,6 +6,7 @@
     <Color x:Key="Nx.Bg1.Color">#0D1114</Color>
     <Color x:Key="Nx.Bg2.Color">#141A1F</Color>
     <Color x:Key="Nx.Line.Color">#1F2A31</Color>
+    <Color x:Key="Nx.LineStrong.Color">#4F6B7D</Color>
     <Color x:Key="Nx.Text.Color">#E6EEF2</Color>
     <Color x:Key="Nx.TextDim.Color">#8A9BA6</Color>
     <Color x:Key="Nx.Lime.Color">#B6FF3B</Color>
@@ -20,6 +21,7 @@
     <SolidColorBrush x:Key="Nx.Bg1" Color="{StaticResource Nx.Bg1.Color}" />
     <SolidColorBrush x:Key="Nx.Bg2" Color="{StaticResource Nx.Bg2.Color}" />
     <SolidColorBrush x:Key="Nx.Line" Color="{StaticResource Nx.Line.Color}" />
+    <SolidColorBrush x:Key="Nx.LineStrong" Color="{StaticResource Nx.LineStrong.Color}" />
     <SolidColorBrush x:Key="Nx.Text" Color="{StaticResource Nx.Text.Color}" />
     <SolidColorBrush x:Key="Nx.TextDim" Color="{StaticResource Nx.TextDim.Color}" />
     <SolidColorBrush x:Key="Nx.Lime" Color="{StaticResource Nx.Lime.Color}" />

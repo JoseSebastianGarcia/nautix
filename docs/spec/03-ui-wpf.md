@@ -77,18 +77,19 @@ Global affordances:
 | `Nx.Bg0` (canvas/app) | `#07090B` | `#F4F7F9` |
 | `Nx.Bg1` (panels) | `#0D1114` | `#FFFFFF` |
 | `Nx.Bg2` (raised/hover) | `#141A1F` | `#EAF0F3` |
-| `Nx.Line` | `#1F2A31` | `#D5DFE5` |
+| `Nx.Line` (decorative dividers only) | `#1F2A31` | `#D5DFE5` |
+| `Nx.LineStrong` (borders of interactive controls, ≥ 3:1) | `#4F6B7D` | `#698CA2` |
 | `Nx.Text` | `#E6EEF2` | `#0E1A21` |
 | `Nx.TextDim` | `#8A9BA6` | `#55677A` |
 | `Nx.Lime` (accent 1 / fills) | `#B6FF3B` | `#B6FF3B` |
-| `Nx.LimeStrong` (text/lines on surface) | `#B6FF3B` | `#4C8A00` |
-| `Nx.Cyan` (accent 2) | `#38D5FF` | `#0089B8` |
-| `Nx.Violet` (volumes) | `#A78BFA` | `#7C5CE0` |
-| `Nx.Amber` (config/secret/warn) | `#FFB020` | `#B86E00` |
-| `Nx.Danger` | `#FF4D6A` | `#D6204A` |
+| `Nx.LimeStrong` (text/lines on surface) | `#B6FF3B` | `#427900` |
+| `Nx.Cyan` (accent 2) | `#38D5FF` | `#00749C` |
+| `Nx.Violet` (volumes) | `#A78BFA` | `#7452DE` |
+| `Nx.Amber` (config/secret/warn) | `#FFB020` | `#9B5D00` |
+| `Nx.Danger` | `#FF4D6A` | `#D11F48` |
 | `Nx.OnLime` (text over lime fill) | `#07090B` | `#07090B` |
 
-Contrast requirement: text vs its background ≥ 4.5:1, UI boundaries ≥ 3:1; add a unit test computing WCAG ratios for token pairs in both themes.
+Contrast requirement: text vs its background ≥ 4.5:1 (this includes every accent token used as text, on `Nx.Bg0/1/2`, in both themes), UI boundaries ≥ 3:1 (`Nx.LineStrong`; `Nx.Line` is decorative only); add a unit test computing WCAG ratios for token pairs in both themes.
 
 Typography: UI `Segoe UI Variable`; mono `Cascadia Code`, fallback `Consolas`. Sizes: 12 / 13 (body) / 16 / 20 / 28.
 Shape: radius 12 (cards/nodes), 8 (controls); 1 px borders `Nx.Line`; focus ring 2 px `Nx.Cyan` (dark) / `Nx.Cyan` (light).

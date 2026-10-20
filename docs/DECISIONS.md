@@ -61,13 +61,14 @@ New entries go at the end; never edit an accepted ADR, supersede it.
 
 ## ADR-009 — Theme contrast findings (measured against `03-ui-wpf.md` tokens)
 
-- **Status:** Proposed — **needs owner decision on the options below.**
+- **Status:** Accepted — owner chose options (a) + (c) on 2026-10-20; see Resolution.
 - **Context:** The spec requires text ≥ 4.5:1 and UI boundaries ≥ 3:1 and asks for a unit test. Measured with WCAG 2.x maths (`Wcag`, tested against the 21:1 and 4.48:1 reference values):
   - **Pass:** `Nx.Text` (≥ 14.9) and `Nx.TextDim` (≥ 5.06) on all three surfaces in both themes; `Nx.OnLime` on `Nx.Lime` (16.48); every accent ≥ 3:1 on all surfaces in both themes (lowest: light `Nx.Cyan` on `Nx.Bg2` 3.46) — fine for icons, lines, status dots and the focus ring.
   - **Fail as body text (light theme only):** `Nx.LimeStrong` 3.69–4.25, `Nx.Cyan` 3.46–3.98, `Nx.Amber` 3.47–3.99, `Nx.Violet` on Bg0/Bg2 4.37/4.09, `Nx.Danger` on Bg2 4.38. The spec describes `LimeStrong` as "text/lines on surface"; as text it does not reach 4.5.
   - **Borders:** `Nx.Line` is 1.18–1.36:1 against surfaces in both themes. Fine for decorative dividers, but an input or button defined *only* by a 1 px `Nx.Line` border fails WCAG 1.4.11 (3:1).
 - **Decision (interim):** `Accent_as_text_known_gaps_are_exactly_the_documented_ones` pins the failing set so any token change forces an update here. Rule until decided: do not use accents as text colour in the light theme except `Nx.Violet` on Bg1 and `Nx.Danger` on Bg0/Bg1; use `Nx.Text`/`Nx.TextDim` for text next to a coloured dot or icon.
 - **Options for the owner:** (a) darken light-theme `LimeStrong` to about `#3F7300`, `Cyan` to about `#006E94`, `Amber` to about `#9A5C00` so they work as text (spec change, small); (b) keep tokens and enforce the rule above in code review; (c) add a `Nx.LineStrong` token (≥ 3:1) for interactive-control borders in both themes. Recommended: (a) + (c).
+- **Resolution:** Light theme `LimeStrong` `#4C8A00`→`#427900`, `Cyan` `#0089B8`→`#00749C`, `Amber` `#B86E00`→`#9B5D00`; also `Violet` `#7C5CE0`→`#7452DE` and `Danger` `#D6204A`→`#D11F48`, which failed on some surfaces too (same hue, minimal lightness change). All accents now ≥ 4.56:1 on Bg0/Bg1/Bg2 in both themes. New token `Nx.LineStrong` (dark `#4F6B7D`, light `#698CA2`, ≥ 3.11:1 on all surfaces) for borders of interactive controls; `Nx.Line` stays decorative. `docs/spec/03-ui-wpf.md` updated. The pinned known-gaps test was replaced by strict 4.5:1 / 3:1 tests.
 - **Consequences:** Changing tokens requires updating `ThemeTokens`, both XAML dictionaries and the pinned test together.
 
 ## ADR-010 — Static `LocalizationSource.Instance`
