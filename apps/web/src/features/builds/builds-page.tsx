@@ -1,6 +1,16 @@
 import { applyFix, lintDockerfile, parseDockerfile, stageGraph } from "@nautix/dockerfile";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, AlertTriangle, ArrowRight, Hammer, Info, Plus, X } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowRight,
+  Hammer,
+  Info,
+  Plus,
+  Redo2,
+  Undo2,
+  X,
+} from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { buildImage } from "../../app/api.js";
@@ -9,7 +19,9 @@ import { DockerfileEditor } from "../../components/dockerfile-editor.js";
 import { EnvEditor } from "../../components/fields.js";
 import { useToasts } from "../../components/toast-store.js";
 import { Button, Field, Input } from "../../components/ui.js";
+import { canRedo, canUndo, commit, initialHistory, redo, undo } from "../compose/history.js";
 import { PageHeader } from "../resources/table.js";
+import { BlocksView } from "./blocks-view.js";
 import { DOCKERFILE_TEMPLATES } from "./dockerfile-templates.js";
 
 const STORAGE = "nautix.build.dockerfile";
@@ -36,7 +48,10 @@ export function BuildsPage() {
   const { t } = useTranslation();
   const push = useToasts((s) => s.push);
   const qc = useQueryClient();
-  const [dockerfile, setDockerfile] = useState(load);
+  const [history, setHistory] = useState(() => initialHistory(load()));
+  const dockerfile = history.present;
+  const [view, setView] = useState<"blocks" | "code">("blocks");
+  const [stageFilter, setStageFilter] = useState<number | null>(null);
   const [tag, setTag] = useState("my-app:latest");
   const [args, setArgs] = useState<[string, string][]>([]);
   const [files, setFiles] = useState<ExtraFile[]>([]);
@@ -47,13 +62,27 @@ export function BuildsPage() {
   const [running, setRunning] = useState(false);
   const outputRef = useRef<HTMLPreElement>(null);
 
-  const update = (text: string) => {
-    setDockerfile(text);
+  const remember = (text: string) => {
     try {
       localStorage.setItem(STORAGE, text);
     } catch {
       /* storage may be unavailable */
     }
+  };
+  /** Typing is coalesced into one undo step; block edits and fixes are one step each. */
+  const update = (text: string, coalesceMs = 0) => {
+    setHistory((h) => commit(h, text, Date.now(), coalesceMs));
+    remember(text);
+  };
+  const stepUndo = () => {
+    const h = undo(history);
+    setHistory(h);
+    remember(h.present);
+  };
+  const stepRedo = () => {
+    const h = redo(history);
+    setHistory(h);
+    remember(h.present);
   };
 
   const issues = useMemo(() => lintDockerfile(dockerfile), [dockerfile]);
@@ -122,9 +151,46 @@ export function BuildsPage() {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-w-0 flex-col gap-3">
-          <div className="h-[420px]">
-            <DockerfileEditor value={dockerfile} onChange={update} label="Dockerfile" />
+          <div className="flex flex-wrap items-center gap-2">
+            <div role="tablist" className="flex rounded-lg border border-line p-0.5 text-sm">
+              {(["blocks", "code"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === v}
+                  onClick={() => setView(v)}
+                  className={`rounded-md px-3 py-1 ${view === v ? "bg-accent-soft text-accent" : "text-dim hover:text-fg"}`}
+                >
+                  {t(`builds.view.${v}`)}
+                </button>
+              ))}
+            </div>
+            <Button aria-label={t("compose.undo")} disabled={!canUndo(history)} onClick={stepUndo}>
+              <Undo2 size={14} />
+            </Button>
+            <Button aria-label={t("compose.redo")} disabled={!canRedo(history)} onClick={stepRedo}>
+              <Redo2 size={14} />
+            </Button>
           </div>
+          {view === "code" ? (
+            <div className="h-[420px]">
+              <DockerfileEditor
+                value={dockerfile}
+                onChange={(text) => update(text, 500)}
+                onUndo={stepUndo}
+                onRedo={stepRedo}
+                label="Dockerfile"
+              />
+            </div>
+          ) : (
+            <BlocksView
+              text={dockerfile}
+              onChange={(text) => update(text, 400)}
+              issues={issues}
+              stage={stageFilter}
+            />
+          )}
 
           {graph.nodes.length > 1 && (
             <ol
@@ -134,11 +200,15 @@ export function BuildsPage() {
               {graph.nodes.map((n, i) => (
                 <li key={n.id} className="flex items-center gap-2">
                   {i > 0 && <ArrowRight size={12} className="text-dim" />}
-                  <span
-                    className={`rounded-lg border px-2 py-1 font-mono ${n.final ? "border-accent text-accent" : "border-line"}`}
+                  <button
+                    type="button"
+                    aria-pressed={stageFilter === i}
+                    title={t("builds.blocks.filterStage")}
+                    onClick={() => setStageFilter(stageFilter === i ? null : i)}
+                    className={`rounded-lg border px-2 py-1 font-mono ${stageFilter === i ? "bg-accent-soft" : ""} ${n.final ? "border-accent text-accent" : "border-line"}`}
                   >
                     {n.label} <span className="text-dim">← {n.base}</span>
-                  </span>
+                  </button>
                 </li>
               ))}
             </ol>

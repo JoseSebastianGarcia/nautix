@@ -15,17 +15,19 @@ import { highlight, theme } from "./code-theme.js";
 interface Props {
   value: string;
   onChange: (value: string) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
   label: string;
   /** Called with the editor so the page can move the cursor to a lint issue. */
   onReady?: (view: EditorView) => void;
 }
 
 /** CodeMirror 6 with Dockerfile highlighting; colors come from the shared theme tokens. */
-export function DockerfileEditor({ value, onChange, label, onReady }: Props) {
+export function DockerfileEditor({ value, onChange, onUndo, onRedo, label, onReady }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
-  const callbacks = useRef({ onChange, onReady });
-  callbacks.current = { onChange, onReady };
+  const callbacks = useRef({ onChange, onReady, onUndo, onRedo });
+  callbacks.current = { onChange, onReady, onUndo, onRedo };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: the editor is created once; value is synced below
   useEffect(() => {
@@ -42,7 +44,13 @@ export function DockerfileEditor({ value, onChange, label, onReady }: Props) {
           syntaxHighlighting(highlight),
           theme,
           EditorView.contentAttributes.of({ "aria-label": label }),
-          keymap.of([indentWithTab, ...defaultKeymap]),
+          keymap.of([
+            { key: "Mod-z", run: () => (callbacks.current.onUndo?.(), true) },
+            { key: "Mod-y", run: () => (callbacks.current.onRedo?.(), true) },
+            { key: "Mod-Shift-z", run: () => (callbacks.current.onRedo?.(), true) },
+            indentWithTab,
+            ...defaultKeymap,
+          ]),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) callbacks.current.onChange(u.state.doc.toString());
           }),

@@ -6,6 +6,8 @@ export interface Instruction {
   /** 1-based first and last line in the source. */
   startLine: number;
   endLine: number;
+  /** First line of the comment block right above it (equals `startLine` when there is none). */
+  spanStart: number;
 }
 
 export interface Stage {
@@ -23,6 +25,9 @@ export interface Dockerfile {
   stages: Stage[];
   instructions: Instruction[];
 }
+
+/** `# syntax=…`, `# escape=…`: belong to the file, not to the instruction below them. */
+const DIRECTIVE = /^\s*#\s*(syntax|escape|check)\s*=/i;
 
 const HEREDOC = /<<-?\s*(["']?)([A-Za-z_][A-Za-z0-9_]*)\1/;
 
@@ -67,12 +72,20 @@ export const parseInstructions = (text: string): Instruction[] => {
       cursor = Math.min(k, lines.length - 1);
     }
     const match = /^\s*([A-Za-z]+)\s*(.*)$/s.exec(joined);
+    let spanStart = startLine;
+    while (
+      spanStart > 1 &&
+      (lines[spanStart - 2] as string).trim().startsWith("#") &&
+      !DIRECTIVE.test(lines[spanStart - 2] as string)
+    )
+      spanStart--;
     if (match?.[1]) {
       out.push({
         keyword: match[1].toUpperCase(),
         args: (match[2] ?? "").trim(),
         startLine,
         endLine,
+        spanStart,
       });
     }
     i = cursor + 1;
