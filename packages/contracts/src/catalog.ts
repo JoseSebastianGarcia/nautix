@@ -396,6 +396,42 @@ export const TEMPLATES: readonly Template[] = [
     command: ["server", "-dev"],
   },
   {
+    id: "openbao-storage",
+    name: "OpenBao (with storage)",
+    category: "secrets",
+    image: "openbao/openbao:2.7.1",
+    description: "Secrets vault that keeps its data in a volume. Initialise it once in the web UI",
+    icon: "openbao",
+    color: "#7B61FF",
+    ports: [{ containerPort: 8200, label: "api and ui", hostPort: 8200 }],
+    // Data lives in the volume (integrated raft storage). On the first visit to the UI you get an
+    // unseal key and a root token: save them. After every restart the vault starts sealed and
+    // needs the unseal key again.
+    env: {
+      BAO_LOCAL_CONFIG:
+        '{"storage":{"raft":{"path":"/openbao/file","node_id":"nautix"}},"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":true}},"api_addr":"http://127.0.0.1:8200","cluster_addr":"http://127.0.0.1:8201","ui":true,"disable_mlock":true}',
+    },
+    command: ["server"],
+    volumes: ["/openbao/file"],
+  },
+  {
+    id: "vault-storage",
+    name: "HashiCorp Vault (with storage)",
+    category: "secrets",
+    image: "hashicorp/vault:2.2.0",
+    description: "Secrets vault that keeps its data in a volume. Initialise it once in the web UI",
+    icon: "vault",
+    color: "#FFEC6E",
+    ports: [{ containerPort: 8200, label: "api and ui", hostPort: 8201 }],
+    // Same behaviour as the OpenBao one: save the unseal key and root token shown on first use.
+    env: {
+      VAULT_LOCAL_CONFIG:
+        '{"storage":{"raft":{"path":"/vault/file","node_id":"nautix"}},"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":true}},"api_addr":"http://127.0.0.1:8200","cluster_addr":"http://127.0.0.1:8201","ui":true,"disable_mlock":true}',
+    },
+    command: ["server"],
+    volumes: ["/vault/file"],
+  },
+  {
     id: "lowkey-vault",
     name: "Lowkey Vault",
     category: "secrets",
