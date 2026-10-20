@@ -88,6 +88,14 @@ export const TEMPLATES: readonly Template[] = [
     icon: "haproxy",
     color: "#106DA9",
     ports: [{ containerPort: 80, label: "http" }],
+    // The image ships no config and runs unprivileged: start with a tiny stub on :8404 plus the config directory
+    // Nautix fills from the Gateway page (its haproxy.cfg adds the real frontend on :80).
+    command: [
+      "sh",
+      "-c",
+      "printf '%s\\n' 'global' '    maxconn 256' 'defaults' '    mode http' '    timeout connect 5s' '    timeout client 30s' '    timeout server 30s' 'frontend nautix_stub' '    bind :8404' '    http-request return status 404 content-type text/plain string no-route' > /tmp/nautix-stub.cfg; exec haproxy -W -db -f /tmp/nautix-stub.cfg -f /usr/local/etc/haproxy/",
+    ],
+    volumes: ["/usr/local/etc/haproxy"],
   },
   {
     id: "kong",

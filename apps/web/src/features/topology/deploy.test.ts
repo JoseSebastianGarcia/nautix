@@ -1,6 +1,8 @@
+import { TEMPLATES } from "@nautix/contracts";
 import { describe, expect, it } from "vitest";
 import {
   formatEnv,
+  joinCommand,
   namedVolumes,
   parseEnv,
   randomizeSecrets,
@@ -8,6 +10,19 @@ import {
   splitCommand,
   uniqueName,
 } from "./deploy.js";
+
+describe("joinCommand", () => {
+  it("round-trips every template command through the deploy dialog's text field", () => {
+    const withCommand = TEMPLATES.filter((t) => t.command);
+    expect(withCommand.length).toBeGreaterThan(0);
+    for (const t of withCommand)
+      expect(splitCommand(joinCommand(t.command ?? []))).toEqual(t.command);
+  });
+
+  it("quotes only what needs it", () => {
+    expect(joinCommand(["a", "b c", "", 'd"e'])).toBe(`a "b c" "" 'd"e'`);
+  });
+});
 
 describe("deploy helpers", () => {
   it("round-trips env text and ignores comments", () => {

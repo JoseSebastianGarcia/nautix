@@ -51,6 +51,15 @@ export const uniqueName = (base: string, taken: Iterable<string>): string => {
 export const namedVolumes = (container: string, paths: readonly string[]): string[] =>
   paths.map((path, i) => `${container}-data${i === 0 ? "" : `-${i + 1}`}:${path}`);
 
+/** Inverse of `splitCommand`: quotes the arguments that need it so the line splits back into the same list. */
+export const joinCommand = (args: readonly string[]): string =>
+  args
+    .map((a) => {
+      if (a !== "" && !/[\s"']/.test(a)) return a;
+      return a.includes('"') ? `'${a}'` : `"${a}"`;
+    })
+    .join(" ");
+
 /** Splits a command line into arguments, honouring single and double quotes (no shell is involved). */
 export const splitCommand = (line: string): string[] => {
   const args: string[] = [];

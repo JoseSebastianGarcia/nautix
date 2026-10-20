@@ -7,7 +7,7 @@ import { keys } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { EnvEditor, StringListEditor } from "../../components/fields.js";
 import { Button, Dialog, Field, Input } from "../../components/ui.js";
-import { splitCommand } from "./deploy.js";
+import { joinCommand, splitCommand } from "./deploy.js";
 
 interface PortDraft {
   protocol: "tcp" | "udp";
@@ -61,7 +61,9 @@ function TemplateForm({ template, onClose }: { template: Template | null; onClos
   );
   const [env, setEnv] = useState<[string, string][]>(() => Object.entries(template?.env ?? {}));
   const [volumes, setVolumes] = useState<string[]>(() => [...(template?.volumes ?? [])]);
-  const [command, setCommand] = useState(() => template?.command?.join(" ") ?? "");
+  const [command, setCommand] = useState(() =>
+    template?.command ? joinCommand(template.command) : "",
+  );
 
   const portsValid = ports.every(
     (p) => validPort(p.containerPort) && (p.hostPort === "" || validPort(p.hostPort)),

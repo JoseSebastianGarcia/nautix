@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 import { planGateway } from "./gateway-plan.js";
 import { buildCaddyfile } from "./gateway-strategies/caddy.strategy.js";
+import { buildHaproxyConfig } from "./gateway-strategies/haproxy.strategy.js";
 import { strategyFor, supportedKinds } from "./gateway-strategies/index.js";
 import { buildNginxConfig } from "./gateway-strategies/nginx.strategy.js";
 import { buildTraefikConfig } from "./gateway-strategies/traefik.strategy.js";
@@ -61,6 +62,35 @@ describe("caddy", () => {
   });
 });
 
+describe("haproxy", () => {
+  it("routes by host and path, strips the prefix and resolves upstreams at run time", () => {
+    const cfg = buildHaproxyConfig([
+      r({
+        name: "api",
+        path: "/api",
+        host: "api.lan",
+        upstream: "http://svc:8080",
+        stripPath: true,
+      }),
+      r({ name: "root", path: "/", upstream: "https://secure:443", stripPath: false }),
+    ]);
+    expect(cfg).toContain("acl host_api hdr(host),field(1,:) -i api.lan");
+    expect(cfg).toContain("acl path_api path_beg /api");
+    expect(cfg).toContain("use_backend be_api if host_api path_api");
+    expect(cfg).toContain("use_backend be_root\n");
+    expect(cfg).toContain("http-request set-path %[path,regsub(^/api/?,/)]");
+    expect(cfg).toContain("server s1 svc:8080 resolvers docker init-addr none\n");
+    expect(cfg).toContain(
+      "server s1 secure:443 resolvers docker init-addr none ssl verify required",
+    );
+    expect(cfg).toContain("default_backend be_none");
+  });
+
+  it("refuses upstreams with a path", () => {
+    expect(() => planGateway("haproxy", [r({ upstream: "http://svc:8080/base" })])).toThrow();
+  });
+});
+
 describe("traefik", () => {
   it("builds routers, strip middlewares and services", () => {
     const y = parse(buildTraefikConfig([r({ host: "api.mi.lan" })]));
@@ -105,7 +135,7 @@ describe("planGateway", () => {
   });
 
   it("refuses upstreams with a path on proxy gateways and duplicate mappings everywhere", () => {
-    for (const kind of ["nginx", "caddy", "traefik"] as const) {
+    for (const kind of ["nginx", "caddy", "traefik", "haproxy"] as const) {
       expect(() => planGateway(kind, [r({ upstream: "http://a:80/base" })])).toThrow(
         /without a path/,
       );
@@ -118,6 +148,6 @@ describe("planGateway", () => {
 describe("strategy registry", () => {
   it("has exactly one strategy per supported kind, each reporting its own kind", () => {
     for (const kind of supportedKinds()) expect(strategyFor(kind).kind).toBe(kind);
-    expect(supportedKinds()).toEqual(["kong", "nginx", "caddy", "traefik"]);
+    expect(supportedKinds()).toEqual(["kong", "nginx", "caddy", "traefik", "haproxy"]);
   });
 });

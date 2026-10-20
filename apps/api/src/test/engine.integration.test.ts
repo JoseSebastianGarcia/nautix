@@ -171,7 +171,11 @@ describe("against a real Docker daemon", () => {
       image: IMAGE,
       networkId: b?.id,
       restartPolicy: "no",
-      command: ["sh", "-c", 'while true; do echo "pong" | nc -l -p 8080; done'],
+      command: [
+        "sh",
+        "-c",
+        "while true; do printf 'HTTP/1.1 200 OK\\r\\nContent-Length: 5\\r\\nConnection: close\\r\\n\\r\\npong\\n' | nc -l -p 8080 > /dev/null; done",
+      ],
     });
     const svc = ((await call("GET", "/containers")).json as Ctr[]).find(
       (c) => c.name === `${PREFIX}svc`,
@@ -410,6 +414,63 @@ describe("against a real Docker daemon", () => {
     expect((await call("GET", `/volumes/${PREFIX}vol/browse?path=/missing`)).res.status).toBe(404);
     expect(docker("ps", "-a", "--filter", "label=nautix.helper=volume-browse", "-q")).toBe("");
     docker("volume", "rm", `${PREFIX}vol`);
+  });
+
+  it("applies routes to a real HAProxy and serves traffic through it", async () => {
+    try {
+      docker("image", "inspect", "haproxy:3.0-alpine");
+    } catch {
+      return; // image not available offline: nothing to verify
+    }
+    const nets = (await call("GET", "/networks")).json as Net[];
+    const b = nets.find((n) => n.name === `${PREFIX}b`);
+    const template = (await call("GET", "/catalog")).json.find(
+      (t: { id: string }) => t.id === "haproxy",
+    );
+    const created = await call("POST", "/containers", {
+      name: `${PREFIX}ha`,
+      image: template.image,
+      networkId: b?.id,
+      restartPolicy: "no",
+      volumes: template.volumes,
+      command: template.command,
+    });
+    expect(created.res.status).toBe(201);
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(docker("inspect", "-f", "{{.State.Running}}", `${PREFIX}ha`)).toBe("true");
+
+    expect(
+      (
+        await call("PUT", `/gateways/${PREFIX}ha/routes`, {
+          routes: [
+            { name: "pong", path: "/pong", upstream: `http://${PREFIX}svc:8080`, stripPath: true },
+          ],
+        })
+      ).res.status,
+    ).toBe(204);
+    const applied = await call("POST", `/gateways/${PREFIX}ha/apply`);
+    expect(applied.json.ok, applied.json.output).toBe(true);
+    await new Promise((r) => setTimeout(r, 1000));
+    let hit = "";
+    for (let i = 0; i < 10 && !hit.includes("pong"); i++) {
+      hit = docker(
+        "exec",
+        `${PREFIX}svc`,
+        "sh",
+        "-c",
+        `wget -S -qO- -T 3 http://${PREFIX}ha/pong 2>&1 || echo FAILED`,
+      );
+      if (!hit.includes("pong")) await new Promise((r) => setTimeout(r, 500));
+    }
+    expect(hit).toContain("pong");
+    const miss = docker(
+      "exec",
+      `${PREFIX}web`,
+      "sh",
+      "-c",
+      `wget -qO- -T 3 http://${PREFIX}ha/other 2>&1 || true`,
+    );
+    expect(miss).not.toContain("pong");
   });
 
   it("lists plugins through the real engine", async () => {

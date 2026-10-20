@@ -507,6 +507,9 @@ export class DockerSocketEngine extends DockerEngine {
         AttachStdout: true,
         AttachStderr: true,
         Tty: false,
+        // Gateway configs are written as root through the archive API; the commands that swap and
+        // reload them must be able to do the same even when the image's own user is unprivileged.
+        User: "root",
         Cmd: command,
       },
     );

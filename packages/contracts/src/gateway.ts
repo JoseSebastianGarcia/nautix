@@ -61,7 +61,7 @@ export type SaveGatewayRoutes = z.infer<typeof SaveGatewayRoutes>;
 export const GatewayApplyResult = z.object({ ok: z.boolean(), output: z.string() });
 export type GatewayApplyResult = z.infer<typeof GatewayApplyResult>;
 
-export const GATEWAY_KINDS = ["kong", "nginx", "caddy", "traefik"] as const;
+export const GATEWAY_KINDS = ["kong", "nginx", "caddy", "traefik", "haproxy"] as const;
 export type GatewayKind = (typeof GATEWAY_KINDS)[number];
 
 const KIND_PATTERNS: Record<GatewayKind, RegExp> = {
@@ -69,6 +69,7 @@ const KIND_PATTERNS: Record<GatewayKind, RegExp> = {
   nginx: /(^|\/)nginx(:|$|@)/,
   caddy: /(^|\/)caddy(:|$|@)/,
   traefik: /(^|\/)traefik(:|$|@)/,
+  haproxy: /(^|\/)haproxy(:|$|@)/,
 };
 
 /** Which supported gateway an image is, from its name (null for anything else, e.g. tunnels' socat). */
@@ -92,6 +93,7 @@ export const GATEWAY_INFO: Record<GatewayKind, GatewayInfo> = {
   nginx: { label: "Nginx", category: "proxy", proxyPort: 80, upstreamPath: false },
   caddy: { label: "Caddy", category: "proxy", proxyPort: 80, upstreamPath: false },
   traefik: { label: "Traefik", category: "proxy", proxyPort: 80, upstreamPath: false },
+  haproxy: { label: "HAProxy", category: "proxy", proxyPort: 80, upstreamPath: false },
 };
 
 /** Gateways Nautix knows how to configure (detected from the image name). */

@@ -9,6 +9,7 @@ import { useApiMutation } from "../../app/use-api-mutation.js";
 import { EnvEditor, StringListEditor } from "../../components/fields.js";
 import { Button, Dialog, Field, Input, ShowCommand } from "../../components/ui.js";
 import {
+  joinCommand,
   namedVolumes,
   randomizeSecrets,
   randomSecret,
@@ -81,7 +82,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
     Object.entries(randomizeSecrets(tpl?.env ?? {}, randomSecret)),
   );
   const [volumes, setVolumes] = useState<string[]>(() => [...(tpl?.volumes ?? [])]);
-  const [command, setCommand] = useState(() => tpl?.command?.join(" ") ?? "");
+  const [command, setCommand] = useState(() => (tpl?.command ? joinCommand(tpl.command) : ""));
   const [createOnly, setCreateOnly] = useState(false);
   const [healthcheck, setHealthcheck] = useState("");
   const [memoryMb, setMemoryMb] = useState("");

@@ -585,7 +585,7 @@
   },
   "gateway": {
     "title": "Gateways y proxies",
-    "none": "No hay ningún gateway o proxy compatible. Arrastrá Kong, Nginx, Caddy o Traefik desde la paleta a una caja de red (publicá su puerto de tráfico, y 8001 también en Kong) y aparecerá acá.",
+    "none": "No hay ningún gateway o proxy compatible. Arrastrá Kong, Nginx, Caddy, Traefik o HAProxy desde la paleta a una caja de red (publicá su puerto de tráfico, y 8001 también en Kong) y aparecerá acá.",
     "intro": "Asociá una ruta y/o un dominio con un servicio. Nautix guarda los mapeos y los aplica en Kong por vos; sin archivos de configuración ni curl. Elegí un servicio al que el gateway llegue (misma red, o un túnel) o escribí cualquier URL.",
     "path": "Ruta",
     "host": "Dominio (opcional)",
@@ -609,7 +609,7 @@
       "proxy": "proxy"
     },
     "noUpstreamPath": "{{name}} reenvía solo a un host y puerto: no acepta destinos como http://servicio:80/base (con ruta). Kong sí los acepta.",
-    "supported": "Compatibles: Kong, Nginx, Caddy y Traefik."
+    "supported": "Compatibles: Kong, Nginx, Caddy, Traefik y HAProxy."
   },
   "builds": {
     "title": "Builds",

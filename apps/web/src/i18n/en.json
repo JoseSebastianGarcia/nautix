@@ -585,7 +585,7 @@
   },
   "gateway": {
     "title": "Gateways and proxies",
-    "none": "No supported gateway or proxy found. Drag Kong, Nginx, Caddy or Traefik from the palette into a network box (publish its traffic port, and 8001 too for Kong) and it will show up here.",
+    "none": "No supported gateway or proxy found. Drag Kong, Nginx, Caddy, Traefik or HAProxy from the palette into a network box (publish its traffic port, and 8001 too for Kong) and it will show up here.",
     "intro": "Map a path and/or a domain to a service. Nautix saves the mappings and applies them to Kong for you; no config files or curl needed. Pick a service the gateway can reach (same network, or a tunnel) or type any URL.",
     "path": "Path",
     "host": "Domain (optional)",
@@ -609,7 +609,7 @@
       "proxy": "proxy"
     },
     "noUpstreamPath": "{{name}} forwards to a host and port only: destinations like http://service:80/base (with a path) are not accepted. Kong does accept them.",
-    "supported": "Supported: Kong, Nginx, Caddy and Traefik."
+    "supported": "Supported: Kong, Nginx, Caddy, Traefik and HAProxy."
   },
   "builds": {
     "title": "Builds",
