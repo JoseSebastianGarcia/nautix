@@ -3,3 +3,7 @@ dist
 data
 *.tsbuildinfo
 .env
+
+certs/*
+!certs/.gitkeep
+!certs/README.md

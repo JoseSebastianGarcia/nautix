@@ -1,10 +1,13 @@
-# syntax=docker/dockerfile:1
 FROM node:22-bookworm-slim AS build
 RUN corepack enable
+# Optional corporate root CA: put *.crt files in ./certs and the build trusts them (see certs/README.md).
+COPY certs /certs
+RUN cat /certs/*.crt > /certs/extra.pem 2>/dev/null || true; touch /certs/extra.pem
 WORKDIR /repo
 COPY . .
-RUN pnpm install --frozen-lockfile && pnpm build
-RUN pnpm --filter @nautix/api deploy --prod --legacy /out/api \
+RUN if [ -s /certs/extra.pem ]; then export NODE_EXTRA_CA_CERTS=/certs/extra.pem; fi \
+ && pnpm install --frozen-lockfile && pnpm build \
+ && pnpm --filter @nautix/api deploy --prod --legacy /out/api \
  && cp -r apps/web/dist /out/web
 
 FROM docker:27-cli AS docker-cli
