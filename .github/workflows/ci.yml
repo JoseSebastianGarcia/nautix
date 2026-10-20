@@ -31,6 +31,13 @@ jobs:
         run: dotnet format Nautix.sln --verify-no-changes --no-restore
       - name: Unit + architecture + resource tests
         run: dotnet test --no-build --filter "Category!=Integration" --logger "trx;LogFileName=unit.trx" --results-directory TestResults
+      - name: Spike S1 gate (compose round-trip)
+        shell: pwsh
+        run: |
+          dotnet run --no-build --project spikes/S1-compose-roundtrip -- fetch
+          $global:LASTEXITCODE = 0   # drifted/unavailable files are excluded and reported by the gate itself
+          dotnet run --no-build --project spikes/S1-compose-roundtrip -- run --report TestResults/s1-report.txt
+          if ($LASTEXITCODE -ne 0) { throw 'S1 gate failed' }
       - name: Vulnerable packages (fail on High/Critical)
         shell: pwsh
         run: |
