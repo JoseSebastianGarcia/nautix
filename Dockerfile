@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+FROM node:22-bookworm-slim AS build
+RUN corepack enable
+WORKDIR /repo
+COPY . .
+RUN pnpm install --frozen-lockfile && pnpm build
+RUN pnpm --filter @nautix/api deploy --prod --legacy /out/api \
+ && cp -r apps/web/dist /out/web
+
+FROM node:22-bookworm-slim
+ENV NODE_ENV=production \
+    NAUTIX_HOST=0.0.0.0 \
+    NAUTIX_PORT=3737 \
+    NAUTIX_DATA=/data \
+    NAUTIX_WEB_DIST=/app/web \
+    NAUTIX_DOCKER_SOCKET=/var/run/docker.sock
+WORKDIR /app/api
+COPY --from=build /out/api /app/api
+COPY --from=build /out/web /app/web
+# The socket's group id differs per host; the compose file passes it with group_add.
+RUN mkdir /data && chown node:node /data
+USER node
+VOLUME /data
+EXPOSE 3737
+CMD ["node", "dist/main.js"]

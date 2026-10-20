@@ -1,0 +1,18 @@
+# One-command install:  docker compose -f installer/compose.yaml up -d --build
+# Then read the one-time setup token:  docker compose -f installer/compose.yaml logs nautix
+services:
+  nautix:
+    build: { context: .., dockerfile: Dockerfile }
+    restart: unless-stopped
+    # Bound to localhost only. Put a reverse proxy with TLS in front to reach it remotely.
+    ports: ["127.0.0.1:3737:3737"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   # root-equivalent on the host
+      - nautix-data:/data
+    # Grants access to the host's docker socket; use the group id from `stat -c %g /var/run/docker.sock`.
+    group_add: ["${DOCKER_GID:-999}"]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: ["/tmp"]
+volumes:
+  nautix-data: {}

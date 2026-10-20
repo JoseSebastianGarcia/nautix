@@ -1,0 +1,74 @@
+import type { Network } from "@nautix/contracts";
+import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { api } from "../../app/api.js";
+import { cli } from "../../app/cli.js";
+import { keys, useNetworks } from "../../app/queries.js";
+import { useApiMutation } from "../../app/use-api-mutation.js";
+import { Button, ConfirmDialog } from "../../components/ui.js";
+import { NetworkDialog } from "../topology/network-dialog.js";
+import { PageHeader, Table, Td } from "./table.js";
+
+export function NetworksPage() {
+  const { t } = useTranslation();
+  const { data = [] } = useNetworks();
+  const [target, setTarget] = useState<Network | null>(null);
+  const [creating, setCreating] = useState(false);
+  const remove = useApiMutation((id: string) => api.removeNetwork(id), [keys.networks]);
+
+  return (
+    <div className="p-6">
+      <PageHeader
+        title={t("networks.title")}
+        actions={
+          <Button variant="primary" onClick={() => setCreating(true)}>
+            <Plus size={14} /> {t("networks.new")}
+          </Button>
+        }
+      />
+      <Table
+        head={[
+          t("common.name"),
+          t("common.driver"),
+          t("networks.subnet"),
+          t("networks.internal"),
+          t("networks.members"),
+          t("common.actions"),
+        ]}
+        empty={data.length === 0}
+      >
+        {data.map((n) => (
+          <tr key={n.id}>
+            <Td mono>
+              {n.name} {n.system && <span className="text-dim">({t("networks.system")})</span>}
+            </Td>
+            <Td>{n.driver}</Td>
+            <Td mono>{n.subnet ?? "—"}</Td>
+            <Td>{n.internal ? t("topology.isolated") : t("topology.bridged")}</Td>
+            <Td>{n.containerIds.length}</Td>
+            <Td>
+              <Button
+                variant="danger"
+                disabled={n.system || n.containerIds.length > 0}
+                aria-label={`${t("common.delete")} ${n.name}`}
+                onClick={() => setTarget(n)}
+              >
+                <Trash2 size={14} />
+              </Button>
+            </Td>
+          </tr>
+        ))}
+      </Table>
+      <ConfirmDialog
+        open={target !== null}
+        title={t("topology.removeNetworkTitle", { name: target?.name ?? "" })}
+        body={t("topology.removeNetworkBody")}
+        command={target ? cli.removeNetwork(target.name) : ""}
+        onConfirm={() => target && remove.mutate(target.id)}
+        onClose={() => setTarget(null)}
+      />
+      <NetworkDialog open={creating} onClose={() => setCreating(false)} />
+    </div>
+  );
+}

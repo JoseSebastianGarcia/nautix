@@ -1,0 +1,37 @@
+import type { ContainerAction } from "@nautix/contracts";
+
+/** "Show command": the docker CLI equivalent of each UI action. Pure, so it is unit-tested. */
+export const cli = {
+  containerAction: (action: ContainerAction, name: string): string => `docker ${action} ${name}`,
+  removeContainer: (name: string, force: boolean): string =>
+    `docker rm${force ? " -f" : ""} ${name}`,
+  logs: (name: string): string => `docker logs --tail 300 -t ${name}`,
+  createNetwork: (name: string, internal: boolean, subnet?: string): string =>
+    `docker network create${internal ? " --internal" : ""}${subnet ? ` --subnet ${subnet}` : ""} ${name}`,
+  removeNetwork: (name: string): string => `docker network rm ${name}`,
+  connect: (network: string, container: string): string =>
+    `docker network connect ${network} ${container}`,
+  disconnect: (network: string, container: string): string =>
+    `docker network disconnect ${network} ${container}`,
+  pull: (reference: string): string => `docker pull ${reference}`,
+  removeImage: (name: string): string => `docker rmi ${name}`,
+  createVolume: (name: string): string => `docker volume create ${name}`,
+  removeVolume: (name: string): string => `docker volume rm ${name}`,
+  run: (opts: {
+    name: string;
+    image: string;
+    network?: string;
+    ports: { host?: number; container: number; pub: boolean }[];
+  }): string =>
+    [
+      "docker run -d",
+      `--name ${opts.name}`,
+      opts.network ? `--network ${opts.network}` : "",
+      ...opts.ports.map(
+        (p) => `-p ${p.pub ? "0.0.0.0" : "127.0.0.1"}:${p.host ?? ""}:${p.container}`,
+      ),
+      opts.image,
+    ]
+      .filter(Boolean)
+      .join(" "),
+};

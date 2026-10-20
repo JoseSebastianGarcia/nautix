@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+/* Every color comes from these tokens; dark and light define the same set (tests enforce parity). */
+:root[data-theme="dark"] {
+  --nx-bg-0: #0a0912;
+  --nx-bg-1: #100f1b;
+  --nx-bg-2: #171526;
+  --nx-line: #272440;
+  --nx-text: #e9e7f7;
+  --nx-text-dim: #9a98b5;
+  --nx-accent: #8b7cf6;
+  --nx-accent-fg: #0a0912;
+  --nx-accent-soft: #8b7cf622;
+  --nx-ok: #4ade80;
+  --nx-cyan: #38d5ff;
+  --nx-amber: #ffb020;
+  --nx-danger: #ff4d6a;
+  --nx-grid: #1d1a33;
+  --nx-zone: #8b7cf60d;
+  --nx-zone-line: #8b7cf666;
+  --nx-ext-line: #38d5ff66;
+  --nx-glow: 0 0 0 1px var(--nx-accent), 0 0 18px #8b7cf655;
+}
+:root[data-theme="light"] {
+  --nx-bg-0: #f4f5fb;
+  --nx-bg-1: #ffffff;
+  --nx-bg-2: #eceef8;
+  --nx-line: #d6d9ec;
+  --nx-text: #14122b;
+  --nx-text-dim: #565a78;
+  --nx-accent: #5b46d8;
+  --nx-accent-fg: #ffffff;
+  --nx-accent-soft: #5b46d818;
+  --nx-ok: #15803d;
+  --nx-cyan: #0089b8;
+  --nx-amber: #a15c00;
+  --nx-danger: #c81e44;
+  --nx-grid: #dfe2f2;
+  --nx-zone: #5b46d80a;
+  --nx-zone-line: #5b46d877;
+  --nx-ext-line: #0089b877;
+  --nx-glow: 0 0 0 1px var(--nx-accent), 0 0 14px #5b46d833;
+}
+
+@theme inline {
+  --color-bg0: var(--nx-bg-0);
+  --color-bg1: var(--nx-bg-1);
+  --color-bg2: var(--nx-bg-2);
+  --color-line: var(--nx-line);
+  --color-fg: var(--nx-text);
+  --color-dim: var(--nx-text-dim);
+  --color-accent: var(--nx-accent);
+  --color-accent-fg: var(--nx-accent-fg);
+  --color-accent-soft: var(--nx-accent-soft);
+  --color-ok: var(--nx-ok);
+  --color-cyan: var(--nx-cyan);
+  --color-amber: var(--nx-amber);
+  --color-danger: var(--nx-danger);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--nx-bg-0);
+  color: var(--nx-text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+:focus-visible {
+  outline: 2px solid var(--nx-accent);
+  outline-offset: 2px;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--nx-line);
+  border-radius: 8px;
+}
+
+/* React Flow theming */
+.react-flow {
+  --xy-background-color: transparent;
+  --xy-edge-stroke: var(--nx-text-dim);
+}
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__controls button {
+  background: var(--nx-bg-1);
+  color: var(--nx-text);
+  border-color: var(--nx-line);
+  fill: var(--nx-text);
+}
+.react-flow__minimap {
+  background: var(--nx-bg-1);
+  border: 1px solid var(--nx-line);
+  border-radius: 8px;
+}
+.react-flow__handle {
+  background: var(--nx-bg-1);
+  border: 2px solid var(--nx-accent);
+  width: 10px;
+  height: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
