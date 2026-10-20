@@ -5,6 +5,7 @@ import {
   CreateNetwork,
   CreateTunnel,
   CreateVolume,
+  KILL_SIGNALS,
   PullImage,
 } from "@nautix/contracts";
 import {
@@ -57,6 +58,10 @@ const Force = z.object({
 const ExportQuery = z.object({
   network: z.string().optional(),
   includeEnv: z.enum(["true", "false"]).default("false"),
+});
+const ActionQuery = z.object({
+  signal: z.enum(KILL_SIGNALS).optional(),
+  timeout: z.coerce.number().int().min(0).max(600).optional(),
 });
 const Logs = z.object({ tail: z.coerce.number().int().min(1).max(5000).default(200) });
 
@@ -114,8 +119,14 @@ export class DockerController {
 
   @Post("containers/:id/:action")
   @HttpCode(204)
-  async action(@Param("id") id: string, @Param("action") action: string) {
-    await this.commands.execute(new ContainerActionCommand(id, parse(ContainerAction, action)));
+  async action(@Param("id") id: string, @Param("action") action: string, @Query() query: unknown) {
+    const o = parse(ActionQuery, query);
+    await this.commands.execute(
+      new ContainerActionCommand(id, parse(ContainerAction, action), {
+        ...(o.signal ? { signal: o.signal } : {}),
+        ...(o.timeout !== undefined ? { timeoutSeconds: o.timeout } : {}),
+      }),
+    );
   }
 
   @Delete("containers/:id")

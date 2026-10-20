@@ -235,7 +235,8 @@
     "tunnelSystemNetwork": "Tunnels connect user-defined networks",
     "tunnelSameNetwork": "Pick two different networks",
     "tunnelToTunnel": "A tunnel cannot point to another tunnel",
-    "tunnelTargetNotOnNetwork": "The target is not on the destination network"
+    "tunnelTargetNotOnNetwork": "The target is not on the destination network",
+    "uploadTooLarge": "The upload is too large (max 256 MB)"
   },
   "terminal": {
     "title": "Terminal",
@@ -364,5 +365,61 @@
     "listenHint": "Port other containers use. Defaults to the target port.",
     "scope": "Everything in “{{from}}” will be able to connect to this tunnel on port {{port}}, not only one container.",
     "create": "Open tunnel"
+  },
+  "details": {
+    "tab": {
+      "overview": "Overview",
+      "logs": "Logs",
+      "stats": "Stats",
+      "processes": "Processes",
+      "changes": "Changes",
+      "files": "Files",
+      "inspect": "Inspect"
+    },
+    "copyPath": "Copy path",
+    "root": "root",
+    "search": "Search",
+    "tail": "Number of lines",
+    "lastLines": "Last {{n}} lines",
+    "follow": "Follow",
+    "download": "Download",
+    "notRunning": "The container is not running.",
+    "memory": "Memory",
+    "network": "Network",
+    "kind": "Change",
+    "path": "Path",
+    "change": {
+      "added": "added",
+      "modified": "modified",
+      "deleted": "deleted"
+    },
+    "noChanges": "No changes compared with the image.",
+    "rawJson": "Raw JSON",
+    "pathHint": "Absolute directory or file inside the container",
+    "downloadTar": "Download as tar",
+    "uploadTar": "Upload a tar here",
+    "uploaded": "Uploaded",
+    "filesNote": "Uploads are extracted into the directory above (max 256 MB). Admins only.",
+    "lifecycle": "Lifecycle",
+    "stopTimeout": "Seconds before force-stop",
+    "stopTimeoutHint": "Used by Stop and Restart",
+    "signal": "Signal",
+    "rename": "Rename",
+    "resources": "Restart policy and limits",
+    "memoryMb": "Memory limit (MB)",
+    "zeroUnlimited": "0 = unlimited; empty = unchanged",
+    "apply": "Apply",
+    "commit": "Create image from container",
+    "repository": "Repository",
+    "createImage": "Create image",
+    "committed": "Image {{ref}} created",
+    "commitNote": "The container is paused while its filesystem is captured.",
+    "more": "More",
+    "wait": "Wait until it exits",
+    "exited": "Exited with code {{code}}",
+    "stillRunning": "Still running after 30 seconds",
+    "export": "Export filesystem (.tar)",
+    "isTunnel": "This container is a tunnel between two networks.",
+    "details": "Details"
   }
 }

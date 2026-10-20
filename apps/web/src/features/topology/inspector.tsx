@@ -121,7 +121,13 @@ function ContainerInspector({
       <div className="flex items-center gap-3">
         <LogoBadge image={c.image} name={c.name} />
         <div className="min-w-0">
-          <div className="truncate font-semibold">{c.name}</div>
+          <Link
+            className="block truncate font-semibold hover:text-accent hover:underline"
+            to={`/containers/${c.id}`}
+            title={t("details.details")}
+          >
+            {c.name}
+          </Link>
           <div className="truncate font-mono text-xs text-dim">{c.image}</div>
         </div>
       </div>

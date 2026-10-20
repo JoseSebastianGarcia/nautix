@@ -518,3 +518,138 @@ describe("udp ports", () => {
     expect(ports.every((p) => p.ip === "127.0.0.1" && p.publicPort === 5353)).toBe(true);
   });
 });
+
+describe("container details (docker inspect/stats/top/diff/rename/update/wait/commit/export/cp)", () => {
+  let id = "";
+
+  it("reads inspect, stats, top and diff", async () => {
+    await call("POST", "/containers", {
+      name: "detail-app",
+      image: "nginx",
+      networkId: null,
+      env: { SECRET: "hunter2" },
+    });
+    const list = (await call("GET", "/containers")).json as { id: string; name: string }[];
+    id = list.find((c) => c.name === "detail-app")?.id ?? "";
+    const inspect = (await call("GET", `/containers/${id}/inspect`)).json as {
+      Config: { Env: string[] };
+    };
+    expect(inspect.Config.Env).toContain("SECRET=hunter2");
+    expect(
+      ((await call("GET", `/containers/${id}/stats`)).json as { pids: number }).pids,
+    ).toBeGreaterThan(0);
+    expect(
+      ((await call("GET", `/containers/${id}/top`)).json as { titles: string[] }).titles,
+    ).toContain("PID");
+    expect(
+      ((await call("GET", `/containers/${id}/diff`)).json as { kind: string }[]).map((c) => c.kind),
+    ).toContain("added");
+  });
+
+  it("renames, updates and waits", async () => {
+    expect(
+      (await call("POST", `/containers/${id}/rename`, { name: "detail-renamed" })).res.status,
+    ).toBe(204);
+    expect((await call("POST", `/containers/${id}/rename`, { name: "bad name!" })).res.status).toBe(
+      422,
+    );
+    expect(
+      (
+        await call("POST", `/containers/${id}/update`, {
+          restartPolicy: "no",
+          memoryMb: 256,
+          cpus: 0.5,
+        })
+      ).res.status,
+    ).toBe(204);
+    const wait = await call("POST", `/containers/${id}/wait?timeout=1`);
+    expect(wait.json).toEqual({ exited: false, statusCode: null });
+    await call("POST", `/containers/${id}/stop?timeout=1`);
+    expect((await call("POST", `/containers/${id}/wait?timeout=1`)).json).toEqual({
+      exited: true,
+      statusCode: 0,
+    });
+    expect((await call("POST", `/containers/${id}/kill?signal=SIGBOGUS`)).res.status).toBe(422);
+    expect((await call("POST", `/containers/${id}/kill?signal=SIGTERM`)).res.status).toBe(204);
+  });
+
+  it("commits to an image and exports/copies as tar (admin only)", async () => {
+    const commit = await call("POST", `/containers/${id}/commit`, {
+      repository: "snap/app",
+      tag: "v1",
+    });
+    expect(commit.res.status).toBe(201);
+    const images = (await call("GET", "/images")).json as { tags: string[] }[];
+    expect(images.flatMap((i) => i.tags)).toContain("snap/app:v1");
+
+    const exported = await fetch(`${base}/api/v1/containers/${id}/export`, { headers: { cookie } });
+    expect(exported.headers.get("content-type")).toBe("application/x-tar");
+    expect(await exported.text()).toContain("FAKE-TAR");
+    const archive = await fetch(
+      `${base}/api/v1/containers/${id}/archive?path=${encodeURIComponent("/etc")}`,
+      { headers: { cookie } },
+    );
+    expect(await archive.text()).toContain("/etc");
+    expect((await call("GET", `/containers/${id}/archive?path=relative`)).res.status).toBe(422);
+
+    const put = await fetch(
+      `${base}/api/v1/containers/${id}/archive?path=${encodeURIComponent("/tmp")}`,
+      {
+        method: "PUT",
+        headers: { cookie, "x-nautix-csrf": "1", "content-type": "application/x-tar" },
+        body: Buffer.from("tar-bytes"),
+      },
+    );
+    expect(put.status).toBe(204);
+  });
+
+  it("keeps the Nautix container out of rename, update, commit, export and cp", async () => {
+    const self = (
+      (await call("GET", "/containers")).json as { id: string; isSelf?: boolean }[]
+    ).find((c) => c.isSelf);
+    expect((await call("POST", `/containers/${self?.id}/rename`, { name: "x" })).res.status).toBe(
+      403,
+    );
+    expect(
+      (await call("POST", `/containers/${self?.id}/update`, { restartPolicy: "no" })).res.status,
+    ).toBe(403);
+    expect(
+      (await call("POST", `/containers/${self?.id}/commit`, { repository: "leak/self" })).res
+        .status,
+    ).toBe(403);
+    expect(
+      (await fetch(`${base}/api/v1/containers/${self?.id}/export`, { headers: { cookie } })).status,
+    ).toBe(403);
+    expect(
+      (
+        await fetch(`${base}/api/v1/containers/${self?.id}/archive?path=/data`, {
+          headers: { cookie },
+        })
+      ).status,
+    ).toBe(403);
+  });
+
+  it("redacts env in inspect for read-only users", async () => {
+    await call("POST", "/settings/users", {
+      username: "viewer2",
+      password: "correct-horse-3",
+      role: "viewer",
+    });
+    const login = await call(
+      "POST",
+      "/auth/login",
+      { username: "viewer2", password: "correct-horse-3" },
+      false,
+    );
+    const viewerCookie = (login.res.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+    const inspect = (await (
+      await fetch(`${base}/api/v1/containers/${id}/inspect`, { headers: { cookie: viewerCookie } })
+    ).json()) as { Config: { Env: string[] } };
+    expect(inspect.Config.Env).toContain("SECRET=<hidden>");
+    expect(inspect.Config.Env.join()).not.toContain("hunter2");
+    expect(
+      (await fetch(`${base}/api/v1/containers/${id}/export`, { headers: { cookie: viewerCookie } }))
+        .status,
+    ).toBe(403);
+  });
+});

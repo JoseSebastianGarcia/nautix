@@ -235,7 +235,8 @@
     "tunnelSystemNetwork": "Los túneles conectan redes definidas por el usuario",
     "tunnelSameNetwork": "Elegí dos redes distintas",
     "tunnelToTunnel": "Un túnel no puede apuntar a otro túnel",
-    "tunnelTargetNotOnNetwork": "El destino no está en la red de destino"
+    "tunnelTargetNotOnNetwork": "El destino no está en la red de destino",
+    "uploadTooLarge": "La subida es demasiado grande (máx. 256 MB)"
   },
   "terminal": {
     "title": "Terminal",
@@ -364,5 +365,61 @@
     "listenHint": "Puerto que usarán los demás contenedores. Por defecto, el del destino.",
     "scope": "Todo lo que esté en “{{from}}” podrá conectarse a este túnel por el puerto {{port}}, no solo un contenedor.",
     "create": "Abrir túnel"
+  },
+  "details": {
+    "tab": {
+      "overview": "Resumen",
+      "logs": "Logs",
+      "stats": "Estadísticas",
+      "processes": "Procesos",
+      "changes": "Cambios",
+      "files": "Archivos",
+      "inspect": "Inspeccionar"
+    },
+    "copyPath": "Copiar ruta",
+    "root": "raíz",
+    "search": "Buscar",
+    "tail": "Cantidad de líneas",
+    "lastLines": "Últimas {{n}} líneas",
+    "follow": "Seguir",
+    "download": "Descargar",
+    "notRunning": "El contenedor no está en ejecución.",
+    "memory": "Memoria",
+    "network": "Red",
+    "kind": "Cambio",
+    "path": "Ruta",
+    "change": {
+      "added": "agregado",
+      "modified": "modificado",
+      "deleted": "eliminado"
+    },
+    "noChanges": "Sin cambios respecto de la imagen.",
+    "rawJson": "JSON crudo",
+    "pathHint": "Directorio o archivo absoluto dentro del contenedor",
+    "downloadTar": "Descargar como tar",
+    "uploadTar": "Subir un tar aquí",
+    "uploaded": "Subido",
+    "filesNote": "Lo que subas se extrae en el directorio de arriba (máx. 256 MB). Solo administradores.",
+    "lifecycle": "Ciclo de vida",
+    "stopTimeout": "Segundos antes de forzar la detención",
+    "stopTimeoutHint": "Lo usan Detener y Reiniciar",
+    "signal": "Señal",
+    "rename": "Renombrar",
+    "resources": "Política de reinicio y límites",
+    "memoryMb": "Límite de memoria (MB)",
+    "zeroUnlimited": "0 = sin límite; vacío = sin cambios",
+    "apply": "Aplicar",
+    "commit": "Crear imagen desde el contenedor",
+    "repository": "Repositorio",
+    "createImage": "Crear imagen",
+    "committed": "Imagen {{ref}} creada",
+    "commitNote": "El contenedor se pausa mientras se captura su sistema de archivos.",
+    "more": "Más",
+    "wait": "Esperar hasta que termine",
+    "exited": "Terminó con código {{code}}",
+    "stillRunning": "Sigue en ejecución tras 30 segundos",
+    "export": "Exportar sistema de archivos (.tar)",
+    "isTunnel": "Este contenedor es un túnel entre dos redes.",
+    "details": "Detalles"
   }
 }

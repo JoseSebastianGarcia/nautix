@@ -1,14 +1,21 @@
 import { type IncomingMessage, request } from "node:http";
+import type { Readable } from "node:stream";
 import type {
+  CommitContainer,
   Container,
   ContainerAction,
   ContainerDetails,
   ContainerState,
+  ContainerStats,
+  ContainerTop,
   CreateNetwork,
   EngineInfo,
+  FsChange,
   Image,
   Network,
+  UpdateContainer,
   Volume,
+  WaitResult,
 } from "@nautix/contracts";
 import { Injectable } from "@nestjs/common";
 import {
@@ -18,8 +25,14 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../../shared/domain-error.js";
-import { DockerEngine, type EngineEventKind } from "../application/ports/docker-engine.js";
+import {
+  type ActionOptions,
+  DockerEngine,
+  type EngineEventKind,
+  type InspectKind,
+} from "../application/ports/docker-engine.js";
 import type { EngineContainerSpec } from "../domain/container-spec.js";
+import { computeStats } from "../domain/container-stats.js";
 import { demuxStdcopy, isMultiplexed } from "./stdcopy.js";
 
 interface Reply {
@@ -297,8 +310,178 @@ export class DockerSocketEngine extends DockerEngine {
     return { id: created.Id };
   }
 
-  containerAction(id: string, action: ContainerAction): Promise<void> {
-    return this.send("POST", `/containers/${encodeURIComponent(id)}/${ACTION_PATH[action]}`);
+  containerAction(id: string, action: ContainerAction, options: ActionOptions = {}): Promise<void> {
+    const query =
+      action === "kill" && options.signal
+        ? `?signal=${encodeURIComponent(options.signal)}`
+        : (action === "stop" || action === "restart") && options.timeoutSeconds !== undefined
+          ? `?t=${Math.trunc(options.timeoutSeconds)}`
+          : "";
+    return this.send(
+      "POST",
+      `/containers/${encodeURIComponent(id)}/${ACTION_PATH[action]}${query}`,
+    );
+  }
+
+  inspect(kind: InspectKind, id: string): Promise<unknown> {
+    const base = {
+      container: "containers",
+      image: "images",
+      volume: "volumes",
+      network: "networks",
+    }[kind];
+    const suffix = kind === "container" || kind === "image" ? "/json" : "";
+    return this.json("GET", `/${base}/${encodeURIComponent(id)}${suffix}`);
+  }
+
+  async containerStats(id: string): Promise<ContainerStats> {
+    // stream=false waits for two samples (~1 s) so the CPU delta is meaningful.
+    return computeStats(
+      await this.json("GET", `/containers/${encodeURIComponent(id)}/stats?stream=false`),
+    );
+  }
+
+  async containerTop(id: string): Promise<ContainerTop> {
+    const top = await this.json<{ Titles: string[]; Processes: string[][] | null }>(
+      "GET",
+      `/containers/${encodeURIComponent(id)}/top`,
+    );
+    return { titles: top.Titles, processes: top.Processes ?? [] };
+  }
+
+  async containerDiff(id: string): Promise<FsChange[]> {
+    const rows = await this.json<{ Path: string; Kind: number }[] | null>(
+      "GET",
+      `/containers/${encodeURIComponent(id)}/changes`,
+    );
+    const kinds = ["modified", "added", "deleted"] as const;
+    return (rows ?? []).map((r) => ({ kind: kinds[r.Kind] ?? "modified", path: r.Path }));
+  }
+
+  renameContainer(id: string, name: string): Promise<void> {
+    return this.send(
+      "POST",
+      `/containers/${encodeURIComponent(id)}/rename?name=${encodeURIComponent(name)}`,
+    );
+  }
+
+  updateContainer(id: string, update: UpdateContainer): Promise<void> {
+    const body: Record<string, unknown> = {};
+    if (update.restartPolicy) body.RestartPolicy = { Name: update.restartPolicy };
+    if (update.memoryMb !== undefined) {
+      const bytes = update.memoryMb * 1024 * 1024;
+      body.Memory = bytes;
+      body.MemorySwap = bytes === 0 ? -1 : bytes; // keep swap in step so the engine accepts the change
+    }
+    if (update.cpus !== undefined) body.NanoCpus = Math.round(update.cpus * 1e9);
+    return this.send("POST", `/containers/${encodeURIComponent(id)}/update`, body);
+  }
+
+  waitContainer(id: string, timeoutMs: number): Promise<WaitResult> {
+    return new Promise((resolve, reject) => {
+      let timedOut = false;
+      const req = request(
+        {
+          socketPath: this.socketPath,
+          path: `/v1.43/containers/${encodeURIComponent(id)}/wait?condition=not-running`,
+          method: "POST",
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => {
+            clearTimeout(timer);
+            try {
+              this.assertOk({ status: res.statusCode ?? 0, body: Buffer.concat(chunks) });
+              const { StatusCode } = JSON.parse(Buffer.concat(chunks).toString("utf8")) as {
+                StatusCode: number;
+              };
+              resolve({ exited: true, statusCode: StatusCode });
+            } catch (error) {
+              reject(error);
+            }
+          });
+        },
+      );
+      const timer = setTimeout(() => {
+        timedOut = true;
+        req.destroy();
+        resolve({ exited: false, statusCode: null });
+      }, timeoutMs);
+      req.on("error", () => {
+        clearTimeout(timer);
+        if (!timedOut)
+          reject(
+            new EngineUnavailableError("docker daemon unreachable", "errors.engineUnavailable"),
+          );
+      });
+      req.end();
+    });
+  }
+
+  async commitContainer(id: string, input: CommitContainer): Promise<{ id: string }> {
+    const q = new URLSearchParams({
+      container: id,
+      repo: input.repository,
+      tag: input.tag,
+      pause: String(input.pause),
+    });
+    if (input.comment) q.set("comment", input.comment);
+    const created = await this.json<{ Id: string }>("POST", `/commit?${q.toString()}`);
+    return { id: created.Id };
+  }
+
+  /** Streams a response body (tar) without buffering; errors are mapped before the stream starts. */
+  private stream(method: string, path: string, body?: Readable): Promise<IncomingMessage> {
+    return new Promise((resolve, reject) => {
+      const req = request(
+        {
+          socketPath: this.socketPath,
+          path: `/v1.43${path}`,
+          method,
+          headers: body ? { "Content-Type": "application/x-tar" } : {},
+        },
+        (res) => {
+          const status = res.statusCode ?? 0;
+          if (status >= 200 && status < 300) return resolve(res);
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => {
+            try {
+              this.assertOk({ status, body: Buffer.concat(chunks) });
+              reject(new EngineUnavailableError(`engine error ${status}`));
+            } catch (error) {
+              reject(error);
+            }
+          });
+        },
+      );
+      req.on("error", () =>
+        reject(new EngineUnavailableError("docker daemon unreachable", "errors.engineUnavailable")),
+      );
+      if (body) body.pipe(req);
+      else req.end();
+    });
+  }
+
+  exportContainer(id: string): Promise<Readable> {
+    return this.stream("GET", `/containers/${encodeURIComponent(id)}/export`);
+  }
+
+  getArchive(id: string, path: string): Promise<Readable> {
+    return this.stream(
+      "GET",
+      `/containers/${encodeURIComponent(id)}/archive?path=${encodeURIComponent(path)}`,
+    );
+  }
+
+  async putArchive(id: string, path: string, tar: Readable): Promise<void> {
+    const res = await this.stream(
+      "PUT",
+      `/containers/${encodeURIComponent(id)}/archive?path=${encodeURIComponent(path)}`,
+      tar,
+    );
+    res.resume();
   }
 
   removeContainer(id: string, force: boolean): Promise<void> {

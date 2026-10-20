@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "../components/ui.js";
 import { AuthPage } from "../features/auth/auth-page.js";
 import { ComposeProjectsPage } from "../features/compose/compose-projects-page.js";
+import { ContainerPage } from "../features/containers/container-page.js";
 import { ContainersPage } from "../features/resources/containers-page.js";
 import { ImagesPage } from "../features/resources/images-page.js";
 import { NetworksPage } from "../features/resources/networks-page.js";
@@ -46,6 +47,7 @@ export function App() {
               }
             />
             <Route path="containers" element={<ContainersPage />} />
+            <Route path="containers/:id" element={<ContainerPage />} />
             <Route
               path="terminal/:id"
               element={

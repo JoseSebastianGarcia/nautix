@@ -44,7 +44,9 @@ export function ContainersPage() {
             <Td>
               <span className="flex items-center gap-2 font-medium">
                 <LogoBadge image={c.image} name={c.name} size={28} />
-                {c.name}
+                <Link className="hover:text-accent hover:underline" to={`/containers/${c.id}`}>
+                  {c.name}
+                </Link>
               </span>
             </Td>
             <Td mono>{c.image}</Td>

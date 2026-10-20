@@ -1,18 +1,30 @@
 import { randomBytes } from "node:crypto";
 import { EventEmitter, on } from "node:events";
+import { Readable } from "node:stream";
 import type {
+  CommitContainer,
   Container,
   ContainerAction,
   ContainerDetails,
+  ContainerStats,
+  ContainerTop,
   CreateNetwork,
   EngineInfo,
+  FsChange,
   Image,
   Network,
+  UpdateContainer,
   Volume,
+  WaitResult,
 } from "@nautix/contracts";
 import { Injectable } from "@nestjs/common";
 import { ConflictError, NotFoundError } from "../../../shared/domain-error.js";
-import { DockerEngine, type EngineEventKind } from "../application/ports/docker-engine.js";
+import {
+  type ActionOptions,
+  DockerEngine,
+  type EngineEventKind,
+  type InspectKind,
+} from "../application/ports/docker-engine.js";
 import type { EngineContainerSpec } from "../domain/container-spec.js";
 
 const newId = (): string => randomBytes(32).toString("hex");
@@ -30,6 +42,7 @@ export class FakeDockerEngine extends DockerEngine {
   private volumes = new Map<string, Volume>();
   private logs = new Map<string, string>();
   private env = new Map<string, Record<string, string>>();
+  private restart = new Map<string, string>();
   private readonly bus = new EventEmitter();
 
   private emit(kind: EngineEventKind): void {
@@ -191,7 +204,11 @@ export class FakeDockerEngine extends DockerEngine {
     return { id };
   }
 
-  async containerAction(id: string, action: ContainerAction): Promise<void> {
+  async containerAction(
+    id: string,
+    action: ContainerAction,
+    _options: ActionOptions = {},
+  ): Promise<void> {
     this.emit("container");
     const c = this.container(id);
     const next: Record<ContainerAction, [Container["state"], string]> = {
@@ -206,6 +223,125 @@ export class FakeDockerEngine extends DockerEngine {
     c.state = state;
     c.status = status;
     this.logs.set(id, `${this.logs.get(id) ?? ""}${new Date().toISOString()} ${action}\n`);
+  }
+
+  async inspect(kind: InspectKind, id: string): Promise<unknown> {
+    if (kind === "container") {
+      const c = this.container(id);
+      return {
+        Id: c.id,
+        Name: `/${c.name}`,
+        State: { Status: c.state },
+        Config: {
+          Image: c.image,
+          Env: Object.entries(this.env.get(id) ?? {}).map(([k, v]) => `${k}=${v}`),
+          Labels: c.labels,
+        },
+        HostConfig: { RestartPolicy: { Name: this.restart.get(id) ?? "unless-stopped" } },
+        NetworkSettings: { Networks: Object.fromEntries(c.networks.map((n) => [n, {}])) },
+      };
+    }
+    if (kind === "network") {
+      const n = this.networks.get(id) ?? [...this.networks.values()].find((x) => x.name === id);
+      if (!n) throw new NotFoundError("network not found", "errors.notFound");
+      return { Id: n.id, Name: n.name, Driver: n.driver, Internal: n.internal };
+    }
+    if (kind === "volume") {
+      const v = this.volumes.get(id);
+      if (!v) throw new NotFoundError("volume not found", "errors.notFound");
+      return { Name: v.name, Driver: v.driver, Mountpoint: v.mountpoint };
+    }
+    const img = [...this.images.values()].find((i) => i.id === id || i.tags.includes(id));
+    if (!img) throw new NotFoundError("image not found", "errors.notFound");
+    return { Id: img.id, RepoTags: img.tags, Size: img.size };
+  }
+
+  async containerStats(id: string): Promise<ContainerStats> {
+    this.container(id);
+    const seed = [...id].reduce((n, ch) => n + ch.charCodeAt(0), 0);
+    return {
+      cpuPercent: (seed % 400) / 100,
+      memoryBytes: (50 + (seed % 200)) * 1024 * 1024,
+      memoryLimitBytes: 1024 * 1024 * 1024,
+      networkRxBytes: seed * 1000,
+      networkTxBytes: seed * 500,
+      pids: 3 + (seed % 10),
+    };
+  }
+
+  async containerTop(id: string): Promise<ContainerTop> {
+    this.container(id);
+    return {
+      titles: ["PID", "USER", "COMMAND"],
+      processes: [
+        ["1", "root", "demo-init"],
+        ["7", "app", "demo-server --port 80"],
+      ],
+    };
+  }
+
+  async containerDiff(id: string): Promise<FsChange[]> {
+    this.container(id);
+    return [
+      { kind: "modified", path: "/etc/hosts" },
+      { kind: "added", path: "/var/log/app.log" },
+      { kind: "deleted", path: "/tmp/old.lock" },
+    ];
+  }
+
+  async renameContainer(id: string, name: string): Promise<void> {
+    const c = this.container(id);
+    if ([...this.containers.values()].some((x) => x.name === name && x.id !== id)) {
+      throw new ConflictError(`name ${name} is already in use`, "errors.nameInUse");
+    }
+    c.name = name;
+    this.emit("container");
+  }
+
+  async updateContainer(id: string, update: UpdateContainer): Promise<void> {
+    this.container(id);
+    if (update.restartPolicy) this.restart.set(id, update.restartPolicy);
+    this.emit("container");
+  }
+
+  async waitContainer(id: string, timeoutMs: number): Promise<WaitResult> {
+    const c = this.container(id);
+    if (c.state !== "running") return { exited: true, statusCode: 0 };
+    await new Promise((resolve) => setTimeout(resolve, Math.min(timeoutMs, 200)));
+    return { exited: false, statusCode: null };
+  }
+
+  async commitContainer(id: string, input: CommitContainer): Promise<{ id: string }> {
+    const c = this.container(id);
+    const ref = `${input.repository}:${input.tag}`;
+    const imageId = `sha256:${newId()}`;
+    this.images.set(ref, {
+      id: imageId,
+      tags: [ref],
+      size: 60_000_000,
+      createdAt: Math.floor(Date.now() / 1000),
+      inUse: false,
+    });
+    this.logs.set(id, `${this.logs.get(id) ?? ""}committed ${c.name} as ${ref}\n`);
+    this.emit("image");
+    return { id: imageId };
+  }
+
+  async exportContainer(id: string): Promise<Readable> {
+    this.container(id);
+    return Readable.from([Buffer.from(`FAKE-TAR export of ${id}`)]);
+  }
+
+  async getArchive(id: string, path: string): Promise<Readable> {
+    this.container(id);
+    return Readable.from([Buffer.from(`FAKE-TAR ${path}`)]);
+  }
+
+  async putArchive(id: string, _path: string, tar: Readable): Promise<void> {
+    this.container(id);
+    for await (const _chunk of tar) {
+      /* discard */
+    }
   }
 
   async removeContainer(id: string, force: boolean): Promise<void> {
