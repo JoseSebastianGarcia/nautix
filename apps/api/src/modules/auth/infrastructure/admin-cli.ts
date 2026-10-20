@@ -48,9 +48,6 @@ export const runAdminCli = async (
   } else {
     await users.add({ id: randomUUID(), username, passwordHash: hash, role: "admin" });
   }
-  db.exec(
-    `CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, actor TEXT NOT NULL, kind TEXT NOT NULL, action TEXT NOT NULL, status INTEGER NOT NULL, detail TEXT NOT NULL DEFAULT '')`,
-  );
   db.prepare(
     "INSERT INTO audit_log (at, actor, kind, action, status, detail) VALUES (?, 'cli', 'cli', ?, 0, ?)",
   ).run(Date.now(), `cli ${command}`, username);

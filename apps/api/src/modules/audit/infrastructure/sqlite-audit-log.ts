@@ -9,15 +9,6 @@ export class SqliteAuditLog extends AuditLog {
 
   constructor(private readonly db: Db) {
     super();
-    db.exec(`CREATE TABLE IF NOT EXISTS audit_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      at INTEGER NOT NULL,
-      actor TEXT NOT NULL,
-      kind TEXT NOT NULL,
-      action TEXT NOT NULL,
-      status INTEGER NOT NULL,
-      detail TEXT NOT NULL DEFAULT ''
-    )`);
   }
 
   record(e: NewAuditEntry): void {

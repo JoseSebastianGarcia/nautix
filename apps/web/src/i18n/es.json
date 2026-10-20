@@ -304,7 +304,17 @@
     "tlsExpired": "El certificado está vencido",
     "tlsHost": "Nombre o IP inválido",
     "tlsExternal": "El certificado viene del entorno",
-    "wrongCurrentPassword": "La contraseña actual es incorrecta"
+    "wrongCurrentPassword": "La contraseña actual es incorrecta",
+    "backupTooNew": "Este backup viene de un Nautix más nuevo. Actualizá Nautix primero.",
+    "backupInvalid": "No es un backup válido de Nautix",
+    "buildFailed": "El build falló",
+    "invalidPath": "Ruta inválida",
+    "notAFile": "Eso no es un archivo legible",
+    "notSwarmManager": "Este nodo no es manager de un swarm, o el swarm no está iniciado",
+    "pluginPrivileges": "Los permisos no coinciden con lo que pide el plugin",
+    "swarmActive": "Este nodo ya forma parte de un swarm",
+    "swarmLastManager": "Es el último manager: para salir hace falta forzar",
+    "swarmRejected": "El swarm rechazó la solicitud"
   },
   "terminal": {
     "title": "Terminal",

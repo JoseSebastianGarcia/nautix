@@ -10,12 +10,6 @@ export class SqliteRegistryStore extends RegistryStore {
     private readonly cipher: AesGcmCipher,
   ) {
     super();
-    db.exec(`CREATE TABLE IF NOT EXISTS registries (
-      server TEXT PRIMARY KEY,
-      username TEXT NOT NULL,
-      secret TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    )`);
   }
 
   list(): RegistryInfo[] {

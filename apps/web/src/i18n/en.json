@@ -304,7 +304,17 @@
     "tlsExpired": "The certificate has expired",
     "tlsHost": "Invalid name or IP",
     "tlsExternal": "The certificate comes from the environment",
-    "wrongCurrentPassword": "The current password is wrong"
+    "wrongCurrentPassword": "The current password is wrong",
+    "backupTooNew": "This backup comes from a newer Nautix. Update Nautix first.",
+    "backupInvalid": "This is not a valid Nautix backup",
+    "buildFailed": "The build failed",
+    "invalidPath": "Invalid path",
+    "notAFile": "That is not a readable file",
+    "notSwarmManager": "This node is not a swarm manager, or the swarm is not started",
+    "pluginPrivileges": "The permissions do not match what the plugin asks for",
+    "swarmActive": "This node is already part of a swarm",
+    "swarmLastManager": "This is the last manager: leaving needs force",
+    "swarmRejected": "The swarm rejected the request"
   },
   "terminal": {
     "title": "Terminal",

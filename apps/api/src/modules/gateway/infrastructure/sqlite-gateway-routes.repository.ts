@@ -7,9 +7,6 @@ import { GatewayRoutesRepository } from "../application/ports/gateway-routes-rep
 export class SqliteGatewayRoutesRepository extends GatewayRoutesRepository {
   constructor(private readonly db: Db) {
     super();
-    db.exec(
-      "CREATE TABLE IF NOT EXISTS gateway_routes (gateway TEXT PRIMARY KEY, json TEXT NOT NULL)",
-    );
   }
 
   async get(gateway: string): Promise<GatewayRoute[]> {

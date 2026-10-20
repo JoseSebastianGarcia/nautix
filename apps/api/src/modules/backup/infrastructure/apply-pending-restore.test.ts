@@ -44,6 +44,21 @@ describe("backup and restore", () => {
     expect(applyPendingRestore(target)).toBe(false);
   });
 
+  it("refuses a backup written by a newer Nautix", async () => {
+    const source = makeData("newer");
+    const db = new Database(join(source, "nautix.db"));
+    db.exec(
+      "CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at INTEGER NOT NULL); INSERT INTO schema_migrations VALUES (999, 'future', 0)",
+    );
+    db.close();
+    const archive = await new FileBackupService(source).create();
+    const target = makeData("current");
+    await expect(new FileBackupService(target).stageRestore(archive)).rejects.toThrow(
+      "newer Nautix",
+    );
+    expect(existsSync(join(target, "restore-pending"))).toBe(false);
+  });
+
   it("refuses a backup whose database is not a Nautix database", async () => {
     const target = makeData("current");
     const bad = packBackup({ "nautix.db": Buffer.from("this is not sqlite") });

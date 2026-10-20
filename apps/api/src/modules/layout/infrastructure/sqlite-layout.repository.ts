@@ -8,9 +8,6 @@ const EMPTY: Layout = { zones: {}, nodes: {} };
 export class SqliteLayoutRepository extends LayoutRepository {
   constructor(private readonly db: Db) {
     super();
-    db.exec(
-      "CREATE TABLE IF NOT EXISTS layout (id INTEGER PRIMARY KEY CHECK (id = 1), json TEXT NOT NULL)",
-    );
   }
 
   async get(): Promise<Layout> {

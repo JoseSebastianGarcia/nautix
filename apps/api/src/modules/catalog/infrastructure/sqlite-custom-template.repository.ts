@@ -6,9 +6,6 @@ import { CustomTemplateRepository } from "../application/ports/custom-template-r
 export class SqliteCustomTemplateRepository extends CustomTemplateRepository {
   constructor(private readonly db: Db) {
     super();
-    db.exec(
-      "CREATE TABLE IF NOT EXISTS custom_templates (id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at INTEGER NOT NULL)",
-    );
   }
 
   async list(): Promise<Template[]> {

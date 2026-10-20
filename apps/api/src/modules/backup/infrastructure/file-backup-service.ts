@@ -3,6 +3,8 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import Database from "better-sqlite3";
+import { currentVersion } from "../../../shared/db/migrations.js";
+import { MIGRATIONS } from "../../../shared/db/schema.js";
 import { ValidationError } from "../../../shared/domain-error.js";
 import { BackupService, type RestoreSummary } from "../application/ports/backup-service.js";
 import { packBackup, unpackBackup } from "../domain/backup-archive.js";
@@ -47,6 +49,7 @@ export class FileBackupService extends BackupService {
       const path = join(probe, "nautix.db");
       writeFileSync(path, files["nautix.db"] as Buffer);
       let db: Database.Database | undefined;
+      let schema = 0;
       try {
         db = new Database(path, { readonly: true });
         const ok = db.pragma("integrity_check", { simple: true });
@@ -54,6 +57,7 @@ export class FileBackupService extends BackupService {
           .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
           .get();
         if (ok !== "ok" || !users) throw new Error("not a Nautix database");
+        schema = currentVersion(db);
       } catch {
         throw new ValidationError(
           "the database in the backup is not valid",
@@ -62,6 +66,9 @@ export class FileBackupService extends BackupService {
       } finally {
         db?.close();
       }
+      // A crash loop after the restart would be worse than refusing now.
+      if (schema > MIGRATIONS.length)
+        throw new ValidationError("the backup comes from a newer Nautix", "errors.backupTooNew");
     } finally {
       rmSync(probe, { recursive: true, force: true });
     }

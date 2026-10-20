@@ -5,9 +5,6 @@ import { ComposeProjectRepository } from "../application/ports/compose-project-r
 export class SqliteComposeProjectRepository extends ComposeProjectRepository {
   constructor(private readonly db: Db) {
     super();
-    db.exec(
-      "CREATE TABLE IF NOT EXISTS compose_projects (name TEXT PRIMARY KEY, content TEXT NOT NULL, updated_at INTEGER NOT NULL)",
-    );
   }
 
   async list(): Promise<ComposeProjectSummary[]> {
