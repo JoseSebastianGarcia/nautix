@@ -289,7 +289,7 @@ export class DockerSocketEngine extends DockerEngine {
         HostConfig: {
           PortBindings: spec.portBindings,
           Binds: spec.binds,
-          RestartPolicy: { Name: "unless-stopped" },
+          RestartPolicy: { Name: spec.restartPolicy },
           ...(spec.networkName ? { NetworkMode: spec.networkName } : {}),
         },
       },

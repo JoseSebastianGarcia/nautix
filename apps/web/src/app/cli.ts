@@ -21,12 +21,14 @@ export const cli = {
     name: string;
     image: string;
     network?: string;
+    restart?: string;
     ports: { host?: number; container: number; pub: boolean }[];
   }): string =>
     [
       "docker run -d",
       `--name ${opts.name}`,
       opts.network ? `--network ${opts.network}` : "",
+      opts.restart && opts.restart !== "no" ? `--restart ${opts.restart}` : "",
       ...opts.ports.map(
         (p) => `-p ${p.pub ? "0.0.0.0" : "127.0.0.1"}:${p.host ?? ""}:${p.container}`,
       ),

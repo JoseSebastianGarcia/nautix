@@ -104,6 +104,9 @@ export type ConnectNetwork = z.infer<typeof ConnectNetwork>;
 export const ContainerAction = z.enum(["start", "stop", "restart", "kill", "pause", "unpause"]);
 export type ContainerAction = z.infer<typeof ContainerAction>;
 
+export const RestartPolicy = z.enum(["no", "unless-stopped", "always", "on-failure"]);
+export type RestartPolicy = z.infer<typeof RestartPolicy>;
+
 export const CreateContainer = z.object({
   name: ResourceName,
   image: z.string().min(1).max(255),
@@ -121,6 +124,8 @@ export const CreateContainer = z.object({
     )
     .default([]),
   labels: z.record(z.string(), z.string()).default({}),
+  /** `unless-stopped` suits services; one-shot images (hello-world) need `no` or they restart forever. */
+  restartPolicy: RestartPolicy.default("unless-stopped"),
   command: z.array(z.string()).optional(),
   volumes: z.array(z.string()).default([]),
 });

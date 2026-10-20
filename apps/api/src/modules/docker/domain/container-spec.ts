@@ -12,6 +12,7 @@ export interface EngineContainerSpec {
   exposedPorts: Record<string, Record<string, never>>;
   portBindings: Record<string, { HostIp: string; HostPort: string }[]>;
   binds: string[];
+  restartPolicy: CreateContainer["restartPolicy"];
   /** Network the container joins at creation; undefined = engine default bridge. */
   networkName?: string;
 }
@@ -46,6 +47,7 @@ export const buildContainerSpec = (
     exposedPorts,
     portBindings,
     binds: request.volumes,
+    restartPolicy: request.restartPolicy,
     ...(networkName ? { networkName } : {}),
   };
 };

@@ -126,6 +126,7 @@ describe("DockerSocketEngine", () => {
     const body = JSON.parse(call?.body ?? "{}");
     expect(body.HostConfig.PortBindings["80/tcp"][0].HostIp).toBe("127.0.0.1");
     expect(body.HostConfig.NetworkMode).toBe("edge");
+    expect(body.HostConfig.RestartPolicy).toEqual({ Name: "unless-stopped" });
   });
 
   it("maps engine errors to domain errors with hint keys", async () => {

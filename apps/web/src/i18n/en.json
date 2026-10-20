@@ -118,7 +118,9 @@
     "exportScope": "Scope: {{scope}}",
     "exportAll": "all containers",
     "resetLayoutTitle": "Reset layout?",
-    "resetLayoutBody": "Saved positions are discarded and boxes and containers go back to the automatic arrangement."
+    "resetLayoutBody": "Saved positions are discarded and boxes and containers go back to the automatic arrangement.",
+    "restartPolicy": "Restart policy",
+    "restartHint": "Use “no” for one-shot containers (like hello-world) or they restart forever."
   },
   "containers": {
     "title": "Containers",

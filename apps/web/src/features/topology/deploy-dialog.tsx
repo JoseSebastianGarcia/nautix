@@ -1,4 +1,4 @@
-import type { Network, Template } from "@nautix/contracts";
+import type { Network, RestartPolicy, Template } from "@nautix/contracts";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
@@ -63,6 +63,8 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
     ),
   );
   const [image, setImage] = useState(tpl?.image ?? "");
+  // Templates are services; a free-form image may be a one-shot job (hello-world), so it defaults to "no".
+  const [restart, setRestart] = useState<RestartPolicy>(tpl ? "unless-stopped" : "no");
   const [env, setEnv] = useState(() => formatEnv(randomizeSecrets(tpl?.env ?? {}, randomSecret)));
   const [ports, setPorts] = useState<PortDraft[]>(() =>
     (tpl?.ports ?? []).map((p) => ({
@@ -79,6 +81,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
         name,
         image,
         networkId: target.network?.id ?? null,
+        restartPolicy: restart,
         env: parseEnv(env),
         ports: ports.map((p) => ({
           containerPort: p.containerPort,
@@ -95,6 +98,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
   const command = cli.run({
     name,
     image,
+    restart,
     ...(target.network ? { network: target.network.name } : {}),
     ports: ports.map((p) => ({
       ...(p.hostPort ? { host: Number(p.hostPort) } : {}),
@@ -126,6 +130,20 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
       </Field>
       <Field label={t("common.image")}>
         <Input value={image} onChange={(e) => setImage(e.target.value)} required />
+      </Field>
+      <Field label={t("topology.restartPolicy")} hint={t("topology.restartHint")}>
+        <select
+          aria-label={t("topology.restartPolicy")}
+          value={restart}
+          onChange={(e) => setRestart(e.target.value as RestartPolicy)}
+          className="rounded-lg border border-line bg-bg0 px-2 py-2 text-sm text-fg"
+        >
+          {(["unless-stopped", "always", "on-failure", "no"] as const).map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
       </Field>
       {ports.map((p, i) => (
         <div

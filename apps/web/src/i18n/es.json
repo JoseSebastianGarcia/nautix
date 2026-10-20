@@ -118,7 +118,9 @@
     "exportScope": "Alcance: {{scope}}",
     "exportAll": "todos los contenedores",
     "resetLayoutTitle": "¿Restablecer el orden?",
-    "resetLayoutBody": "Se descartan las posiciones guardadas y las cajas y contenedores vuelven al orden automático."
+    "resetLayoutBody": "Se descartan las posiciones guardadas y las cajas y contenedores vuelven al orden automático.",
+    "restartPolicy": "Política de reinicio",
+    "restartHint": "Usá “no” para contenedores de una sola ejecución (como hello-world) o se reinician sin parar."
   },
   "containers": {
     "title": "Contenedores",

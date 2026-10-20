@@ -18,4 +18,12 @@ describe("cli", () => {
       "docker network create --internal --subnet 10.0.0.0/24 backend",
     );
   });
+
+  it("adds --restart only when a policy is set", () => {
+    const base = { name: "w", image: "nginx", ports: [] };
+    expect(cli.run({ ...base, restart: "unless-stopped" })).toBe(
+      "docker run -d --name w --restart unless-stopped nginx",
+    );
+    expect(cli.run({ ...base, restart: "no" })).toBe("docker run -d --name w nginx");
+  });
 });

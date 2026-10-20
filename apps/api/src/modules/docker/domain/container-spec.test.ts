@@ -39,4 +39,13 @@ describe("buildContainerSpec", () => {
     expect(spec.labels["nautix.managed"]).toBe("true");
     expect(spec.networkName).toBe("backend");
   });
+
+  it("keeps unless-stopped by default and honours an explicit policy", () => {
+    const base = { name: "x", image: "hello-world", networkId: null };
+    expect(buildContainerSpec(parse(base), undefined).restartPolicy).toBe("unless-stopped");
+    expect(
+      buildContainerSpec(parse({ ...base, restartPolicy: "no" }), undefined).restartPolicy,
+    ).toBe("no");
+    expect(() => parse({ ...base, restartPolicy: "forever" })).toThrow();
+  });
 });
