@@ -14,9 +14,11 @@ Nautix is MIT licensed. Dependencies must be MIT, Apache-2.0, BSD or MS-PL (see 
 | coverlet.collector | 10.1.0 | MIT |
 | Microsoft.CodeAnalysis.CSharp | 4.14.0 | MIT (source generator and its tests; not redistributed) |
 
-## Runtime packages
+## Runtime packages (spike S1; will move to Nautix.Compose.Infrastructure)
 
-None yet.
+| Package | Version | License |
+|---|---|---|
+| YamlDotNet | 18.1.0 | MIT |
 
 ## Build tools (approved exception, not redistributed)
 

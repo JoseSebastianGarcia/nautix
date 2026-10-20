@@ -78,4 +78,20 @@ New entries go at the end; never edit an accepted ADR, supersede it.
 - **Decision:** Keep the singleton but make it a thin holder: the composition root calls `Attach(ILocalizer)` at startup; all logic lives in the injectable `Localizer`. Everything outside XAML uses `ILocalizer`.
 - **Consequences:** This is the only sanctioned static in UI code; do not add others.
 
-<!-- Pending ADRs required by M0 (filled as spikes complete): rootfs base, YAML parser, graph canvas, terminal control, editor, charts, credential helper, localization formatting. -->
+## ADR-011 — YAML strategy for Compose: YamlDotNet parser events + marks, patch-based
+
+- **Status:** Accepted (evidence: spike S1, `spikes/S1-compose-roundtrip/README.md`).
+- **Context:** `04-editors.md` asks to evaluate YamlDotNet's parser events with `Mark`s and fall back to a custom CST only if comment/anchor round-trip cannot be guaranteed. Edits must be patches on the original text.
+- **Decision:** Use `YamlDotNet` (MIT, 18.1.0) at the **parser-event level only** to obtain node positions; never its serializer. Build a positions-only tree and emit single contiguous `TextPatch`es. No custom CST for M3's start. Comments need no parsing for patching: they live in text the patch never touches.
+- **Evidence:** 67/67 real files (24 repos) and 16/16 synthetic edge cases pass semantic-oracle + diff-range + mark-fidelity checks over 914 edits; latency p95 patch+apply ≤ 0.19 ms, parse ≤ 7.1 ms for 2000 lines. Gate (≥ 98%) passed.
+- **Known YamlDotNet facts the design depends on (v18):** `Mark.Index` is `long` and counts UTF-16 units (CRLF = 2, surrogate pairs = 2); the scanner folds a BOM into the first scalar (strip and offset); scalar spans include anchor/tag properties (skip them); block-collection end marks point at the next token (derive content end from the last child); flow collection end marks point *at* the closing bracket; block scalar spans include trailing blank lines.
+- **Consequences:** `YamlDotNet` is referenced only from `Nautix.Compose.Infrastructure` (architecture tests forbid it in Domain/Application). M3 must still implement flow-collection add/remove/append, block-scalar edits, alias/anchor edit prompts, and grow the corpus to ≥ 200 files including real CRLF files. **Re-open this ADR if** the 200-file corpus shows > 1% no-op/edit failures attributable to the parser rather than the patcher, or if features needing comment positions (for example comment-aware folding or reordering with attached comments) are scheduled.
+
+## ADR-012 — Third-party corpus is fetched by pinned hash, not committed
+
+- **Status:** Accepted, **deviates from `01-architecture.md` (`corpus/compose/` "real-world files")** — flag for owner review.
+- **Context:** The 67 real compose files come from repositories licensed CC0, Apache-2.0, MIT, MPL-2.0, GPL-3.0, AGPL-3.0, FSL, BUSL and custom terms. Committing them to an MIT repository would redistribute files under incompatible or unclear terms.
+- **Decision:** Commit `corpus/compose/manifest.json` (URL, sha256, size, upstream license per file) and a `fetch` command; downloaded files go to `corpus/compose/downloaded/` (git-ignored). Synthetic files authored for this project are committed (MIT) with `-text` in `.gitattributes` so their exact bytes (CRLF, BOM, missing final newline) survive checkout. CI fetches before running the gate; a hash mismatch excludes the file and is reported.
+- **Consequences:** Corpus tests need network (CI has it; offline runs use the synthetic set). Pins must be refreshed deliberately when upstream changes. If the owner wants the permissive subset (CC0 `docker/awesome-compose`) committed, that is a one-line change plus notices.
+
+<!-- Pending ADRs required by M0 (filled as spikes complete): rootfs base, graph canvas (S2), terminal control (S4), editor (S5), charts, credential helper, localization formatting. -->
