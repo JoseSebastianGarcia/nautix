@@ -817,3 +817,61 @@ describe("gateway (Kong) routes", () => {
     expect(notKong.json.hintKey).toBe("errors.notGateway");
   });
 });
+
+describe("gateways and proxies of every supported type", () => {
+  const route = {
+    name: "hola",
+    path: "/hola",
+    upstream: "http://tunnel-extranet-to-intranet-80",
+    stripPath: true,
+  };
+
+  it("lists Kong and the proxies with their kind", async () => {
+    await call("POST", "/containers", {
+      name: "edge-caddy",
+      image: "caddy:2-alpine",
+      networkId: null,
+    });
+    const list = (await call("GET", "/gateways")).json as { name: string; kind: string }[];
+    const kinds = Object.fromEntries(list.map((g) => [g.name, g.kind]));
+    expect(kinds).toMatchObject({
+      kong: "kong",
+      traefik: "traefik",
+      standalone: "nginx",
+      "edge-caddy": "caddy",
+    });
+    expect(list.find((g) => g.name === "postgres")).toBeUndefined();
+  });
+
+  it("applies the same mappings to Traefik, Nginx and Caddy", async () => {
+    for (const name of ["traefik", "standalone", "edge-caddy"]) {
+      expect((await call("PUT", `/gateways/${name}/routes`, { routes: [route] })).res.status).toBe(
+        204,
+      );
+      const applied = await call("POST", `/gateways/${name}/apply`);
+      expect(applied.res.status, name).toBe(200);
+      expect(applied.json, name).toMatchObject({ ok: true });
+    }
+  });
+
+  it("refuses what a proxy cannot express, and duplicates, with a hint", async () => {
+    await call("PUT", "/gateways/traefik/routes", {
+      routes: [{ ...route, upstream: "http://a:80/base" }],
+    });
+    const withPath = await call("POST", "/gateways/traefik/apply");
+    expect(withPath.res.status).toBe(422);
+    expect(withPath.json.hintKey).toBe("errors.gatewayUpstreamPath");
+    // Kong can proxy to a path
+    await call("PUT", "/gateways/kong/routes", {
+      routes: [{ ...route, upstream: "http://a:80/base" }],
+    });
+    expect((await call("POST", "/gateways/kong/apply")).res.status).toBe(200);
+
+    await call("PUT", "/gateways/standalone/routes", {
+      routes: [route, { ...route, name: "otra" }],
+    });
+    const dup = await call("POST", "/gateways/standalone/apply");
+    expect(dup.res.status).toBe(422);
+    expect(dup.json.hintKey).toBe("errors.gatewayDuplicateRoute");
+  });
+});

@@ -2,7 +2,7 @@ import {
   type Container,
   type GatewayApplyResult,
   type GatewayRoute,
-  isKongImage,
+  gatewayKind,
   ResourceName,
   SaveGatewayRoutes,
 } from "@nautix/contracts";
@@ -21,18 +21,19 @@ export class GatewayController {
     @Inject(QueryBus) private readonly queries: QueryBus,
   ) {}
 
-  /** Containers Nautix can configure as API gateways (Kong). */
+  /** Containers Nautix can configure as gateways or reverse proxies (Kong, Nginx, Caddy, Traefik). */
   @Get()
   async list() {
     const containers = await this.queries.execute<ListContainersQuery, Container[]>(
       new ListContainersQuery(),
     );
     return containers
-      .filter((c) => isKongImage(c.image) && c.labels["nautix.tunnel"] !== "true")
+      .filter((c) => gatewayKind(c.image) !== null && c.labels["nautix.tunnel"] !== "true")
       .map((c) => ({
         id: c.id,
         name: c.name,
         image: c.image,
+        kind: gatewayKind(c.image),
         state: c.state,
         networks: c.networks,
       }));

@@ -5,8 +5,10 @@ import {
   candidatesFor,
   fromDraft,
   gateways,
+  kindOf,
   publishedPort,
   toDraft,
+  trafficPort,
   upstreamFor,
 } from "./gateway-utils.js";
 
@@ -54,8 +56,25 @@ const web = c("web", "nginx", ["extranet"], {
 const hidden = c("hola-mundo", "nginx", ["intranet"]);
 
 describe("gateway utils", () => {
-  it("finds Kong containers but not tunnels or other images", () => {
-    expect(gateways([kong, tunnel, web]).map((g) => g.name)).toEqual(["kong"]);
+  it("finds every supported gateway or proxy, but not tunnels or other images", () => {
+    const caddy = c("edge", "caddy:2-alpine", ["extranet"]);
+    const db = c("db", "postgres:16", ["extranet"]);
+    expect(gateways([kong, tunnel, web, caddy, db]).map((g) => g.name)).toEqual([
+      "kong",
+      "web",
+      "edge",
+    ]);
+    expect(kindOf(caddy)).toBe("caddy");
+    expect(kindOf(db)).toBeNull();
+  });
+
+  it("finds the published traffic port by kind (8000 for Kong, 80 for proxies)", () => {
+    expect(trafficPort(kong)).toBe(8000);
+    const proxy = c("p", "traefik:v3.1", ["x"], {
+      ports: [{ ip: "127.0.0.1", privatePort: 80, publicPort: 8080, type: "tcp" }],
+    });
+    expect(trafficPort(proxy)).toBe(8080);
+    expect(trafficPort(web)).toBeNull();
   });
 
   it("offers only services the gateway shares a network with, tunnels described by their target", () => {

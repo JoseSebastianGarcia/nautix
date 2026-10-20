@@ -61,6 +61,39 @@ export type SaveGatewayRoutes = z.infer<typeof SaveGatewayRoutes>;
 export const GatewayApplyResult = z.object({ ok: z.boolean(), output: z.string() });
 export type GatewayApplyResult = z.infer<typeof GatewayApplyResult>;
 
+export const GATEWAY_KINDS = ["kong", "nginx", "caddy", "traefik"] as const;
+export type GatewayKind = (typeof GATEWAY_KINDS)[number];
+
+const KIND_PATTERNS: Record<GatewayKind, RegExp> = {
+  kong: /(^|\/)kong(-gateway)?(:|$|@|\/)/,
+  nginx: /(^|\/)nginx(:|$|@)/,
+  caddy: /(^|\/)caddy(:|$|@)/,
+  traefik: /(^|\/)traefik(:|$|@)/,
+};
+
+/** Which supported gateway an image is, from its name (null for anything else, e.g. tunnels' socat). */
+export const gatewayKind = (image: string): GatewayKind | null => {
+  const name = image.toLowerCase();
+  return GATEWAY_KINDS.find((k) => KIND_PATTERNS[k].test(name)) ?? null;
+};
+
+export interface GatewayInfo {
+  label: string;
+  /** A gateway manages APIs (auth, plugins…); a proxy mostly routes traffic. */
+  category: "gateway" | "proxy";
+  /** Port the gateway serves traffic on inside its container (used for the test command). */
+  proxyPort: number;
+  /** Whether an upstream URL may carry a path (/base). */
+  upstreamPath: boolean;
+}
+
+export const GATEWAY_INFO: Record<GatewayKind, GatewayInfo> = {
+  kong: { label: "Kong", category: "gateway", proxyPort: 8000, upstreamPath: true },
+  nginx: { label: "Nginx", category: "proxy", proxyPort: 80, upstreamPath: false },
+  caddy: { label: "Caddy", category: "proxy", proxyPort: 80, upstreamPath: false },
+  traefik: { label: "Traefik", category: "proxy", proxyPort: 80, upstreamPath: false },
+};
+
 /** Gateways Nautix knows how to configure (detected from the image name). */
 export const isKongImage = (image: string): boolean =>
   /(^|\/)kong(-gateway)?(:|$|@|\/)/.test(image.toLowerCase());

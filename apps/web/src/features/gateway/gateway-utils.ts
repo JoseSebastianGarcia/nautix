@@ -1,7 +1,9 @@
 import {
   type Container,
+  GATEWAY_INFO,
+  type GatewayKind,
   type GatewayRoute,
-  isKongImage,
+  gatewayKind,
   tunnelFromContainer,
 } from "@nautix/contracts";
 
@@ -40,8 +42,17 @@ export const publishedPort = (gateway: Container, privatePort: number): number |
   gateway.ports.find((p) => p.privatePort === privatePort && p.publicPort !== undefined)
     ?.publicPort ?? null;
 
+/** Kong, Nginx, Caddy and Traefik containers (tunnels use socat, so they never match). */
 export const gateways = (containers: Container[]): Container[] =>
-  containers.filter((c) => isKongImage(c.image) && tunnelFromContainer(c) === null);
+  containers.filter((c) => gatewayKind(c.image) !== null && tunnelFromContainer(c) === null);
+
+export const kindOf = (c: Container): GatewayKind | null => gatewayKind(c.image);
+
+/** Host port published for the gateway's traffic port (8000 for Kong, 80 for the proxies). */
+export const trafficPort = (c: Container): number | null => {
+  const kind = kindOf(c);
+  return kind ? publishedPort(c, GATEWAY_INFO[kind].proxyPort) : null;
+};
 
 export interface DraftRoute {
   name: string;

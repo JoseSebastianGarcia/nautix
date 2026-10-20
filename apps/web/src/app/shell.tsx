@@ -1,36 +1,22 @@
-import {
-  Activity,
-  Boxes,
-  HardDrive,
-  Image as ImageIcon,
-  Layers,
-  LogOut,
-  Network as NetworkIcon,
-  Route,
-  Settings,
-  Workflow,
-} from "lucide-react";
+import { Activity, Boxes, Layers, LogOut, Route, Settings, Workflow } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Logo } from "../components/logo.js";
 import { Select } from "../components/select.js";
 import { LANGUAGES, type Language, setLanguage } from "../i18n/index.js";
 import { type ThemeChoice, useTheme } from "../theme/theme-store.js";
 import { api } from "./api.js";
+import { isActivePath, isResourcePath, RESOURCE_TABS } from "./nav.js";
 import { keys, useEngine, useSession } from "./queries.js";
 import { useApiMutation } from "./use-api-mutation.js";
 import { useEngineEvents } from "./use-engine-events.js";
 
 const NAV = [
   { to: "/", key: "nav.topology", icon: Workflow },
-  { to: "/containers", key: "nav.containers", icon: Boxes },
-  { to: "/images", key: "nav.images", icon: ImageIcon },
-  { to: "/volumes", key: "nav.volumes", icon: HardDrive },
-  { to: "/networks", key: "nav.networks", icon: NetworkIcon },
+  { to: "/containers", key: "nav.resources", icon: Boxes },
   { to: "/compose", key: "nav.compose", icon: Layers },
   { to: "/gateway", key: "nav.gateway", icon: Route },
   { to: "/system", key: "nav.system", icon: Activity },
-  { to: "/settings", key: "nav.settings", icon: Settings, adminOnly: true },
 ] as const;
 
 const THEMES: ThemeChoice[] = ["system", "dark", "light"];
@@ -41,6 +27,7 @@ export function Shell() {
   const { data: engine } = useEngine();
   const { data: session } = useSession();
   const theme = useTheme();
+  const { pathname } = useLocation();
   const logout = useApiMutation(() => api.logout(), [keys.session]);
 
   const status = !engine?.connected
@@ -54,20 +41,16 @@ export function Shell() {
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line bg-bg1 px-4">
         <Logo />
         <nav className="flex gap-1" aria-label="Main">
-          {NAV.filter((n) => !("adminOnly" in n && n.adminOnly) || session?.role === "admin").map(
-            ({ to, key, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === "/"}
-                className={({ isActive }) =>
-                  `flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${isActive ? "bg-accent-soft text-accent" : "text-dim hover:text-fg"}`
-                }
-              >
-                <Icon size={15} /> {t(key)}
-              </NavLink>
-            ),
-          )}
+          {NAV.map(({ to, key, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              aria-current={isActivePath(to, pathname) ? "page" : undefined}
+              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${isActivePath(to, pathname) ? "bg-accent-soft text-accent" : "text-dim hover:text-fg"}`}
+            >
+              <Icon size={15} /> {t(key)}
+            </NavLink>
+          ))}
         </nav>
         <div className="ml-auto flex items-center gap-3 text-xs text-dim">
           <span
@@ -98,6 +81,16 @@ export function Shell() {
             options={LANGUAGES.map((v) => ({ value: v, text: v.toUpperCase() }))}
           />
           <span className="font-mono">{session?.username}</span>
+          {session?.role === "admin" && (
+            <NavLink
+              to="/settings"
+              aria-label={t("nav.settings")}
+              title={t("nav.settings")}
+              className={({ isActive }) => (isActive ? "text-accent" : "hover:text-fg")}
+            >
+              <Settings size={16} />
+            </NavLink>
+          )}
           <button
             type="button"
             aria-label={t("auth.logout")}
@@ -109,6 +102,24 @@ export function Shell() {
           </button>
         </div>
       </header>
+      {isResourcePath(pathname) && (
+        <nav
+          className="flex gap-1 border-b border-line bg-bg1 px-4"
+          aria-label={t("nav.resources")}
+        >
+          {RESOURCE_TABS.map(({ to, key }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `-mb-px border-b-2 px-3 py-2 text-sm ${isActive ? "border-accent text-accent" : "border-transparent text-dim hover:text-fg"}`
+              }
+            >
+              {t(key)}
+            </NavLink>
+          ))}
+        </nav>
+      )}
       <main className="min-h-0 flex-1 overflow-auto">
         <Outlet />
       </main>

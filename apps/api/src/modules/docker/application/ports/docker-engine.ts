@@ -59,6 +59,12 @@ export abstract class DockerEngine {
   abstract waitContainer(id: string, timeoutMs: number): Promise<WaitResult>;
   abstract commitContainer(id: string, input: CommitContainer): Promise<{ id: string }>;
   abstract exportContainer(id: string): Promise<Readable>;
+  /** One-shot, non-interactive command inside a running container (no TTY, no stdin). */
+  abstract runCommand(
+    id: string,
+    command: string[],
+    timeoutMs: number,
+  ): Promise<{ exitCode: number | null; output: string }>;
   abstract getArchive(id: string, path: string): Promise<Readable>;
   abstract putArchive(id: string, path: string, tar: Readable): Promise<void>;
   abstract removeContainer(id: string, force: boolean): Promise<void>;

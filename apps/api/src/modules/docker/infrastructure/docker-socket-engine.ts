@@ -480,6 +480,39 @@ export class DockerSocketEngine extends DockerEngine {
     });
   }
 
+  async runCommand(
+    id: string,
+    command: string[],
+    timeoutMs: number,
+  ): Promise<{ exitCode: number | null; output: string }> {
+    const created = await this.json<{ Id: string }>(
+      "POST",
+      `/containers/${encodeURIComponent(id)}/exec`,
+      {
+        AttachStdout: true,
+        AttachStderr: true,
+        Tty: false,
+        Cmd: command,
+      },
+    );
+    const run = (async () => {
+      const reply = await this.call("POST", `/exec/${created.Id}/start`, {
+        Detach: false,
+        Tty: false,
+      });
+      this.assertOk(reply);
+      const output = (
+        isMultiplexed(reply.body) ? demuxStdcopy(reply.body) : reply.body.toString("utf8")
+      ).slice(-8000);
+      const info = await this.json<{ ExitCode: number | null }>("GET", `/exec/${created.Id}/json`);
+      return { exitCode: info.ExitCode, output };
+    })();
+    const timeout = new Promise<{ exitCode: number | null; output: string }>((resolve) =>
+      setTimeout(() => resolve({ exitCode: null, output: "timed out" }), timeoutMs),
+    );
+    return Promise.race([run, timeout]);
+  }
+
   exportContainer(id: string): Promise<Readable> {
     return this.stream("GET", `/containers/${encodeURIComponent(id)}/export`);
   }

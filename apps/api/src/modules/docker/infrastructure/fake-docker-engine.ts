@@ -340,6 +340,14 @@ export class FakeDockerEngine extends DockerEngine {
     return { id: imageId };
   }
 
+  async runCommand(
+    id: string,
+    command: string[],
+  ): Promise<{ exitCode: number | null; output: string }> {
+    this.container(id);
+    return { exitCode: 0, output: `ran: ${command[0] ?? ""}` };
+  }
+
   async exportContainer(id: string): Promise<Readable> {
     this.container(id);
     return Readable.from([Buffer.from(`FAKE-TAR export of ${id}`)]);

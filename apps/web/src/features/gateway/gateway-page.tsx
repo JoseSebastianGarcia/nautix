@@ -1,4 +1,4 @@
-import { type Container, GatewayRoute } from "@nautix/contracts";
+import { type Container, GATEWAY_INFO, GatewayRoute } from "@nautix/contracts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -15,8 +15,9 @@ import {
   type DraftRoute,
   fromDraft,
   gateways,
-  publishedPort,
+  kindOf,
   toDraft,
+  trafficPort,
   upstreamFor,
 } from "./gateway-utils.js";
 
@@ -46,6 +47,9 @@ export function GatewayPage() {
                 className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm ${gateway?.name === g.name ? "border-accent bg-accent-soft text-accent" : "border-line text-dim hover:text-fg"}`}
               >
                 <LogoBadge image={g.image} name={g.name} size={20} /> {g.name}
+                <span className="rounded bg-bg2 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-dim">
+                  {t(`gateway.category.${GATEWAY_INFO[kindOf(g) ?? "kong"].category}`)}
+                </span>
               </button>
             ))}
           </div>
@@ -72,7 +76,9 @@ function Editor({ gateway, containers }: { gateway: Container; containers: Conta
 
   const current = rows ?? [];
   const candidates = useMemo(() => candidatesFor(gateway, containers), [gateway, containers]);
-  const proxyPort = publishedPort(gateway, 8000);
+  const kind = kindOf(gateway);
+  const info = kind ? GATEWAY_INFO[kind] : null;
+  const proxyPort = trafficPort(gateway);
   const running = gateway.state === "running";
 
   const results = current.map((r) => GatewayRoute.safeParse(fromDraft(r)));
@@ -106,7 +112,15 @@ function Editor({ gateway, containers }: { gateway: Container; containers: Conta
   return (
     <div className="flex flex-col gap-4">
       {!running && <p className="text-sm text-amber">{t("gateway.notRunning")}</p>}
-      <p className="max-w-3xl text-sm text-dim">{t("gateway.intro")}</p>
+      <p className="max-w-3xl text-sm text-dim">
+        {info && <strong className="text-fg">{info.label} · </strong>}
+        {t("gateway.intro")}
+      </p>
+      {info && !info.upstreamPath && (
+        <p className="max-w-3xl text-xs text-dim">
+          {t("gateway.noUpstreamPath", { name: info.label })}
+        </p>
+      )}
 
       <div className="overflow-x-auto rounded-xl border border-line bg-bg1">
         <table className="w-full text-left text-sm">

@@ -12,7 +12,8 @@
     "settings": "Settings",
     "compose": "Compose",
     "system": "System",
-    "gateway": "Gateway"
+    "gateway": "Gateways",
+    "resources": "Resources"
   },
   "common": {
     "cancel": "Cancel",
@@ -264,7 +265,9 @@
     "imageOperationFailed": "The image operation failed",
     "notGateway": "That container is not a Kong gateway",
     "gatewayNotRunning": "The gateway is not running",
-    "gatewayNoNetwork": "The gateway is not on a user-defined network"
+    "gatewayNoNetwork": "The gateway is not on a user-defined network",
+    "gatewayUpstreamPath": "This gateway needs an upstream without a path (just host and port)",
+    "gatewayDuplicateRoute": "Two routes share the same domain and path"
   },
   "terminal": {
     "title": "Terminal",
@@ -495,8 +498,8 @@
     "waitingEvents": "Waiting for engine events…"
   },
   "gateway": {
-    "title": "API gateway",
-    "none": "No Kong gateway found. Drag “Kong” from the palette into a network box (publish 8000 and 8001 on the host) and it will show up here.",
+    "title": "Gateways and proxies",
+    "none": "No supported gateway or proxy found. Drag Kong, Nginx, Caddy or Traefik from the palette into a network box (publish its traffic port, and 8001 too for Kong) and it will show up here.",
     "intro": "Map a path and/or a domain to a service. Nautix saves the mappings and applies them to Kong for you; no config files or curl needed. Pick a service the gateway can reach (same network, or a tunnel) or type any URL.",
     "path": "Path",
     "host": "Domain (optional)",
@@ -514,6 +517,12 @@
     "failed": "The gateway did not accept the routes",
     "failedHint": "Check that the container is running, that it is on a user-defined network and that its admin API listens on 0.0.0.0:8001 (the Kong template does).",
     "noProxyPort": "Publish port 8000 of the gateway on the host to get a ready-to-use test command.",
-    "notRunning": "The gateway is not running."
+    "notRunning": "The gateway is not running.",
+    "category": {
+      "gateway": "gateway",
+      "proxy": "proxy"
+    },
+    "noUpstreamPath": "{{name}} forwards to a host and port only: destinations like http://service:80/base (with a path) are not accepted. Kong does accept them.",
+    "supported": "Supported: Kong, Nginx, Caddy and Traefik."
   }
 }

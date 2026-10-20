@@ -12,7 +12,8 @@
     "settings": "Ajustes",
     "compose": "Compose",
     "system": "Sistema",
-    "gateway": "Gateway"
+    "gateway": "Gateways",
+    "resources": "Recursos"
   },
   "common": {
     "cancel": "Cancelar",
@@ -264,7 +265,9 @@
     "imageOperationFailed": "Falló la operación sobre la imagen",
     "notGateway": "Ese contenedor no es un gateway Kong",
     "gatewayNotRunning": "El gateway no está en ejecución",
-    "gatewayNoNetwork": "El gateway no está en una red definida por el usuario"
+    "gatewayNoNetwork": "El gateway no está en una red definida por el usuario",
+    "gatewayUpstreamPath": "Este gateway necesita un destino sin ruta (solo host y puerto)",
+    "gatewayDuplicateRoute": "Dos rutas comparten el mismo dominio y ruta"
   },
   "terminal": {
     "title": "Terminal",
@@ -495,8 +498,8 @@
     "waitingEvents": "Esperando eventos del motor…"
   },
   "gateway": {
-    "title": "API gateway",
-    "none": "No se encontró ningún gateway Kong. Arrastrá “Kong” desde la paleta a una caja de red (publicá 8000 y 8001 en el host) y aparecerá acá.",
+    "title": "Gateways y proxies",
+    "none": "No hay ningún gateway o proxy compatible. Arrastrá Kong, Nginx, Caddy o Traefik desde la paleta a una caja de red (publicá su puerto de tráfico, y 8001 también en Kong) y aparecerá acá.",
     "intro": "Asociá una ruta y/o un dominio con un servicio. Nautix guarda los mapeos y los aplica en Kong por vos; sin archivos de configuración ni curl. Elegí un servicio al que el gateway llegue (misma red, o un túnel) o escribí cualquier URL.",
     "path": "Ruta",
     "host": "Dominio (opcional)",
@@ -514,6 +517,12 @@
     "failed": "El gateway no aceptó las rutas",
     "failedHint": "Verificá que el contenedor esté en ejecución, en una red definida por el usuario y que su API de administración escuche en 0.0.0.0:8001 (la plantilla de Kong lo hace).",
     "noProxyPort": "Publicá el puerto 8000 del gateway en el host para obtener un comando de prueba listo.",
-    "notRunning": "El gateway no está en ejecución."
+    "notRunning": "El gateway no está en ejecución.",
+    "category": {
+      "gateway": "gateway",
+      "proxy": "proxy"
+    },
+    "noUpstreamPath": "{{name}} reenvía solo a un host y puerto: no acepta destinos como http://servicio:80/base (con ruta). Kong sí los acepta.",
+    "supported": "Compatibles: Kong, Nginx, Caddy y Traefik."
   }
 }

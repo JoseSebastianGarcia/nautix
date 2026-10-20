@@ -48,7 +48,16 @@ export const TEMPLATES: readonly Template[] = [
     icon: "traefikproxy",
     color: "#24A1C1",
     ports: [{ containerPort: 80, label: "http" }],
-    command: ["--providers.docker=false", "--entrypoints.web.address=:80", "--api.insecure=false"],
+    // The file provider lets the Gateway page publish routes by writing a file; the mounted
+    // directory also guarantees it exists when Traefik starts.
+    command: [
+      "--providers.docker=false",
+      "--providers.file.directory=/etc/traefik/dynamic",
+      "--providers.file.watch=true",
+      "--entrypoints.web.address=:80",
+      "--api.insecure=false",
+    ],
+    volumes: ["/etc/traefik/dynamic"],
   },
   {
     id: "nginx",
