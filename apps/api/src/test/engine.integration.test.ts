@@ -147,6 +147,19 @@ describe("against a real Docker daemon", () => {
     ).toBe("running");
   });
 
+  it("limits logs to a time window", async () => {
+    const web = ((await call("GET", "/containers")).json as Ctr[]).find(
+      (c) => c.name === `${PREFIX}web`,
+    );
+    await new Promise((r) => setTimeout(r, 2500));
+    const recent = (await call("GET", `/containers/${web?.id}/logs?tail=50&since=1`)).json
+      .logs as string;
+    const all = (await call("GET", `/containers/${web?.id}/logs?tail=50&since=3600`)).json
+      .logs as string;
+    expect(all).toContain("hola mundo");
+    expect(recent).not.toContain("hola mundo");
+  });
+
   it("opens a real tunnel between two networks and only that port crosses", async () => {
     await call("POST", "/networks", { name: `${PREFIX}b`, internal: true });
     const nets = (await call("GET", "/networks")).json as Net[];
@@ -258,6 +271,31 @@ describe("against a real Docker daemon", () => {
     expect(failed).toContain("ERROR:");
     expect(failed.trim().endsWith("NAUTIX-BUILD: failed")).toBe(true);
     docker("rmi", "-f", `${PREFIX}built:1`);
+  });
+
+  it("creates a container without starting it, with a healthcheck and limits", async () => {
+    const res = await call("POST", "/containers", {
+      name: `${PREFIX}limited`,
+      image: IMAGE,
+      networkId: null,
+      restartPolicy: "no",
+      start: false,
+      command: ["sleep", "300"],
+      healthcheck: { command: "true", intervalSeconds: 1, retries: 1 },
+      limits: { memoryMb: 64, cpus: 0.5 },
+    });
+    expect(res.res.status).toBe(201);
+    const inspect = JSON.parse(docker("inspect", `${PREFIX}limited`))[0];
+    expect(inspect.State.Status).toBe("created");
+    expect(inspect.HostConfig.Memory).toBe(64 * 1024 * 1024);
+    expect(inspect.HostConfig.NanoCpus).toBe(500_000_000);
+    expect(inspect.Config.Healthcheck.Test).toEqual(["CMD-SHELL", "true"]);
+
+    expect((await call("POST", `/containers/${inspect.Id}/start`)).res.status).toBe(204);
+    await new Promise((r) => setTimeout(r, 3000));
+    expect(JSON.parse(docker("inspect", `${PREFIX}limited`))[0].State.Health.Status).toBe(
+      "healthy",
+    );
   });
 
   it("removes what it created", async () => {

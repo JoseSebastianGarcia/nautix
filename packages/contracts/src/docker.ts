@@ -125,8 +125,27 @@ export const CreateContainer = z.object({
   restartPolicy: RestartPolicy.default("unless-stopped"),
   command: z.array(z.string()).optional(),
   volumes: z.array(z.string()).default([]),
+  /** false = `docker create`: the container is made but not started. */
+  start: z.boolean().default(true),
+  /** Shell command run inside the container; exit 0 = healthy. */
+  healthcheck: z
+    .object({
+      command: z.string().min(1).max(1000),
+      intervalSeconds: z.number().int().min(1).max(3600).default(30),
+      timeoutSeconds: z.number().int().min(1).max(600).default(5),
+      retries: z.number().int().min(1).max(20).default(3),
+      startPeriodSeconds: z.number().int().min(0).max(3600).default(0),
+    })
+    .optional(),
+  limits: z
+    .object({
+      memoryMb: z.number().int().min(6).max(1_048_576).optional(),
+      cpus: z.number().min(0.01).max(256).optional(),
+    })
+    .optional(),
 });
 export type CreateContainer = z.infer<typeof CreateContainer>;
+export type CreateContainerInput = z.input<typeof CreateContainer>;
 
 export const Mount = z.object({
   type: z.enum(["bind", "volume", "tmpfs"]),

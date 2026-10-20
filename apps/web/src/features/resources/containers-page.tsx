@@ -7,8 +7,14 @@ import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
 import { keys, useContainers, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
-import { Button, ConfirmDialog } from "../../components/ui.js";
+import { Button, ConfirmDialog, Input } from "../../components/ui.js";
 import { LogoBadge } from "../topology/logo-badge.js";
+import {
+  type ContainerFilter,
+  composeProjects,
+  filterContainers,
+  NO_FILTER,
+} from "./container-filters.js";
 import { PageHeader, Table, Td } from "./table.js";
 
 export function ContainersPage() {
@@ -16,6 +22,8 @@ export function ContainersPage() {
   const { data = [] } = useContainers();
   const isAdmin = useIsAdmin();
   const [target, setTarget] = useState<Container | null>(null);
+  const [filter, setFilter] = useState<ContainerFilter>(NO_FILTER);
+  const shown = filterContainers(data, filter);
   const act = useApiMutation(
     ({ c, action }: { c: Container; action: ContainerAction }) => api.containerAction(c.id, action),
     [keys.containers],
@@ -28,6 +36,47 @@ export function ContainersPage() {
   return (
     <div className="p-6">
       <PageHeader title={t("containers.title")} />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Input
+          aria-label={t("containers.filterText")}
+          placeholder={t("containers.filterText")}
+          value={filter.text}
+          onChange={(e) => setFilter({ ...filter, text: e.target.value })}
+          className="w-56"
+        />
+        <select
+          aria-label={t("common.status")}
+          value={filter.status}
+          onChange={(e) =>
+            setFilter({ ...filter, status: e.target.value as ContainerFilter["status"] })
+          }
+          className="rounded-lg border border-line bg-bg0 px-2 py-2 text-sm text-fg"
+        >
+          <option value="all">{t("containers.statusAll")}</option>
+          <option value="running">{t("containers.statusRunning")}</option>
+          <option value="stopped">{t("containers.statusStopped")}</option>
+        </select>
+        <select
+          aria-label={t("containers.project")}
+          value={filter.project}
+          onChange={(e) => setFilter({ ...filter, project: e.target.value })}
+          className="rounded-lg border border-line bg-bg0 px-2 py-2 text-sm text-fg"
+        >
+          <option value="">{t("containers.projectAll")}</option>
+          {composeProjects(data).map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        <Input
+          aria-label={t("containers.filterLabel")}
+          placeholder={t("containers.filterLabel")}
+          value={filter.label}
+          onChange={(e) => setFilter({ ...filter, label: e.target.value })}
+          className="w-48"
+        />
+      </div>
       <Table
         head={[
           t("common.name"),
@@ -37,9 +86,9 @@ export function ContainersPage() {
           t("common.networks"),
           t("common.actions"),
         ]}
-        empty={data.length === 0}
+        empty={shown.length === 0}
       >
-        {data.map((c) => (
+        {shown.map((c) => (
           <tr key={c.id}>
             <Td>
               <span className="flex items-center gap-2 font-medium">

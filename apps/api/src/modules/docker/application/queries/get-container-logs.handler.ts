@@ -8,6 +8,6 @@ export class GetContainerLogsHandler implements IQueryHandler<GetContainerLogsQu
   constructor(@Inject(DockerEngine) private readonly engine: DockerEngine) {}
 
   execute(q: GetContainerLogsQuery): Promise<string> {
-    return this.engine.containerLogs(q.id, q.tail);
+    return this.engine.containerLogs(q.id, q.tail, q.sinceSeconds);
   }
 }

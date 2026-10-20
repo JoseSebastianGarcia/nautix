@@ -316,7 +316,20 @@ export class DockerSocketEngine extends DockerEngine {
         Labels: spec.labels,
         ...(spec.cmd ? { Cmd: spec.cmd } : {}),
         ExposedPorts: spec.exposedPorts,
+        ...(spec.healthcheck
+          ? {
+              Healthcheck: {
+                Test: spec.healthcheck.test,
+                Interval: spec.healthcheck.intervalNs,
+                Timeout: spec.healthcheck.timeoutNs,
+                Retries: spec.healthcheck.retries,
+                StartPeriod: spec.healthcheck.startPeriodNs,
+              },
+            }
+          : {}),
         HostConfig: {
+          ...(spec.memoryBytes ? { Memory: spec.memoryBytes } : {}),
+          ...(spec.nanoCpus ? { NanoCpus: spec.nanoCpus } : {}),
           PortBindings: spec.portBindings,
           Binds: spec.binds,
           RestartPolicy: { Name: spec.restartPolicy },
@@ -538,10 +551,10 @@ export class DockerSocketEngine extends DockerEngine {
     return this.send("DELETE", `/containers/${encodeURIComponent(id)}?force=${force}`);
   }
 
-  async containerLogs(id: string, tail: number): Promise<string> {
+  async containerLogs(id: string, tail: number, sinceSeconds?: number): Promise<string> {
     const reply = await this.call(
       "GET",
-      `/containers/${encodeURIComponent(id)}/logs?stdout=true&stderr=true&timestamps=true&tail=${tail}`,
+      `/containers/${encodeURIComponent(id)}/logs?stdout=true&stderr=true&timestamps=true&tail=${tail}${sinceSeconds ? `&since=${Math.floor(Date.now() / 1000) - sinceSeconds}` : ""}`,
     );
     this.assertOk(reply);
     return isMultiplexed(reply.body) ? demuxStdcopy(reply.body) : reply.body.toString("utf8");

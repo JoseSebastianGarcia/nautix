@@ -158,7 +158,13 @@
     "newTemplate": "New template",
     "editTemplate": "Edit template",
     "templateDescription": "Description (optional)",
-    "templateIntro": "Templates are saved in Nautix and appear in this panel under \"My images\"; drag or click them to deploy with these defaults."
+    "templateIntro": "Templates are saved in Nautix and appear in this panel under \"My images\"; drag or click them to deploy with these defaults.",
+    "advanced": "Advanced",
+    "healthcheck": "Health check command",
+    "healthcheckHint": "Runs inside the container every 30 s; exit code 0 means healthy.",
+    "memoryMb": "Memory limit (MB)",
+    "cpus": "CPU limit",
+    "createOnly": "Create only, do not start (docker create)"
   },
   "containers": {
     "title": "Containers",
@@ -178,7 +184,14 @@
       "removing": "removing",
       "exited": "stopped",
       "dead": "dead"
-    }
+    },
+    "filterText": "Filter by name or image",
+    "statusAll": "All states",
+    "statusRunning": "Running",
+    "statusStopped": "Stopped",
+    "project": "Compose project",
+    "projectAll": "All projects",
+    "filterLabel": "Label (key or key=value)"
   },
   "images": {
     "title": "Images",
@@ -509,7 +522,12 @@
     "stillRunning": "Still running after 30 seconds",
     "export": "Export filesystem (.tar)",
     "isTunnel": "This container is a tunnel between two networks.",
-    "details": "Details"
+    "details": "Details",
+    "since": "Time window",
+    "sinceAll": "Any time",
+    "since_300": "Last 5 minutes",
+    "since_3600": "Last hour",
+    "since_86400": "Last 24 hours"
   },
   "system": {
     "title": "System",

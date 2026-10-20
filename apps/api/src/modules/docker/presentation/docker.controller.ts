@@ -63,7 +63,10 @@ const ActionQuery = z.object({
   signal: z.enum(KILL_SIGNALS).optional(),
   timeout: z.coerce.number().int().min(0).max(600).optional(),
 });
-const Logs = z.object({ tail: z.coerce.number().int().min(1).max(5000).default(200) });
+const Logs = z.object({
+  tail: z.coerce.number().int().min(1).max(5000).default(200),
+  since: z.coerce.number().int().min(1).max(31_536_000).optional(),
+});
 
 @Controller("api/v1")
 export class DockerController {
@@ -139,9 +142,8 @@ export class DockerController {
 
   @Get("containers/:id/logs")
   async logs(@Param("id") id: string, @Query() query: unknown) {
-    return {
-      logs: await this.queries.execute(new GetContainerLogsQuery(id, parse(Logs, query).tail)),
-    };
+    const q = parse(Logs, query);
+    return { logs: await this.queries.execute(new GetContainerLogsQuery(id, q.tail, q.since)) };
   }
 
   @Get("networks")

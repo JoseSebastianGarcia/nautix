@@ -52,9 +52,10 @@ export function LogsPanel({ container }: { container: Container }) {
   const [tail, setTail] = useState(300);
   const [query, setQuery] = useState("");
   const [follow, setFollow] = useState(true);
+  const [since, setSince] = useState(0);
   const logs = useQuery({
-    queryKey: ["logs", container.id, tail],
-    queryFn: () => api.logs(container.id, tail),
+    queryKey: ["logs", container.id, tail, since],
+    queryFn: () => api.logs(container.id, tail, since || undefined),
     refetchInterval: follow ? 3000 : false,
   });
   const lines = filterLines(logs.data?.logs ?? "", query);
@@ -88,6 +89,19 @@ export function LogsPanel({ container }: { container: Container }) {
             </option>
           ))}
         </select>
+        <select
+          aria-label={t("details.since")}
+          value={since}
+          onChange={(e) => setSince(Number(e.target.value))}
+          className="rounded-lg border border-line bg-bg0 px-2 py-2 text-sm text-fg"
+        >
+          <option value={0}>{t("details.sinceAll")}</option>
+          {[300, 3600, 86400].map((n) => (
+            <option key={n} value={n}>
+              {t(`details.since_${n}`)}
+            </option>
+          ))}
+        </select>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} />
           {t("details.follow")}
@@ -97,7 +111,9 @@ export function LogsPanel({ container }: { container: Container }) {
       <pre className="max-h-[60vh] overflow-auto rounded-xl border border-line bg-bg0 p-3 font-mono text-xs leading-snug whitespace-pre-wrap">
         {lines.join("\n") || t("common.empty")}
       </pre>
-      <ShowCommand command={`docker logs --tail ${tail} -t ${container.name}`} />
+      <ShowCommand
+        command={`docker logs --tail ${tail}${since ? ` --since ${since}s` : ""} -t ${container.name}`}
+      />
     </div>
   );
 }

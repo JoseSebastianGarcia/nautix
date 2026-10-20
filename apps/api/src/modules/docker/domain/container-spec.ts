@@ -2,6 +2,7 @@ import type { CreateContainer } from "@nautix/contracts";
 
 const LOOPBACK = "127.0.0.1";
 const PUBLIC = "0.0.0.0";
+const NS = 1_000_000_000;
 
 export interface EngineContainerSpec {
   name: string;
@@ -13,6 +14,15 @@ export interface EngineContainerSpec {
   portBindings: Record<string, { HostIp: string; HostPort: string }[]>;
   binds: string[];
   restartPolicy: CreateContainer["restartPolicy"];
+  healthcheck?: {
+    test: string[];
+    intervalNs: number;
+    timeoutNs: number;
+    retries: number;
+    startPeriodNs: number;
+  };
+  memoryBytes?: number;
+  nanoCpus?: number;
   /** Network the container joins at creation; undefined = engine default bridge. */
   networkName?: string;
 }
@@ -48,6 +58,19 @@ export const buildContainerSpec = (
     portBindings,
     binds: request.volumes,
     restartPolicy: request.restartPolicy,
+    ...(request.healthcheck
+      ? {
+          healthcheck: {
+            test: ["CMD-SHELL", request.healthcheck.command],
+            intervalNs: request.healthcheck.intervalSeconds * NS,
+            timeoutNs: request.healthcheck.timeoutSeconds * NS,
+            retries: request.healthcheck.retries,
+            startPeriodNs: request.healthcheck.startPeriodSeconds * NS,
+          },
+        }
+      : {}),
+    ...(request.limits?.memoryMb ? { memoryBytes: request.limits.memoryMb * 1024 * 1024 } : {}),
+    ...(request.limits?.cpus ? { nanoCpus: Math.round(request.limits.cpus * 1e9) } : {}),
     ...(networkName ? { networkName } : {}),
   };
 };

@@ -376,7 +376,7 @@ export class FakeDockerEngine extends DockerEngine {
     this.containers.delete(id);
   }
 
-  async containerLogs(id: string, tail: number): Promise<string> {
+  async containerLogs(id: string, tail: number, _sinceSeconds?: number): Promise<string> {
     this.container(id);
     return (this.logs.get(id) ?? "")
       .split("\n")

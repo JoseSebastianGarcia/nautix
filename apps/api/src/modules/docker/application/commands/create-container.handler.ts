@@ -20,7 +20,7 @@ export class CreateContainerHandler
     }
     await this.engine.pullImageIfMissing(request.image);
     const created = await this.engine.createContainer(buildContainerSpec(request, networkName));
-    await this.engine.containerAction(created.id, "start");
+    if (request.start) await this.engine.containerAction(created.id, "start");
     return created;
   }
 }

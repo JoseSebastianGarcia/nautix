@@ -82,14 +82,25 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
   );
   const [volumes, setVolumes] = useState<string[]>(() => [...(tpl?.volumes ?? [])]);
   const [command, setCommand] = useState(() => tpl?.command?.join(" ") ?? "");
+  const [createOnly, setCreateOnly] = useState(false);
+  const [healthcheck, setHealthcheck] = useState("");
+  const [memoryMb, setMemoryMb] = useState("");
+  const [cpus, setCpus] = useState("");
   const [saveAs, setSaveAs] = useState(false);
   const [templateName, setTemplateName] = useState(() => tpl?.name ?? "");
 
   const portsValid = ports.every(
     (p) => validPort(p.containerPort) && (p.hostPort === "" || validPort(p.hostPort)),
   );
+  const limitsValid =
+    (memoryMb === "" || (Number(memoryMb) >= 6 && Number.isInteger(Number(memoryMb)))) &&
+    (cpus === "" || Number(cpus) >= 0.01);
   const canSubmit =
-    name !== "" && image.trim() !== "" && portsValid && (!saveAs || templateName.trim() !== "");
+    name !== "" &&
+    image.trim() !== "" &&
+    portsValid &&
+    limitsValid &&
+    (!saveAs || templateName.trim() !== "");
 
   const deploy = useApiMutation(
     async () => {
@@ -107,6 +118,16 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
         })),
         volumes: namedVolumes(name, volumes),
         ...(command.trim() ? { command: splitCommand(command) } : {}),
+        ...(createOnly ? { start: false } : {}),
+        ...(healthcheck.trim() ? { healthcheck: { command: healthcheck.trim() } } : {}),
+        ...(memoryMb || cpus
+          ? {
+              limits: {
+                ...(memoryMb ? { memoryMb: Number(memoryMb) } : {}),
+                ...(cpus ? { cpus: Number(cpus) } : {}),
+              },
+            }
+          : {}),
       });
       if (saveAs) {
         const template: CustomTemplateInput = {
@@ -298,6 +319,47 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
           placeholder="--flag value"
         />
       </Field>
+
+      <details className="rounded-lg border border-line p-3">
+        <summary className="cursor-pointer text-sm">{t("topology.advanced")}</summary>
+        <div className="mt-3 flex flex-col gap-3">
+          <Field label={t("topology.healthcheck")} hint={t("topology.healthcheckHint")}>
+            <Input
+              value={healthcheck}
+              onChange={(e) => setHealthcheck(e.target.value)}
+              placeholder="curl -f http://localhost/ || exit 1"
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("topology.memoryMb")}>
+              <Input
+                inputMode="numeric"
+                value={memoryMb}
+                aria-invalid={!limitsValid}
+                onChange={(e) => setMemoryMb(e.target.value.replace(/\D/g, ""))}
+                placeholder="512"
+              />
+            </Field>
+            <Field label={t("topology.cpus")}>
+              <Input
+                inputMode="decimal"
+                value={cpus}
+                aria-invalid={!limitsValid}
+                onChange={(e) => setCpus(e.target.value.replace(/[^0-9.]/g, ""))}
+                placeholder="1.5"
+              />
+            </Field>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={createOnly}
+              onChange={(e) => setCreateOnly(e.target.checked)}
+            />
+            {t("topology.createOnly")}
+          </label>
+        </div>
+      </details>
 
       {!tpl?.custom && (
         <div className="flex flex-col gap-2 rounded-lg border border-line p-3">

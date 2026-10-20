@@ -10,7 +10,7 @@ import type {
   ContainerAction,
   ContainerStats,
   ContainerTop,
-  CreateContainer,
+  CreateContainerInput,
   CreateNetwork,
   CreateToken,
   CreateTunnel,
@@ -142,9 +142,7 @@ export const api = {
   deleteCustomTemplate: (id: string) => request<void>("DELETE", `/catalog/custom/${id}`),
 
   containers: () => request<Container[]>("GET", "/containers"),
-  createContainer: (
-    b: Omit<CreateContainer, "env" | "ports" | "labels" | "volumes"> & Partial<CreateContainer>,
-  ) => request<{ id: string }>("POST", "/containers", b),
+  createContainer: (b: CreateContainerInput) => request<{ id: string }>("POST", "/containers", b),
   containerAction: (
     id: string,
     action: ContainerAction,
@@ -186,8 +184,11 @@ export const api = {
   },
   removeContainer: (id: string, force: boolean) =>
     request<void>("DELETE", `/containers/${id}?force=${force}`),
-  logs: (id: string, tail = 300) =>
-    request<{ logs: string }>("GET", `/containers/${id}/logs?tail=${tail}`),
+  logs: (id: string, tail = 300, sinceSeconds?: number) =>
+    request<{ logs: string }>(
+      "GET",
+      `/containers/${id}/logs?tail=${tail}${sinceSeconds ? `&since=${sinceSeconds}` : ""}`,
+    ),
 
   exportCompose: (networkId: string | undefined, includeEnv: boolean) =>
     request<{ yaml: string }>(

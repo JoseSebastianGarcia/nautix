@@ -18,6 +18,31 @@ describe("buildContainerSpec", () => {
     expect(spec.portBindings["80/tcp"]).toEqual([{ HostIp: "127.0.0.1", HostPort: "8080" }]);
   });
 
+  it("translates healthcheck and limits to engine units", () => {
+    const spec = buildContainerSpec(
+      parse({
+        name: "api",
+        image: "app",
+        networkId: null,
+        healthcheck: { command: "curl -f http://localhost/ || exit 1", intervalSeconds: 10 },
+        limits: { memoryMb: 256, cpus: 0.5 },
+      }),
+      undefined,
+    );
+    expect(spec.healthcheck).toEqual({
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"],
+      intervalNs: 10_000_000_000,
+      timeoutNs: 5_000_000_000,
+      retries: 3,
+      startPeriodNs: 0,
+    });
+    expect(spec.memoryBytes).toBe(256 * 1024 * 1024);
+    expect(spec.nanoCpus).toBe(500_000_000);
+    expect(
+      buildContainerSpec(parse({ name: "a", image: "b", networkId: null }), undefined),
+    ).not.toHaveProperty("healthcheck");
+  });
+
   it("only binds publicly on explicit consent", () => {
     const spec = buildContainerSpec(
       parse({

@@ -158,7 +158,13 @@
     "newTemplate": "Nuevo template",
     "editTemplate": "Editar template",
     "templateDescription": "Descripción (opcional)",
-    "templateIntro": "Los templates se guardan en Nautix y aparecen en este panel en \"Mis imágenes\"; arrastralos o hacé clic para desplegar con estos valores."
+    "templateIntro": "Los templates se guardan en Nautix y aparecen en este panel en \"Mis imágenes\"; arrastralos o hacé clic para desplegar con estos valores.",
+    "advanced": "Avanzado",
+    "healthcheck": "Comando de health check",
+    "healthcheckHint": "Se ejecuta dentro del contenedor cada 30 s; código de salida 0 significa saludable.",
+    "memoryMb": "Límite de memoria (MB)",
+    "cpus": "Límite de CPU",
+    "createOnly": "Solo crear, sin iniciar (docker create)"
   },
   "containers": {
     "title": "Contenedores",
@@ -178,7 +184,14 @@
       "removing": "eliminando",
       "exited": "detenido",
       "dead": "muerto"
-    }
+    },
+    "filterText": "Filtrar por nombre o imagen",
+    "statusAll": "Todos los estados",
+    "statusRunning": "En ejecución",
+    "statusStopped": "Detenidos",
+    "project": "Proyecto Compose",
+    "projectAll": "Todos los proyectos",
+    "filterLabel": "Etiqueta (clave o clave=valor)"
   },
   "images": {
     "title": "Imágenes",
@@ -509,7 +522,12 @@
     "stillRunning": "Sigue en ejecución tras 30 segundos",
     "export": "Exportar sistema de archivos (.tar)",
     "isTunnel": "Este contenedor es un túnel entre dos redes.",
-    "details": "Detalles"
+    "details": "Detalles",
+    "since": "Ventana de tiempo",
+    "sinceAll": "Cualquier momento",
+    "since_300": "Últimos 5 minutos",
+    "since_3600": "Última hora",
+    "since_86400": "Últimas 24 horas"
   },
   "system": {
     "title": "Sistema",

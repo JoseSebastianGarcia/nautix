@@ -76,7 +76,8 @@ export abstract class DockerEngine {
   abstract getArchive(id: string, path: string): Promise<Readable>;
   abstract putArchive(id: string, path: string, tar: Readable): Promise<void>;
   abstract removeContainer(id: string, force: boolean): Promise<void>;
-  abstract containerLogs(id: string, tail: number): Promise<string>;
+  /** `sinceSeconds`: only lines from the last N seconds. */
+  abstract containerLogs(id: string, tail: number, sinceSeconds?: number): Promise<string>;
 
   abstract listNetworks(): Promise<Network[]>;
   abstract createNetwork(request: CreateNetwork): Promise<{ id: string }>;
