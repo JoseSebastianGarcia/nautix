@@ -23,11 +23,13 @@ export const templateToService = (
   name: string,
   opts: { box?: string; usedHostPorts: ReadonlySet<number>; random: () => string },
 ): NewService => {
-  const used = new Set(opts.usedHostPorts);
+  // TCP and UDP are separate port spaces: DNS uses 53/tcp and 53/udp on the same number.
+  const used = { tcp: new Set(opts.usedHostPorts), udp: new Set(opts.usedHostPorts) };
   const ports = template.ports.map((p) => {
-    const host = pickHostPort(p.containerPort, used);
-    used.add(host);
-    return `127.0.0.1:${host}:${p.containerPort}`;
+    const protocol = p.protocol ?? "tcp";
+    const host = pickHostPort(p.hostPort ?? p.containerPort, used[protocol]);
+    used[protocol].add(host);
+    return `127.0.0.1:${host}:${p.containerPort}${protocol === "udp" ? "/udp" : ""}`;
   });
   const volumes = (template.volumes ?? []).map(
     (path, i) => `${name}-data${i === 0 ? "" : `-${i + 1}`}:${path}`,

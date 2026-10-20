@@ -24,6 +24,7 @@ export interface DeployTarget {
 }
 
 interface PortDraft {
+  protocol: "tcp" | "udp";
   containerPort: string;
   hostPort: string;
   expose: boolean;
@@ -70,8 +71,9 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
   const [restart, setRestart] = useState<RestartPolicy>(tpl ? "unless-stopped" : "no");
   const [ports, setPorts] = useState<PortDraft[]>(() =>
     (tpl?.ports ?? []).map((p) => ({
+      protocol: p.protocol ?? "tcp",
       containerPort: String(p.containerPort),
-      hostPort: "",
+      hostPort: p.hostPort ? String(p.hostPort) : "",
       expose: false,
     })),
   );
@@ -99,6 +101,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
         env: Object.fromEntries(env.filter(([k]) => k.trim() !== "")),
         ports: ports.map((p) => ({
           containerPort: Number(p.containerPort),
+          protocol: p.protocol,
           ...(p.hostPort ? { hostPort: Number(p.hostPort) } : {}),
           exposePublicly: p.expose,
         })),
@@ -110,7 +113,12 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
           name: templateName.trim(),
           image: image.trim(),
           description: "",
-          ports: ports.map((p) => ({ containerPort: Number(p.containerPort), label: "" })),
+          ports: ports.map((p) => ({
+            containerPort: Number(p.containerPort),
+            label: "",
+            protocol: p.protocol,
+            ...(p.hostPort ? { hostPort: Number(p.hostPort) } : {}),
+          })),
           env: Object.fromEntries(env.filter(([k]) => k.trim() !== "")),
           volumes,
           ...(command.trim() ? { command: splitCommand(command) } : {}),
@@ -135,6 +143,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
     ports: ports.map((p) => ({
       ...(p.hostPort ? { host: Number(p.hostPort) } : {}),
       container: Number(p.containerPort) || 0,
+      protocol: p.protocol,
       pub: p.expose,
     })),
   });
@@ -208,6 +217,21 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
                   )
                 }
               />
+              <select
+                aria-label={t("topology.protocol")}
+                value={p.protocol}
+                onChange={(e) =>
+                  setPorts(
+                    ports.map((q, j) =>
+                      j === i ? { ...q, protocol: e.target.value as "tcp" | "udp" } : q,
+                    ),
+                  )
+                }
+                className="rounded-lg border border-line bg-bg0 px-1 py-2 text-xs text-fg"
+              >
+                <option value="tcp">tcp</option>
+                <option value="udp">udp</option>
+              </select>
               <span className="text-dim">→</span>
               <Input
                 className="min-w-0"
@@ -248,7 +272,12 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
         ))}
         {!portsValid && <p className="text-xs text-danger">{t("topology.invalidPort")}</p>}
         <Button
-          onClick={() => setPorts([...ports, { containerPort: "", hostPort: "", expose: false }])}
+          onClick={() =>
+            setPorts([
+              ...ports,
+              { protocol: "tcp", containerPort: "", hostPort: "", expose: false },
+            ])
+          }
         >
           <Plus size={14} /> {t("topology.addPort")}
         </Button>

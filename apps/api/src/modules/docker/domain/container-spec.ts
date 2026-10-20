@@ -29,7 +29,7 @@ export const buildContainerSpec = (
   const exposedPorts: EngineContainerSpec["exposedPorts"] = {};
   const portBindings: EngineContainerSpec["portBindings"] = {};
   for (const port of request.ports) {
-    const key = `${port.containerPort}/tcp`;
+    const key = `${port.containerPort}/${port.protocol}`;
     exposedPorts[key] = {};
     portBindings[key] = [
       {

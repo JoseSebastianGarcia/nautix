@@ -131,7 +131,8 @@
       "observability": "Observabilidad",
       "automation": "Automatización",
       "app": "Aplicaciones",
-      "custom": "Mis imágenes"
+      "custom": "Mis imágenes",
+      "dns": "DNS"
     },
     "image": "Imagen",
     "addPort": "Agregar puerto",
@@ -147,7 +148,8 @@
     "templateHint": "Puertos, variables y volúmenes se guardan en este servidor, incluidos los valores de las variables.",
     "deleteTemplate": "Quitar del panel",
     "remove": "Quitar",
-    "invalidPort": "Los puertos deben estar entre 1 y 65535"
+    "invalidPort": "Los puertos deben estar entre 1 y 65535",
+    "protocol": "Protocolo"
   },
   "containers": {
     "title": "Contenedores",

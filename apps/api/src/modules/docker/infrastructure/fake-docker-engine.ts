@@ -171,7 +171,7 @@ export class FakeDockerEngine extends DockerEngine {
           ip: b.HostIp,
           privatePort: Number(key.split("/")[0]),
           publicPort: Number(b.HostPort) || 32768,
-          type: "tcp",
+          type: key.split("/")[1] ?? "tcp",
         })),
       ),
       networks: [],

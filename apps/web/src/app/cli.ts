@@ -22,7 +22,7 @@ export const cli = {
     image: string;
     network?: string;
     restart?: string;
-    ports: { host?: number; container: number; pub: boolean }[];
+    ports: { host?: number; container: number; pub: boolean; protocol?: "tcp" | "udp" }[];
   }): string =>
     [
       "docker run -d",
@@ -30,7 +30,8 @@ export const cli = {
       opts.network ? `--network ${opts.network}` : "",
       opts.restart && opts.restart !== "no" ? `--restart ${opts.restart}` : "",
       ...opts.ports.map(
-        (p) => `-p ${p.pub ? "0.0.0.0" : "127.0.0.1"}:${p.host ?? ""}:${p.container}`,
+        (p) =>
+          `-p ${p.pub ? "0.0.0.0" : "127.0.0.1"}:${p.host ?? ""}:${p.container}${p.protocol === "udp" ? "/udp" : ""}`,
       ),
       opts.image,
     ]

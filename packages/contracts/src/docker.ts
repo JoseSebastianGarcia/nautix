@@ -113,6 +113,7 @@ export const CreateContainer = z.object({
     .array(
       z.object({
         containerPort: z.number().int().min(1).max(65535),
+        protocol: z.enum(["tcp", "udp"]).default("tcp"),
         hostPort: z.number().int().min(1).max(65535).optional(),
         /** false = bound to 127.0.0.1 only (default); true = 0.0.0.0, needs explicit consent. */
         exposePublicly: z.boolean().default(false),

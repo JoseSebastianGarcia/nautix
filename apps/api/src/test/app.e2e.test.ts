@@ -419,7 +419,9 @@ describe("catalog", () => {
 
   it("ships SQL Server, Kafka and n8n", async () => {
     const ids = (await list()).map((t) => t.id);
-    expect(ids).toEqual(expect.arrayContaining(["mssql", "kafka", "n8n"]));
+    expect(ids).toEqual(
+      expect.arrayContaining(["mssql", "kafka", "n8n", "adguardhome", "pihole", "dnsmasq"]),
+    );
   });
 
   it("saves, updates and deletes the user's own templates", async () => {
@@ -492,5 +494,27 @@ describe("tunnels", () => {
     expect(wrongSide.res.status).toBe(422);
 
     expect((await call("DELETE", `/containers/${tunnel?.id}?force=true`)).res.status).toBe(204);
+  });
+});
+
+describe("udp ports", () => {
+  it("publishes DNS on 53/udp and 53/tcp, bound to loopback", async () => {
+    const created = await call("POST", "/containers", {
+      name: "dns-test",
+      image: "adguard/adguardhome:v0.107.78",
+      networkId: null,
+      ports: [
+        { containerPort: 53, protocol: "udp", hostPort: 5353 },
+        { containerPort: 53, protocol: "tcp", hostPort: 5353 },
+      ],
+    });
+    expect(created.res.status).toBe(201);
+    const list = (await call("GET", "/containers")).json as {
+      name: string;
+      ports: { type: string; ip?: string; publicPort?: number }[];
+    }[];
+    const ports = list.find((c) => c.name === "dns-test")?.ports ?? [];
+    expect(ports.map((p) => p.type).sort()).toEqual(["tcp", "udp"]);
+    expect(ports.every((p) => p.ip === "127.0.0.1" && p.publicPort === 5353)).toBe(true);
   });
 });

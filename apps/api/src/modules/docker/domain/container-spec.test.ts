@@ -48,4 +48,21 @@ describe("buildContainerSpec", () => {
     ).toBe("no");
     expect(() => parse({ ...base, restartPolicy: "forever" })).toThrow();
   });
+
+  it("publishes UDP ports under their own key, alongside TCP on the same number", () => {
+    const spec = buildContainerSpec(
+      parse({
+        name: "dns",
+        image: "x",
+        networkId: null,
+        ports: [
+          { containerPort: 53, protocol: "udp", hostPort: 53 },
+          { containerPort: 53, hostPort: 53 },
+        ],
+      }),
+      undefined,
+    );
+    expect(Object.keys(spec.portBindings).sort()).toEqual(["53/tcp", "53/udp"]);
+    expect(spec.portBindings["53/udp"]?.[0]).toEqual({ HostIp: "127.0.0.1", HostPort: "53" });
+  });
 });

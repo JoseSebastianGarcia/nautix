@@ -38,4 +38,14 @@ describe("service templates", () => {
         expect(p.startsWith("127.0.0.1:")).toBe(true);
     }
   });
+
+  it("keeps DNS on 53/udp and 53/tcp with the same host number", () => {
+    const dns = findTemplate("adguardhome");
+    const svc = templateToService(dns!, "dns", opts);
+    expect(svc.definition.ports).toEqual([
+      "127.0.0.1:53:53/udp",
+      "127.0.0.1:53:53",
+      "127.0.0.1:3000:3000",
+    ]);
+  });
 });

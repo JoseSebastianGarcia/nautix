@@ -6,12 +6,17 @@ export type TemplateCategory =
   | "broker"
   | "observability"
   | "automation"
+  | "dns"
   | "app"
   | "custom";
 
 export interface TemplatePort {
   containerPort: number;
   label: string;
+  /** Defaults to tcp. */
+  protocol?: "tcp" | "udp";
+  /** Suggested host port (e.g. 53 for DNS); the user can change it. */
+  hostPort?: number;
 }
 
 export interface Template {
@@ -181,6 +186,52 @@ export const TEMPLATES: readonly Template[] = [
       { containerPort: 5672, label: "amqp" },
       { containerPort: 15672, label: "console" },
     ],
+  },
+  {
+    id: "adguardhome",
+    name: "AdGuard Home",
+    category: "dns",
+    image: "adguard/adguardhome:v0.107.78",
+    description: "DNS server with custom records (DNS rewrites) and ad blocking",
+    icon: "adguard",
+    color: "#68BC71",
+    ports: [
+      { containerPort: 53, label: "dns", protocol: "udp", hostPort: 53 },
+      { containerPort: 53, label: "dns", protocol: "tcp", hostPort: 53 },
+      { containerPort: 3000, label: "setup" },
+    ],
+    volumes: ["/opt/adguardhome/work", "/opt/adguardhome/conf"],
+  },
+  {
+    id: "pihole",
+    name: "Pi-hole",
+    category: "dns",
+    image: "pihole/pihole:2026.09.0",
+    description: "DNS server with local DNS records and ad blocking",
+    icon: "pihole",
+    color: "#96060C",
+    ports: [
+      { containerPort: 53, label: "dns", protocol: "udp", hostPort: 53 },
+      { containerPort: 53, label: "dns", protocol: "tcp", hostPort: 53 },
+      { containerPort: 80, label: "web" },
+    ],
+    env: { FTLCONF_webserver_api_password: "change-me", FTLCONF_dns_listeningMode: "ALL" },
+    volumes: ["/etc/pihole"],
+  },
+  {
+    id: "dnsmasq",
+    name: "dnsmasq",
+    category: "dns",
+    image: "jpillora/dnsmasq:1.1",
+    description: "Lightweight DNS with a web editor for custom domains",
+    icon: "dnsmasq",
+    color: "#3B82F6",
+    ports: [
+      { containerPort: 53, label: "dns", protocol: "udp", hostPort: 53 },
+      { containerPort: 8080, label: "web" },
+    ],
+    env: { HTTP_USER: "admin", HTTP_PASS: "change-me" },
+    volumes: ["/etc/dnsmasq.conf"],
   },
   {
     id: "kafka",
