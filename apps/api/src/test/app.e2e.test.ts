@@ -444,3 +444,53 @@ describe("catalog", () => {
     expect((await list()).filter((t) => t.custom)).toHaveLength(0);
   });
 });
+
+describe("tunnels", () => {
+  it("forwards one port between two networks and is removable like any container", async () => {
+    const networks = (await call("GET", "/networks")).json as { id: string; name: string }[];
+    const containers = (await call("GET", "/containers")).json as { id: string; name: string }[];
+    const edge = networks.find((n) => n.name === "edge");
+    const backend = networks.find((n) => n.name === "backend");
+    const db = containers.find((c) => c.name === "postgres");
+
+    const created = await call("POST", "/tunnels", {
+      fromNetworkId: edge?.id,
+      toNetworkId: backend?.id,
+      targetContainerId: db?.id,
+      targetPort: 5432,
+    });
+    expect(created.res.status).toBe(201);
+
+    const after = (await call("GET", "/containers")).json as {
+      id: string;
+      name: string;
+      state: string;
+      networks: string[];
+      labels: Record<string, string>;
+      ports: unknown[];
+    }[];
+    const tunnel = after.find((c) => c.labels["nautix.tunnel"] === "true");
+    expect(tunnel?.name).toBe("tunnel-edge-to-backend-5432");
+    expect(tunnel?.networks.sort()).toEqual(["backend", "edge"]);
+    expect(tunnel?.state).toBe("running");
+    expect(tunnel?.labels["nautix.tunnel.target"]).toBe("postgres:5432");
+    expect(tunnel?.ports).toEqual([]); // nothing is published to the host
+
+    const duplicate = await call("POST", "/tunnels", {
+      fromNetworkId: edge?.id,
+      toNetworkId: backend?.id,
+      targetContainerId: db?.id,
+      targetPort: 5432,
+    });
+    expect(duplicate.res.status).toBe(409);
+    const wrongSide = await call("POST", "/tunnels", {
+      fromNetworkId: backend?.id,
+      toNetworkId: edge?.id,
+      targetContainerId: db?.id,
+      targetPort: 5432,
+    });
+    expect(wrongSide.res.status).toBe(422);
+
+    expect((await call("DELETE", `/containers/${tunnel?.id}?force=true`)).res.status).toBe(204);
+  });
+});

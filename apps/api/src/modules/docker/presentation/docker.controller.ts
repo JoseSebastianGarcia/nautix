@@ -3,6 +3,7 @@ import {
   ContainerAction,
   CreateContainer,
   CreateNetwork,
+  CreateTunnel,
   CreateVolume,
   PullImage,
 } from "@nautix/contracts";
@@ -31,6 +32,7 @@ import { ConnectNetworkCommand } from "../application/commands/connect-network.c
 import { ContainerActionCommand } from "../application/commands/container-action.command.js";
 import { CreateContainerCommand } from "../application/commands/create-container.command.js";
 import { CreateNetworkCommand } from "../application/commands/create-network.command.js";
+import { CreateTunnelCommand } from "../application/commands/create-tunnel.command.js";
 import { CreateVolumeCommand } from "../application/commands/create-volume.command.js";
 import { DisconnectNetworkCommand } from "../application/commands/disconnect-network.command.js";
 import { PullImageCommand } from "../application/commands/pull-image.command.js";
@@ -161,6 +163,12 @@ export class DockerController {
     await this.commands.execute(
       new DisconnectNetworkCommand(id, parse(ConnectNetwork, body).containerId),
     );
+  }
+
+  /** A tunnel forwards one TCP port between two networks (see domain/tunnel.ts). Delete it as a container. */
+  @Post("tunnels")
+  createTunnel(@Body() body: unknown) {
+    return this.commands.execute(new CreateTunnelCommand(parse(CreateTunnel, body)));
   }
 
   @Get("images")

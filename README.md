@@ -53,6 +53,7 @@ pnpm lint && pnpm typecheck && pnpm test
 - The UI updates live from the daemon's event stream.
 - **Compose editor** (`Compose` in the top bar): visual canvas and YAML tab in sync, undo/redo, live checks (unknown networks, duplicate ports, public ports, privileged features), and Up / Down / Pull / Validate. Visual edits keep your comments and layout of the file.
 - **Any image**: deploy anything with its ports, environment variables, data volumes, command and restart policy, and save it to the panel to reuse. Also built in: SQL Server, Kafka and n8n.
+- **Tunnels between boxes**: drag from one box's connector dot to another's to expose one TCP port of a service across two otherwise isolated networks (a tiny socat forwarder; nothing is published on the host).
 - **Nautix is locked**: its own container can't be stopped, restarted, removed or edited from the UI or API.
 - Where things are stored: everything lives in the data directory (`/data`, volume `nautix-data` with Docker): `nautix.db` (SQLite) holds users, sessions, API tokens, canvas layout, saved templates and Compose projects.
 - Every action has a **Show command** with the equivalent `docker` CLI line.

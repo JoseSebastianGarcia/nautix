@@ -226,7 +226,11 @@
     "composeBusy": "Hay otra operación en curso para este proyecto",
     "notRunning": "El contenedor no está en ejecución",
     "tooManyTemplates": "Demasiadas plantillas guardadas",
-    "selfLocked": "Este contenedor está bloqueado y no se puede modificar desde Nautix"
+    "selfLocked": "Este contenedor está bloqueado y no se puede modificar desde Nautix",
+    "tunnelSystemNetwork": "Los túneles conectan redes definidas por el usuario",
+    "tunnelSameNetwork": "Elegí dos redes distintas",
+    "tunnelToTunnel": "Un túnel no puede apuntar a otro túnel",
+    "tunnelTargetNotOnNetwork": "El destino no está en la red de destino"
   },
   "terminal": {
     "title": "Terminal",
@@ -336,5 +340,24 @@
       "dangerousCap": "Agrega capacidades de Linux poderosas",
       "yaml": "Error de sintaxis YAML: {{message}}"
     }
+  },
+  "tunnel": {
+    "handle": "Arrastrá a otra caja para abrir un túnel",
+    "title": "Túnel",
+    "from": "Escucha en",
+    "to": "Reenvía a",
+    "explain": "Solo cruza el puerto {{port}} del destino entre las dos redes; todo lo demás sigue aislado. No se publica nada en el host.",
+    "remove": "Quitar túnel",
+    "removeTitle": "¿Quitar el túnel {{name}}?",
+    "removeBody": "Los contenedores de {{from}} ya no llegarán por aquí al servicio de {{to}}.",
+    "dialogTitle": "Túnel {{from}} → {{to}}",
+    "intro": "Los contenedores de “{{from}}” podrán llegar a un puerto de un contenedor de “{{to}}”. Un reenviador mínimo (socat) se une a ambas redes y retransmite solo ese puerto TCP.",
+    "noTargets": "No hay contenedores en “{{network}}” para abrir un túnel.",
+    "target": "Contenedor destino",
+    "targetPort": "Puerto destino",
+    "listenPort": "Puerto de escucha (opcional)",
+    "listenHint": "Puerto que usarán los demás contenedores. Por defecto, el del destino.",
+    "scope": "Todo lo que esté en “{{from}}” podrá conectarse a este túnel por el puerto {{port}}, no solo un contenedor.",
+    "create": "Abrir túnel"
   }
 }

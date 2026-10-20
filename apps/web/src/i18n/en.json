@@ -226,7 +226,11 @@
     "composeBusy": "Another operation is running for this project",
     "notRunning": "The container is not running",
     "tooManyTemplates": "Too many saved templates",
-    "selfLocked": "This container is locked and cannot be changed from Nautix"
+    "selfLocked": "This container is locked and cannot be changed from Nautix",
+    "tunnelSystemNetwork": "Tunnels connect user-defined networks",
+    "tunnelSameNetwork": "Pick two different networks",
+    "tunnelToTunnel": "A tunnel cannot point to another tunnel",
+    "tunnelTargetNotOnNetwork": "The target is not on the destination network"
   },
   "terminal": {
     "title": "Terminal",
@@ -336,5 +340,24 @@
       "dangerousCap": "Adds powerful Linux capabilities",
       "yaml": "YAML syntax error: {{message}}"
     }
+  },
+  "tunnel": {
+    "handle": "Drag to another box to open a tunnel",
+    "title": "Tunnel",
+    "from": "Listens in",
+    "to": "Forwards to",
+    "explain": "Only port {{port}} of the target crosses between the two networks; everything else stays isolated. Nothing is published on the host.",
+    "remove": "Remove tunnel",
+    "removeTitle": "Remove tunnel {{name}}?",
+    "removeBody": "Containers in {{from}} will no longer reach the service in {{to}} through it.",
+    "dialogTitle": "Tunnel {{from}} → {{to}}",
+    "intro": "Containers in “{{from}}” will be able to reach one port of a container in “{{to}}”. A small forwarder (socat) joins both networks and relays only that TCP port.",
+    "noTargets": "There are no containers in “{{network}}” to open a tunnel to.",
+    "target": "Target container",
+    "targetPort": "Target port",
+    "listenPort": "Listening port (optional)",
+    "listenHint": "Port other containers use. Defaults to the target port.",
+    "scope": "Everything in “{{from}}” will be able to connect to this tunnel on port {{port}}, not only one container.",
+    "create": "Open tunnel"
   }
 }

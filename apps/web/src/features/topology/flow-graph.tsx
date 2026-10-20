@@ -1,4 +1,4 @@
-import type { Container } from "@nautix/contracts";
+import type { Container, Network, TunnelInfo } from "@nautix/contracts";
 import type { Edge } from "@xyflow/react";
 import { NODE_H, NODE_W, type Topology } from "./layout.js";
 import { type ContainerFlowNode, ContainerNode, type ZoneFlowNode, ZoneNode } from "./nodes.js";
@@ -11,13 +11,14 @@ export const toNodes = (
   topology: Topology,
   containers: Container[],
   draggableZones: boolean,
+  canTunnel = false,
 ): FlowNode[] => {
   const byId = new Map(containers.map((c) => [c.id, c]));
   const zones: ZoneFlowNode[] = topology.zones.map((z) => ({
     id: `z:${z.id}`,
     type: "zone",
     position: { x: z.x, y: z.y },
-    data: { network: z.network, count: z.containerIds.length, w: z.w, h: z.h },
+    data: { network: z.network, count: z.containerIds.length, w: z.w, h: z.h, canTunnel },
     draggable: draggableZones,
     zIndex: -1,
     width: z.w,
@@ -53,3 +54,35 @@ export const toEdges = (topology: Topology): Edge[] =>
     animated: true,
     style: { strokeDasharray: "6 4", stroke: "var(--nx-accent)" },
   }));
+
+/** One edge per tunnel, drawn between the two network boxes it connects. */
+export const tunnelEdges = (
+  tunnels: TunnelInfo[],
+  networks: Network[],
+  selectedId?: string,
+): Edge[] =>
+  tunnels.flatMap((t) => {
+    const from = networks.find((n) => n.name === t.from);
+    const to = networks.find((n) => n.name === t.to);
+    if (!from || !to) return [];
+    return [
+      {
+        id: `t:${t.containerId}`,
+        source: `z:${from.id}`,
+        target: `z:${to.id}`,
+        sourceHandle: "tunnel",
+        targetHandle: "tunnel",
+        animated: true,
+        label: `:${t.listenPort} → ${t.targetName}:${t.targetPort}`,
+        labelStyle: { fill: "var(--nx-text)", fontFamily: "var(--font-mono)", fontSize: 11 },
+        labelBgStyle: { fill: "var(--nx-bg-1)", stroke: "var(--nx-line)" },
+        labelBgPadding: [6, 3] as [number, number],
+        labelBgBorderRadius: 6,
+        style: {
+          stroke: "var(--nx-cyan)",
+          strokeWidth: selectedId === t.containerId ? 4 : 2.5,
+        },
+        markerEnd: { type: "arrowclosed" as const, color: "var(--nx-cyan)" },
+      },
+    ];
+  });

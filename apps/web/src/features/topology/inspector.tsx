@@ -1,4 +1,10 @@
-import type { Container, ContainerAction, Network } from "@nautix/contracts";
+import {
+  type Container,
+  type ContainerAction,
+  type Network,
+  type TunnelInfo,
+  tunnelFromContainer,
+} from "@nautix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import {
   FileDown,
@@ -22,7 +28,11 @@ import { Button, ConfirmDialog, ShowCommand } from "../../components/ui.js";
 import type { ExportTarget } from "./export-dialog.js";
 import { LogoBadge } from "./logo-badge.js";
 
-export type Selection = { kind: "container"; id: string } | { kind: "zone"; id: string } | null;
+export type Selection =
+  | { kind: "container"; id: string }
+  | { kind: "zone"; id: string }
+  | { kind: "tunnel"; id: string }
+  | null;
 
 export function Inspector({
   selection,
@@ -40,6 +50,9 @@ export function Inspector({
   const { t } = useTranslation();
   const container =
     selection?.kind === "container" ? containers.find((c) => c.id === selection.id) : undefined;
+  const tunnelContainer =
+    selection?.kind === "tunnel" ? containers.find((c) => c.id === selection.id) : undefined;
+  const tunnel = tunnelContainer ? tunnelFromContainer(tunnelContainer) : null;
   const network =
     selection?.kind === "zone" ? networks.find((n) => n.id === selection.id) : undefined;
 
@@ -51,6 +64,7 @@ export function Inspector({
       <h2 className="font-mono text-xs uppercase tracking-wider text-dim">
         {t("topology.inspector")}
       </h2>
+      {tunnel && <TunnelInspector tunnel={tunnel} onGone={onClearSelection} />}
       {container && (
         <ContainerInspector container={container} networks={networks} onGone={onClearSelection} />
       )}
@@ -62,7 +76,9 @@ export function Inspector({
           onExport={onExport}
         />
       )}
-      {!container && !network && <p className="text-sm text-dim">{t("topology.inspectorEmpty")}</p>}
+      {!container && !network && !tunnel && (
+        <p className="text-sm text-dim">{t("topology.inspectorEmpty")}</p>
+      )}
     </aside>
   );
 }
@@ -314,6 +330,46 @@ function NetworkInspector({
         title={t("topology.removeNetworkTitle", { name: n.name })}
         body={t("topology.removeNetworkBody")}
         command={cli.removeNetwork(n.name)}
+        onConfirm={() => remove.mutate(undefined, { onSuccess: onGone })}
+        onClose={() => setConfirm(false)}
+      />
+    </div>
+  );
+}
+
+function TunnelInspector({ tunnel, onGone }: { tunnel: TunnelInfo; onGone: () => void }) {
+  const { t } = useTranslation();
+  const [confirm, setConfirm] = useState(false);
+  const remove = useApiMutation(
+    () => api.removeContainer(tunnel.containerId, true),
+    [keys.containers, keys.networks],
+  );
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <div className="font-semibold">{t("tunnel.title")}</div>
+        <div className="font-mono text-xs text-dim">{tunnel.name}</div>
+      </div>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        <dt className="text-dim">{t("tunnel.from")}</dt>
+        <dd className="font-mono">
+          {tunnel.from}:{tunnel.listenPort}
+        </dd>
+        <dt className="text-dim">{t("tunnel.to")}</dt>
+        <dd className="font-mono">
+          {tunnel.targetName}:{tunnel.targetPort} <span className="text-dim">({tunnel.to})</span>
+        </dd>
+      </dl>
+      <p className="text-sm text-dim">{t("tunnel.explain", { port: tunnel.targetPort })}</p>
+      <Button write variant="danger" onClick={() => setConfirm(true)}>
+        <Trash2 size={14} /> {t("tunnel.remove")}
+      </Button>
+      <ShowCommand command={cli.removeContainer(tunnel.name, true)} />
+      <ConfirmDialog
+        open={confirm}
+        title={t("tunnel.removeTitle", { name: tunnel.name })}
+        body={t("tunnel.removeBody", { from: tunnel.from, to: tunnel.to })}
+        command={cli.removeContainer(tunnel.name, true)}
         onConfirm={() => remove.mutate(undefined, { onSuccess: onGone })}
         onClose={() => setConfirm(false)}
       />

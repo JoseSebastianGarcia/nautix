@@ -11,6 +11,7 @@ export type ZoneNodeData = {
   count: number;
   w: number;
   h: number;
+  canTunnel?: boolean;
 } & Record<string, unknown>;
 
 export type ContainerFlowNode = Node<ContainerNodeData, "container">;
@@ -124,7 +125,24 @@ export function ZoneNode({ data, selected }: NodeProps<ZoneFlowNode>) {
           {external ? t("topology.externalHint") : t("topology.sharesNetwork")}
         </div>
       )}
-      <Handle type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />
+      {n && (
+        // Drag from this dot to another box's dot to open a tunnel between the two networks.
+        <Handle
+          id="tunnel"
+          type="source"
+          position={Position.Right}
+          isConnectable={data.canTunnel === true}
+          title={t("tunnel.handle")}
+          aria-label={t("tunnel.handle")}
+          style={{
+            width: 14,
+            height: 14,
+            background: "var(--nx-bg-1)",
+            border: "2px solid var(--nx-accent)",
+            right: -8,
+          }}
+        />
+      )}
     </div>
   );
 }

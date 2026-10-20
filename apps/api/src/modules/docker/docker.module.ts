@@ -6,6 +6,7 @@ import { ConnectNetworkHandler } from "./application/commands/connect-network.ha
 import { ContainerActionHandler } from "./application/commands/container-action.handler.js";
 import { CreateContainerHandler } from "./application/commands/create-container.handler.js";
 import { CreateNetworkHandler } from "./application/commands/create-network.handler.js";
+import { CreateTunnelHandler } from "./application/commands/create-tunnel.handler.js";
 import { CreateVolumeHandler } from "./application/commands/create-volume.handler.js";
 import { DisconnectNetworkHandler } from "./application/commands/disconnect-network.handler.js";
 import { PullImageHandler } from "./application/commands/pull-image.handler.js";
@@ -49,6 +50,7 @@ const HANDLERS = [
   ListVolumesHandler,
   WatchEventsHandler,
   ExportComposeHandler,
+  CreateTunnelHandler,
 ];
 
 @Module({})

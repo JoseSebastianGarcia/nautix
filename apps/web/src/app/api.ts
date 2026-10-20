@@ -9,6 +9,7 @@ import type {
   CreateContainer,
   CreateNetwork,
   CreateToken,
+  CreateTunnel,
   CreateUser,
   CustomTemplateInput,
   EngineInfo,
@@ -98,6 +99,7 @@ export const api = {
       "GET",
       `/export/compose?includeEnv=${includeEnv}${networkId ? `&network=${encodeURIComponent(networkId)}` : ""}`,
     ),
+  createTunnel: (b: CreateTunnel) => request<{ id: string }>("POST", "/tunnels", b),
   networks: () => request<Network[]>("GET", "/networks"),
   createNetwork: (b: Pick<CreateNetwork, "name" | "internal" | "subnet">) =>
     request<{ id: string }>("POST", "/networks", b),

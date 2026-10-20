@@ -1,8 +1,16 @@
-import type { Container, Layout, Network, Template } from "@nautix/contracts";
+import {
+  type Container,
+  type Layout,
+  type Network,
+  type Template,
+  tunnelFromContainer,
+} from "@nautix/contracts";
 import {
   applyNodeChanges,
   Background,
   BackgroundVariant,
+  type Connection,
+  ConnectionMode,
   Controls,
   type Edge,
   type Node,
@@ -30,7 +38,7 @@ import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
 import { DeployDialog, type DeployTarget } from "./deploy-dialog.js";
 import { ExportDialog, type ExportTarget } from "./export-dialog.js";
-import { type FlowNode, nodeTypes, toEdges, toNodes } from "./flow-graph.js";
+import { type FlowNode, nodeTypes, toEdges, toNodes, tunnelEdges } from "./flow-graph.js";
 import { Inspector, type Selection } from "./inspector.js";
 import {
   EXTERNAL_ID,
@@ -44,6 +52,7 @@ import {
 import { type MoveStep, planMove } from "./move-plan.js";
 import { NetworkDialog } from "./network-dialog.js";
 import { CUSTOM_TEMPLATE_ID, DRAG_TYPE, Palette } from "./palette.js";
+import { TunnelDialog, type TunnelTarget } from "./tunnel-dialog.js";
 
 const NO_CONTAINERS: Container[] = [];
 const NO_NETWORKS: Network[] = [];
@@ -75,9 +84,18 @@ function Canvas() {
     },
     [qc, saveLayout],
   );
+  // Tunnels are drawn as lines between boxes, not as nodes inside them.
+  const services = useMemo(
+    () => containers.filter((c) => tunnelFromContainer(c) === null),
+    [containers],
+  );
+  const tunnels = useMemo(
+    () => containers.flatMap((c) => tunnelFromContainer(c) ?? []),
+    [containers],
+  );
   const topology = useMemo(
-    () => layoutTopology(containers, networks, savedLayout),
-    [containers, networks, savedLayout],
+    () => layoutTopology(services, networks, savedLayout),
+    [services, networks, savedLayout],
   );
   const [nodes, setNodes] = useState<FlowNode[]>([]);
   const [selection, setSelection] = useState<Selection>(null);
@@ -85,21 +103,22 @@ function Canvas() {
   const [newNetwork, setNewNetwork] = useState(false);
   const [exporting, setExporting] = useState<ExportTarget | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [tunnelTarget, setTunnelTarget] = useState<TunnelTarget | null>(null);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
 
   // Re-sync from engine data whenever it changes (drag offsets are intentionally discarded).
   const fitted = useRef(false);
   useEffect(() => {
-    setNodes(toNodes(topology, containers, isAdmin));
+    setNodes(toNodes(topology, services, isAdmin, isAdmin));
     if (!fitted.current && containers.length > 0) {
       fitted.current = true;
       requestAnimationFrame(() => void flow.fitView({ padding: 0.1, maxZoom: 1 }));
     }
-  }, [topology, containers, flow, isAdmin]);
+  }, [topology, services, containers.length, flow, isAdmin]);
 
   const relayout = useCallback(
-    () => setNodes(toNodes(topology, containers, isAdmin)),
-    [topology, containers, isAdmin],
+    () => setNodes(toNodes(topology, services, isAdmin, isAdmin)),
+    [topology, services, isAdmin],
   );
 
   const move = useApiMutation(
@@ -178,6 +197,24 @@ function Canvas() {
     [flow, topology.zones, catalog],
   );
 
+  const edges = useMemo(
+    () => [
+      ...toEdges(topology),
+      ...tunnelEdges(tunnels, networks, selection?.kind === "tunnel" ? selection.id : undefined),
+    ],
+    [topology, tunnels, networks, selection],
+  );
+
+  // Dragging from one box's dot to another's opens the tunnel dialog.
+  const onConnect = useCallback(
+    (c: Connection) => {
+      const from = networks.find((n) => `z:${n.id}` === c.source);
+      const to = networks.find((n) => `z:${n.id}` === c.target);
+      if (from && to && from.id !== to.id) setTunnelTarget({ from, to });
+    },
+    [networks],
+  );
+
   const label = (n: Network | null) => n?.name ?? t("topology.external");
 
   return (
@@ -194,7 +231,12 @@ function Canvas() {
       >
         <ReactFlow<FlowNode>
           nodes={nodes}
-          edges={toEdges(topology)}
+          edges={edges}
+          connectionMode={ConnectionMode.Loose}
+          onConnect={onConnect}
+          onEdgeClick={(_, edge) =>
+            edge.id.startsWith("t:") && setSelection({ kind: "tunnel", id: edge.id.slice(2) })
+          }
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onNodeDragStop={onNodeDragStop}
@@ -208,7 +250,7 @@ function Canvas() {
             )
           }
           onPaneClick={() => setSelection(null)}
-          nodesConnectable={false}
+          nodesConnectable={isAdmin}
           nodesDraggable={isAdmin}
           minZoom={0.2}
           proOptions={{ hideAttribution: true }}
@@ -247,6 +289,11 @@ function Canvas() {
         body={t("topology.resetLayoutBody")}
         onConfirm={() => persist(EMPTY_LAYOUT)}
         onClose={() => setResetting(false)}
+      />
+      <TunnelDialog
+        target={tunnelTarget}
+        containers={containers}
+        onClose={() => setTunnelTarget(null)}
       />
       <ExportDialog target={exporting} onClose={() => setExporting(null)} />
       <NetworkDialog open={newNetwork} onClose={() => setNewNetwork(false)} />
