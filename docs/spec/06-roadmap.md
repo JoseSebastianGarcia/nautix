@@ -22,7 +22,7 @@
 10. Lockfile, `pnpm audit` and license check in CI; non-root image, read-only root FS, `no-new-privileges`.
 
 ## Updates and backup
-Update = `docker compose pull && up -d` button/command with health check and rollback to the previous image on failure. Backup/restore of `/data` (SQLite online backup + key) from UI.
+Updates are **manual** (ADR-031): `docker compose pull && docker compose up -d`, or `git pull` and `docker compose up -d --build`. Nautix cannot restart or replace its own container (it is locked), and the database is backed up automatically before every schema upgrade. Backup/restore of `/data` (SQLite online backup + key) is in Settings.
 
 ---
 

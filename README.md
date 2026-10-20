@@ -52,6 +52,16 @@ From the published image (no build): see `compose.hub.yaml` and `docs/PUBLISHING
 
 Set `DOCKER_GID` to your docker socket's group id (`stat -c %g /var/run/docker.sock`) if it is not 999.
 
+### Updating
+
+Updates are manual. With the published image:
+
+```bash
+docker compose -f compose.hub.yaml pull && docker compose -f compose.hub.yaml up -d
+```
+
+With the source: `git pull && docker compose up -d --build`. Before upgrading the database schema Nautix keeps a copy in `/data/backups/` (last five). To go back, run the previous image tag and, if the schema changed, restore the backup file over `nautix.db`. Set `NAUTIX_VERSION=0.1.0` in `compose.hub.yaml`'s environment to stay on a version until you choose to move.
+
 ### Development
 
 ```bash
