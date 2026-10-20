@@ -14,4 +14,9 @@
   <data name="Settings.Language.System" xml:space="preserve"><value>Follow system</value></data>
   <data name="Settings.Language.English" xml:space="preserve"><value>English</value></data>
   <data name="Settings.Language.Spanish" xml:space="preserve"><value>Español</value></data>
+  <data name="Shell.Smoke.Title" xml:space="preserve"><value>Nautix - M0 smoke window</value></data>
+  <data name="Shell.Smoke.Heading" xml:space="preserve"><value>Nautix foundations are running</value></data>
+  <data name="Shell.Smoke.Body" xml:space="preserve"><value>This window only proves that the shell, the theme tokens and the localizer work. The real application starts in M1. To test the risk spikes (editor, graph, relay, terminal) run the scripts in the "spikes" folder.</value></data>
+  <data name="Shell.Smoke.Theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="Shell.Smoke.Language" xml:space="preserve"><value>Language</value></data>
 </root>

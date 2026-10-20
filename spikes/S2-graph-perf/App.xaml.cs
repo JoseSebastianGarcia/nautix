@@ -12,7 +12,8 @@ public sealed partial class App : Application, IDisposable
     private ThemeManager? _theme;
     private WpfThemeApplier? _applier;
 
-    private void OnStartup(object sender, StartupEventArgs e)
+    // Async void is allowed for WPF event handlers. Awaiting (instead of blocking with .Wait()) lets the dispatcher keep pumping.
+    private async void OnStartup(object sender, StartupEventArgs e)
     {
         _probe = new WindowsSystemThemeProbe();
         _theme = new ThemeManager(_probe, Nautix.Ui.Theming.ThemeMode.Dark);
@@ -22,7 +23,7 @@ public sealed partial class App : Application, IDisposable
         var graph = GraphViewModel.Generate(name => (Brush)FindResource(name));
         var window = new MainWindow { DataContext = graph };
         window.Show();
-        window.Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle).Wait();
+        await window.Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
         var buildMs = build.Elapsed.TotalMilliseconds;
 
         if (!e.Args.Contains("--benchmark", StringComparer.Ordinal))
