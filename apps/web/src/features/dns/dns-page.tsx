@@ -1,10 +1,11 @@
 import {
   DNS_INFO,
-  type DnsRecord,
+  type DnsEntry,
   type DnsServer,
   HOSTNAME,
   ipFamily,
   isIpAddress,
+  ResourceName,
 } from "@nautix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { Pencil, Plus, Radar, Trash2 } from "lucide-react";
@@ -20,15 +21,20 @@ import { PageHeader, Table, Td } from "../resources/table.js";
 
 const SERVERS = ["dns-servers"];
 const NO_SERVERS: DnsServer[] = [];
-const NO_RECORDS: DnsRecord[] = [];
+const NO_RECORDS: DnsEntry[] = [];
 
-const same = (a: DnsRecord[], b: DnsRecord[]): boolean => JSON.stringify(a) === JSON.stringify(b);
+const same = (a: DnsEntry[], b: DnsEntry[]): boolean => JSON.stringify(a) === JSON.stringify(b);
 
-/** Normalises what the user typed the same way the API does. */
-const clean = (r: { name: string; ip: string }): DnsRecord => ({
-  name: r.name.trim().toLowerCase(),
-  ip: r.ip.trim(),
-});
+/** What the record points at: an IP address, or a container whose current IP is looked up on apply. */
+const target = (e: DnsEntry): string => ("ip" in e ? e.ip : e.container);
+
+/** Normalises what the user typed the same way the API does; null when it is neither an IP nor a container name. */
+const clean = (r: { name: string; to: string }): DnsEntry | null => {
+  const name = r.name.trim().toLowerCase();
+  const to = r.to.trim();
+  if (isIpAddress(to)) return { name, ip: to };
+  return ResourceName.safeParse(to).success ? { name, container: to } : null;
+};
 
 export function DnsPage() {
   const { t } = useTranslation();
@@ -103,17 +109,14 @@ function Editor({ server }: { server: DnsServer }) {
     queryKey: ["dns-records", server.name],
     queryFn: () => api.dnsRecords(server.name),
   });
-  const [draft, setDraft] = useState<DnsRecord[]>(NO_RECORDS);
-  const [form, setForm] = useState({ name: "", ip: "" });
+  const [draft, setDraft] = useState<DnsEntry[]>(NO_RECORDS);
+  const [form, setForm] = useState({ name: "", to: "" });
   const [editing, setEditing] = useState<number | null>(null);
   const { data: containers = [] } = useContainers();
-  const addresses = containers.flatMap((c) =>
-    Object.entries(c.ips ?? {}).map(([network, ip]) => ({
-      key: `${c.id}/${network}`,
-      label: `${c.name} · ${network} · ${ip}`,
-      ip,
-    })),
-  );
+  const currentIp = (name: string): string | undefined => {
+    const ips = Object.values(containers.find((c) => c.name === name)?.ips ?? {});
+    return ips.find((ip) => !ip.includes(":"));
+  };
   const [output, setOutput] = useState("");
 
   useEffect(() => {
@@ -127,13 +130,12 @@ function Editor({ server }: { server: DnsServer }) {
   const test = useApiMutation((host: string) => api.dnsLookup(server.name, host), []);
 
   const row = clean(form);
-  const nameOk = HOSTNAME.test(row.name) && row.name.length <= 253;
-  const ipOk = isIpAddress(row.ip);
-  const clash = draft.some(
-    (r, i) =>
-      i !== editing && r.name === row.name && ipFamily(r.ip) === (ipOk ? ipFamily(row.ip) : -1),
-  );
-  const canAdd = nameOk && ipOk && !clash;
+  const nameOk = HOSTNAME.test(form.name.trim().toLowerCase()) && form.name.trim().length <= 253;
+  const family = (e: DnsEntry): number => ("ip" in e ? ipFamily(e.ip) : 4);
+  const clash =
+    row !== null &&
+    draft.some((r, i) => i !== editing && r.name === row.name && family(r) === family(row));
+  const canAdd = nameOk && row !== null && !clash;
   const dirty = !same(draft, saved.data ?? NO_RECORDS);
   const running = server.state === "running";
   const info = server.kind ? DNS_INFO[server.kind] : null;
@@ -141,8 +143,9 @@ function Editor({ server }: { server: DnsServer }) {
 
   const submit = () => {
     if (!canAdd) return;
+    if (!row) return;
     setDraft(editing === null ? [...draft, row] : draft.map((r, i) => (i === editing ? row : r)));
-    setForm({ name: "", ip: "" });
+    setForm({ name: "", to: "" });
     setEditing(null);
   };
 
@@ -189,28 +192,21 @@ function Editor({ server }: { server: DnsServer }) {
             aria-invalid={form.name !== "" && !nameOk}
           />
         </Field>
-        <Field label={t("dns.ip")}>
+        <Field label={t("dns.target")} hint={t("dns.targetHint")}>
           <Input
-            value={form.ip}
-            onChange={(e) => setForm({ ...form, ip: e.target.value })}
-            placeholder="192.168.1.20"
-            aria-invalid={form.ip !== "" && !ipOk}
+            list="dns-targets"
+            value={form.to}
+            onChange={(e) => setForm({ ...form, to: e.target.value })}
+            placeholder="my-app  |  192.168.1.20"
+            aria-invalid={form.to !== "" && row === null}
           />
-          {addresses.length > 0 && (
-            <select
-              aria-label={t("dns.pickContainer")}
-              value=""
-              onChange={(e) => setForm({ ...form, ip: e.target.value })}
-              className="mt-1 rounded-lg border border-line bg-bg0 px-2 py-1 text-xs text-fg"
-            >
-              <option value="">{t("dns.pickContainer")}…</option>
-              {addresses.map((a) => (
-                <option key={a.key} value={a.ip}>
-                  {a.label}
-                </option>
-              ))}
-            </select>
-          )}
+          <datalist id="dns-targets">
+            {containers.map((c) => (
+              <option key={c.id} value={c.name}>
+                {currentIp(c.name) ?? ""}
+              </option>
+            ))}
+          </datalist>
         </Field>
         <Button write variant="primary" type="submit" disabled={!canAdd}>
           <Plus size={14} /> {editing === null ? t("dns.add") : t("common.save")}
@@ -218,11 +214,21 @@ function Editor({ server }: { server: DnsServer }) {
       </form>
       {clash && <p className="-mt-2 text-xs text-danger">{t("dns.clash")}</p>}
 
-      <Table head={[t("dns.domain"), t("dns.ip"), t("common.actions")]} empty={draft.length === 0}>
+      <Table
+        head={[t("dns.domain"), t("dns.target"), t("common.actions")]}
+        empty={draft.length === 0}
+      >
         {draft.map((r, i) => (
-          <tr key={`${r.name}/${r.ip}`}>
+          <tr key={`${r.name}/${target(r)}`}>
             <Td mono>{r.name}</Td>
-            <Td mono>{r.ip}</Td>
+            <Td mono>
+              {target(r)}
+              {"container" in r && (
+                <span className="ml-2 text-xs text-dim">
+                  {t("dns.container")} · {currentIp(r.container) ?? t("dns.noIp")}
+                </span>
+              )}
+            </Td>
             <Td>
               <span className="flex gap-1">
                 <Button
@@ -236,7 +242,10 @@ function Editor({ server }: { server: DnsServer }) {
                 <Button
                   write
                   aria-label={`${t("topology.editTemplate")} ${r.name}`}
-                  onClick={() => (setForm(r), setEditing(i))}
+                  onClick={() => {
+                    setForm({ name: r.name, to: target(r) });
+                    setEditing(i);
+                  }}
                 >
                   <Pencil size={14} />
                 </Button>

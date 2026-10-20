@@ -1,7 +1,7 @@
 import {
   type Container,
   type DnsApplyResult,
-  type DnsRecord,
+  type DnsEntry,
   type DnsServer,
   dnsKind,
   isDnsImage,
@@ -70,7 +70,7 @@ export class DnsController {
   }
 
   @Get(":name/records")
-  records(@Param("name") name: string): Promise<DnsRecord[]> {
+  records(@Param("name") name: string): Promise<DnsEntry[]> {
     return this.queries.execute(new GetDnsRecordsQuery(parse(ResourceName, name)));
   }
 
@@ -88,7 +88,7 @@ export class DnsController {
   @HttpCode(200)
   async apply(@Param("name") name: string): Promise<DnsApplyResult> {
     const container = parse(ResourceName, name);
-    const records = await this.queries.execute<GetDnsRecordsQuery, DnsRecord[]>(
+    const records = await this.queries.execute<GetDnsRecordsQuery, DnsEntry[]>(
       new GetDnsRecordsQuery(container),
     );
     return this.commands.execute<ApplyDnsCommand, DnsApplyResult>(

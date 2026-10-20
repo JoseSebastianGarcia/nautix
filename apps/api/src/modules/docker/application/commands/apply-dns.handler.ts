@@ -1,5 +1,5 @@
 import { Readable } from "node:stream";
-import { type DnsApplyResult, dnsKind } from "@nautix/contracts";
+import { type DnsApplyResult, type DnsEntry, type DnsRecord, dnsKind } from "@nautix/contracts";
 import { Inject } from "@nestjs/common";
 import { CommandHandler, type ICommandHandler } from "@nestjs/cqrs";
 import { ConflictError, NotFoundError, ValidationError } from "../../../../shared/domain-error.js";
@@ -33,7 +33,9 @@ export class ApplyDnsHandler implements ICommandHandler<ApplyDnsCommand, DnsAppl
     if (!running && !strategy.writesWhileStopped)
       throw new ConflictError("the DNS container is not running", "errors.dnsNotRunning");
 
-    const plan = strategy.plan(records); // validates every record first
+    const plan = strategy.plan(
+      this.resolve(records, server.networks, await this.engine.listContainers()),
+    );
     const since = Math.floor(Date.now() / 1000);
     await this.engine.putArchive(server.id, "/", Readable.from([buildTar(plan.files)]));
     const outputs: string[] = [];
@@ -47,6 +49,32 @@ export class ApplyDnsHandler implements ICommandHandler<ApplyDnsCommand, DnsAppl
       return { ok: true, output: outputs.join("\n") };
     }
     return this.finish(server.id, plan.apply, since, outputs);
+  }
+
+  /** Turns container targets into their current IPv4: a network shared with the DNS server first. */
+  private resolve(
+    entries: DnsEntry[],
+    serverNetworks: string[],
+    containers: { name: string; ips?: Record<string, string> | undefined }[],
+  ): DnsRecord[] {
+    return entries.map((entry) => {
+      if ("ip" in entry) return entry;
+      const target = containers.find((c) => c.name === entry.container);
+      if (!target)
+        throw new ValidationError(
+          `container "${entry.container}" (used by ${entry.name}) does not exist`,
+          "errors.dnsTargetMissing",
+        );
+      const ips = Object.entries(target.ips ?? {}).filter(([, ip]) => !ip.includes(":"));
+      const shared = ips.find(([network]) => serverNetworks.includes(network));
+      const ip = (shared ?? ips[0])?.[1];
+      if (!ip)
+        throw new ValidationError(
+          `container "${entry.container}" (used by ${entry.name}) has no IP: is it running?`,
+          "errors.dnsTargetNoIp",
+        );
+      return { name: entry.name, ip };
+    });
   }
 
   private async finish(

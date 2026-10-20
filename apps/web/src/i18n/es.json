@@ -332,7 +332,9 @@
     "fixedIp_gateway": "Esa dirección (la primera) es la del gateway de la red",
     "notOnNetwork": "El contenedor no está en esa red",
     "fixedIp_inUse": "Otro contenedor ya usa esa dirección",
-    "dnsNoAddress": "El contenedor DNS no tiene dirección de red"
+    "dnsNoAddress": "El contenedor DNS no tiene dirección de red",
+    "dnsTargetMissing": "Un registro apunta a un contenedor que no existe",
+    "dnsTargetNoIp": "Un registro apunta a un contenedor sin dirección IP (¿está en ejecución?)"
   },
   "terminal": {
     "title": "Terminal",
@@ -1045,6 +1047,10 @@
     },
     "firstApply": "Este servidor no puede arrancar sin su configuración: tocá \"Guardar y aplicar\" y Nautix la escribe e inicia el contenedor.",
     "serverKind": "Servidor",
-    "subdomainsNote": "Un nombre también responde por sus subdominios."
+    "subdomainsNote": "Un nombre también responde por sus subdominios.",
+    "target": "Apunta a",
+    "targetHint": "Una dirección IP o el nombre de un contenedor: Nautix busca su IP actual cada vez que aplicás, así sigue funcionando si el contenedor se recrea.",
+    "container": "contenedor",
+    "noIp": "sin IP (¿detenido?)"
   }
 }

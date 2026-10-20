@@ -332,7 +332,9 @@
     "fixedIp_gateway": "That address (the first one) belongs to the network's gateway",
     "notOnNetwork": "The container is not on that network",
     "fixedIp_inUse": "Another container already uses that address",
-    "dnsNoAddress": "The DNS container has no network address"
+    "dnsNoAddress": "The DNS container has no network address",
+    "dnsTargetMissing": "A record points at a container that does not exist",
+    "dnsTargetNoIp": "A record points at a container that has no IP address (is it running?)"
   },
   "terminal": {
     "title": "Terminal",
@@ -1045,6 +1047,10 @@
     },
     "firstApply": "This server cannot start without its configuration: press \"Save and apply\" and Nautix writes it and starts the container.",
     "serverKind": "Server",
-    "subdomainsNote": "A name also answers for its subdomains."
+    "subdomainsNote": "A name also answers for its subdomains.",
+    "target": "Points to",
+    "targetHint": "An IP address, or a container name: Nautix looks up its current IP every time you apply, so it keeps working if the container is recreated.",
+    "container": "container",
+    "noIp": "no IP (stopped?)"
   }
 }

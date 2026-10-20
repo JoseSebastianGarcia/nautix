@@ -1189,6 +1189,49 @@ describe("image tools and system commands", () => {
     expect((await call("GET", "/dns/dns1/lookup?host=bad%20host")).res.status).toBe(422);
   });
 
+  it("points a DNS record at a container by name and resolves it when applying", async () => {
+    await call("POST", "/containers", {
+      name: "dns-by-name",
+      image: "dockurr/dnsmasq:2.93",
+      networkId: null,
+    });
+    await call("POST", "/containers", {
+      name: "dns-target",
+      image: "nginx:1.27-alpine",
+      networkId: null,
+    });
+    const save = (records: unknown) => call("PUT", "/dns/dns-by-name/records", { records });
+    expect(
+      (
+        await save([
+          { name: "app.test", container: "dns-target" },
+          { name: "db.test", ip: "10.0.0.9" },
+        ])
+      ).res.status,
+    ).toBe(204);
+    expect((await call("GET", "/dns/dns-by-name/records")).json).toEqual([
+      { name: "app.test", container: "dns-target" },
+      { name: "db.test", ip: "10.0.0.9" },
+    ]);
+    expect((await call("POST", "/dns/dns-by-name/apply")).json.ok).toBe(true);
+
+    // a container name counts as the IPv4 record of the name
+    expect(
+      (
+        await save([
+          { name: "x.test", container: "dns-target" },
+          { name: "x.test", ip: "1.1.1.1" },
+        ])
+      ).res.status,
+    ).toBe(422);
+    expect((await save([{ name: "x.test", container: "bad name!" }])).res.status).toBe(422);
+
+    await save([{ name: "gone.test", container: "no-such-container" }]);
+    const missing = await call("POST", "/dns/dns-by-name/apply");
+    expect(missing.res.status).toBe(422);
+    expect(JSON.stringify(missing.json)).toContain("dnsTargetMissing");
+  });
+
   it("edits records of a CoreDNS container, starting it on the first apply", async () => {
     await call("POST", "/containers", {
       name: "core1",

@@ -19,7 +19,7 @@ import type {
   CustomTemplateInput,
   DiskUsage,
   DnsApplyResult,
-  DnsRecord,
+  DnsEntry,
   DnsServer,
   EngineInfo,
   FsChange,
@@ -146,8 +146,8 @@ export const api = {
   setFixedIp: (id: string, network: string, ip: string | null) =>
     request<void>("PUT", `/containers/${id}/fixed-ip`, { network, ip }),
   dnsServers: () => request<DnsServer[]>("GET", "/dns"),
-  dnsRecords: (name: string) => request<DnsRecord[]>("GET", `/dns/${name}/records`),
-  saveDnsRecords: (name: string, records: DnsRecord[]) =>
+  dnsRecords: (name: string) => request<DnsEntry[]>("GET", `/dns/${name}/records`),
+  saveDnsRecords: (name: string, records: DnsEntry[]) =>
     request<void>("PUT", `/dns/${name}/records`, { records }),
   applyDns: (name: string) => request<DnsApplyResult>("POST", `/dns/${name}/apply`),
   dnsLookup: (name: string, host: string) =>

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ResourceName } from "./docker.js";
 
 /** DNS servers Nautix can edit records for (detected from the image name). One adapter each. */
 export const DNS_KINDS = ["dnsmasq", "coredns"] as const;
@@ -77,12 +78,29 @@ export const DnsRecord = z.object({
 });
 export type DnsRecord = z.infer<typeof DnsRecord>;
 
+/**
+ * What the user saves: a name that points at an IP address, or at a container by name. A container
+ * is resolved to its current IP every time the records are applied, so the name keeps working after
+ * the container is recreated with a different address.
+ */
+export const DnsEntry = z.union([
+  DnsRecord,
+  z.object({
+    name: DnsRecord.shape.name,
+    container: ResourceName,
+  }),
+]);
+export type DnsEntry = z.infer<typeof DnsEntry>;
+
+/** Container targets resolve to IPv4, so they count as the IPv4 record of the name. */
+export const entryFamily = (e: DnsEntry): 4 | 6 => ("ip" in e ? ipFamily(e.ip) : 4);
+
 export const SaveDnsRecords = z.object({
   records: z
-    .array(DnsRecord)
+    .array(DnsEntry)
     .max(500)
     .refine(
-      (list) => new Set(list.map((r) => `${r.name}/${ipFamily(r.ip)}`)).size === list.length,
+      (list) => new Set(list.map((r) => `${r.name}/${entryFamily(r)}`)).size === list.length,
       "a name can have one IPv4 and one IPv6 address",
     ),
 });
