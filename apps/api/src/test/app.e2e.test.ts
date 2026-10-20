@@ -866,6 +866,90 @@ describe("image tools and system commands", () => {
     expect((await post({ tag: "bad tag!", dockerfile: "FROM a" })).status).toBe(422);
   });
 
+  it("manages a swarm: init, services, secrets, configs, nodes and stacks", async () => {
+    expect(((await call("GET", "/swarm")).json as { active: boolean }).active).toBe(false);
+    expect((await call("GET", "/swarm/services")).res.status).toBe(409);
+
+    const init = await call("POST", "/swarm/init", {});
+    expect(init.res.status).toBe(201);
+    expect(
+      (await call("GET", "/swarm")).json as { active: boolean; isManager: boolean },
+    ).toMatchObject({ active: true, isManager: true });
+    expect((await call("POST", "/swarm/init", {})).res.status).toBe(409);
+
+    const tokens = (await call("GET", "/swarm/tokens")).json as { worker: string; manager: string };
+    expect(tokens.worker).toMatch(/^SWMTKN-1-/);
+    await call("POST", "/swarm/tokens/rotate", { target: "worker" });
+    expect(((await call("GET", "/swarm/tokens")).json as { worker: string }).worker).not.toBe(
+      tokens.worker,
+    );
+
+    const nodes = (await call("GET", "/swarm/nodes")).json as { id: string; role: string }[];
+    expect(nodes).toHaveLength(1);
+    expect(
+      (await call("PATCH", `/swarm/nodes/${nodes[0]?.id}`, { availability: "drain" })).res.status,
+    ).toBe(204);
+    expect(
+      ((await call("GET", "/swarm/nodes")).json as { availability: string }[])[0]?.availability,
+    ).toBe("drain");
+
+    const created = await call("POST", "/swarm/services", {
+      name: "web",
+      image: "nginx:1.27-alpine",
+      replicas: 2,
+      ports: [{ target: 80, published: 8080 }],
+    });
+    expect(created.res.status).toBe(201);
+    expect((await call("POST", "/swarm/services", { name: "web", image: "x" })).res.status).toBe(
+      409,
+    );
+    const id = (created.json as { id: string }).id;
+    expect((await call("PATCH", `/swarm/services/${id}`, { replicas: 4 })).res.status).toBe(204);
+    const services = (await call("GET", "/swarm/services")).json as {
+      name: string;
+      replicas: number;
+      running: number;
+    }[];
+    expect(services[0]).toMatchObject({ name: "web", replicas: 4, running: 4 });
+    expect(((await call("GET", `/swarm/services/${id}/tasks`)).json as unknown[]).length).toBe(4);
+    expect(
+      ((await call("GET", `/swarm/services/${id}/logs`)).json as { logs: string }).logs,
+    ).toContain("web");
+
+    expect(
+      (await call("POST", "/swarm/secrets", { name: "db-pass", value: "s3cr3t-value" })).res.status,
+    ).toBe(204);
+    const secrets = await call("GET", "/swarm/secrets");
+    expect(JSON.stringify(secrets.json)).not.toContain("s3cr3t-value");
+    expect((secrets.json as { name: string }[])[0]?.name).toBe("db-pass");
+    expect((await call("POST", "/swarm/secrets", { name: "db-pass", value: "x" })).res.status).toBe(
+      409,
+    );
+
+    await call("POST", "/swarm/configs", { name: "app.conf", value: "listen 80;" });
+    const configs = (await call("GET", "/swarm/configs")).json as { id: string }[];
+    expect(
+      ((await call("GET", `/swarm/configs/${configs[0]?.id}/data`)).json as { data: string }).data,
+    ).toBe("listen 80;");
+
+    expect(((await call("GET", "/swarm/stacks")).json as unknown[]).length).toBe(0);
+    expect(
+      (await call("POST", "/swarm/stacks", { name: "shop", yaml: "services: {}" })).res.status,
+    ).toBe(201);
+    expect((await call("POST", "/swarm/stacks", { name: "Bad Name", yaml: "x" })).res.status).toBe(
+      422,
+    );
+
+    expect((await call("DELETE", `/swarm/services/${id}`)).res.status).toBe(204);
+    expect(
+      (await call("DELETE", `/swarm/secrets/${(secrets.json as { id: string }[])[0]?.id}`)).res
+        .status,
+    ).toBe(204);
+    expect((await call("DELETE", `/swarm/configs/${configs[0]?.id}`)).res.status).toBe(204);
+    expect((await call("POST", "/swarm/leave", { force: true })).res.status).toBe(204);
+    expect(((await call("GET", "/swarm")).json as { active: boolean }).active).toBe(false);
+  });
+
   it("reports info, version and disk usage", async () => {
     expect(
       ((await call("GET", "/system/info")).json as { ServerVersion: string }).ServerVersion,

@@ -12,6 +12,7 @@ import type {
   ContainerTop,
   CreateContainerInput,
   CreateNetwork,
+  CreateSwarmServiceInput,
   CreateToken,
   CreateTunnel,
   CreateUser,
@@ -24,6 +25,7 @@ import type {
   Image,
   ImageHistoryEntry,
   ImageSearchResult,
+  JoinSwarm,
   Layout,
   Network,
   PruneKind,
@@ -33,10 +35,18 @@ import type {
   RegistryInfo,
   SaveRegistry,
   Session,
+  StackInfo,
+  SwarmItem,
+  SwarmNode,
+  SwarmService,
+  SwarmStatus,
+  SwarmTask,
   Template,
   TlsCustomCertificate,
   TlsStatus,
   UpdateContainer,
+  UpdateSwarmNode,
+  UpdateSwarmService,
   UserInfo,
   Volume,
   WaitResult,
@@ -112,6 +122,44 @@ export const api = {
       throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey);
     }
   },
+  swarm: () => request<SwarmStatus>("GET", "/swarm"),
+  swarmInit: (advertiseAddr?: string) =>
+    request<{ nodeId: string }>("POST", "/swarm/init", advertiseAddr ? { advertiseAddr } : {}),
+  swarmJoin: (b: JoinSwarm) => request<void>("POST", "/swarm/join", b),
+  swarmLeave: (force: boolean) => request<void>("POST", "/swarm/leave", { force }),
+  swarmTokens: () => request<{ worker: string; manager: string }>("GET", "/swarm/tokens"),
+  swarmRotate: (target: "worker" | "manager") =>
+    request<void>("POST", "/swarm/tokens/rotate", { target }),
+  swarmAutolock: (enabled: boolean) => request<void>("PUT", "/swarm/autolock", { enabled }),
+  swarmUnlockKey: () => request<{ key: string }>("GET", "/swarm/unlock-key"),
+  swarmUnlock: (key: string) => request<void>("POST", "/swarm/unlock", { key }),
+  swarmNodes: () => request<SwarmNode[]>("GET", "/swarm/nodes"),
+  swarmUpdateNode: (id: string, b: UpdateSwarmNode) =>
+    request<void>("PATCH", `/swarm/nodes/${id}`, b),
+  swarmRemoveNode: (id: string, force: boolean) =>
+    request<void>("DELETE", `/swarm/nodes/${id}?force=${force}`),
+  swarmServices: () => request<SwarmService[]>("GET", "/swarm/services"),
+  swarmCreateService: (b: CreateSwarmServiceInput) =>
+    request<{ id: string }>("POST", "/swarm/services", b),
+  swarmUpdateService: (id: string, b: UpdateSwarmService) =>
+    request<void>("PATCH", `/swarm/services/${id}`, b),
+  swarmRemoveService: (id: string) => request<void>("DELETE", `/swarm/services/${id}`),
+  swarmTasks: (id: string) => request<SwarmTask[]>("GET", `/swarm/services/${id}/tasks`),
+  swarmServiceLogs: (id: string) =>
+    request<{ logs: string }>("GET", `/swarm/services/${id}/logs?tail=300`),
+  swarmSecrets: () => request<SwarmItem[]>("GET", "/swarm/secrets"),
+  swarmCreateSecret: (name: string, value: string) =>
+    request<void>("POST", "/swarm/secrets", { name, value }),
+  swarmRemoveSecret: (id: string) => request<void>("DELETE", `/swarm/secrets/${id}`),
+  swarmConfigs: () => request<SwarmItem[]>("GET", "/swarm/configs"),
+  swarmConfigData: (id: string) => request<{ data: string }>("GET", `/swarm/configs/${id}/data`),
+  swarmCreateConfig: (name: string, value: string) =>
+    request<void>("POST", "/swarm/configs", { name, value }),
+  swarmRemoveConfig: (id: string) => request<void>("DELETE", `/swarm/configs/${id}`),
+  swarmStacks: () => request<StackInfo[]>("GET", "/swarm/stacks"),
+  swarmDeployStack: (name: string, yaml: string) =>
+    request<ComposeRunResult>("POST", "/swarm/stacks", { name, yaml }),
+  swarmRemoveStack: (name: string) => request<ComposeRunResult>("DELETE", `/swarm/stacks/${name}`),
   tls: () => request<TlsStatus>("GET", "/settings/tls"),
   setTlsHosts: (hosts: string[]) => request<TlsStatus>("PUT", "/settings/tls/hosts", { hosts }),
   setTlsCustom: (b: TlsCustomCertificate) => request<TlsStatus>("PUT", "/settings/tls/custom", b),

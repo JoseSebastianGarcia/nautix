@@ -14,7 +14,8 @@
     "system": "Sistema",
     "gateway": "Gateways",
     "resources": "Recursos",
-    "builds": "Builds"
+    "builds": "Builds",
+    "swarm": "Swarm"
   },
   "common": {
     "cancel": "Cancelar",
@@ -447,7 +448,10 @@
       "hostPid": "Comparte el espacio de procesos del host",
       "dangerousCap": "Agrega capacidades de Linux poderosas",
       "yaml": "Error de sintaxis YAML: {{message}}"
-    }
+    },
+    "ps": "Estado",
+    "logs": "Logs",
+    "build": "Construir"
   },
   "tunnel": {
     "handle": "Arrastrá a otra caja para abrir un túnel",
@@ -650,5 +654,90 @@
       "NX-DF012": "Instrucción desconocida: {{keyword}}.",
       "NX-DF013": "{{keyword}} en forma shell: la app no recibe las señales de parada. Usá la forma [\"exec\", \"form\"]."
     }
+  },
+  "swarm": {
+    "title": "Swarm",
+    "intro": "Docker Swarm ejecuta servicios replicados en una o más máquinas. Creá un clúster nuevo en este motor o unite a uno existente.",
+    "initTitle": "Crear un swarm",
+    "advertiseAddr": "Dirección a anunciar",
+    "advertiseHint": "IP con la que otras máquinas llegan a esta. Dejalo vacío para detectarla.",
+    "init": "Inicializar swarm",
+    "joinTitle": "Unirse a un swarm",
+    "remoteAddr": "Dirección del manager",
+    "token": "Token de unión",
+    "join": "Unirse",
+    "initialized": "Swarm inicializado",
+    "joined": "Te uniste al swarm",
+    "locked": "Este swarm está bloqueado. Ingresá la clave de desbloqueo para usarlo.",
+    "unlock": "Desbloquear",
+    "unlocked": "Swarm desbloqueado",
+    "notManager": "Este nodo es un worker: administrá el swarm desde un nodo manager.",
+    "tab": {
+      "services": "Servicios",
+      "nodes": "Nodos",
+      "stacks": "Stacks",
+      "secrets": "Secrets",
+      "configs": "Configs",
+      "cluster": "Clúster"
+    },
+    "newService": "Nuevo servicio",
+    "replicas": "Réplicas",
+    "published": "Puerto publicado",
+    "publishedWarning": "Un puerto publicado se abre en todos los nodos del swarm, en todas las interfaces.",
+    "serviceCreated": "Servicio {{name}} creado",
+    "scaleUp": "Más réplicas",
+    "scaleDown": "Menos réplicas",
+    "removeServiceTitle": "¿Eliminar el servicio {{name}}?",
+    "removeServiceBody": "Sus tareas se detienen y el servicio desaparece. Los volúmenes no se tocan.",
+    "slot": "Slot",
+    "desired": "Deseado",
+    "error": "Error",
+    "hostname": "Host",
+    "role": "Rol",
+    "roles": {
+      "manager": "Manager",
+      "worker": "Worker"
+    },
+    "availability": "Disponibilidad",
+    "availabilities": {
+      "active": "Activo",
+      "pause": "Pausa",
+      "drain": "Drenar"
+    },
+    "address": "Dirección",
+    "leader": "líder",
+    "promote": "Promover",
+    "demote": "Degradar",
+    "removeNodeTitle": "¿Quitar el nodo {{name}}?",
+    "removeNodeBody": "El nodo sale de la lista del clúster. Un nodo que sigue activo debe drenarse o salir antes.",
+    "deployStack": "Desplegar stack",
+    "stackName": "Nombre del stack",
+    "removeStackTitle": "¿Eliminar el stack {{name}}?",
+    "removeStackBody": "Se eliminan todos los servicios del stack.",
+    "new_secret": "Nuevo secret",
+    "new_config": "Nuevo config",
+    "secretHint": "El valor se envía una vez y no se puede volver a leer, ni siquiera por admins.",
+    "created": "Creado",
+    "value": "Valor",
+    "view": "Ver",
+    "removeItemTitle": "¿Eliminar {{name}}?",
+    "removeItemBody": "Los servicios que lo usan siguen corriendo hasta que se actualicen.",
+    "summary": "{{nodes}} nodos, {{managers}} managers",
+    "joinTokens": "Tokens de unión",
+    "tokensWarning": "Cualquiera con un token puede sumar una máquina a este clúster. Rotalo si se filtra.",
+    "showTokens": "Mostrar tokens",
+    "rotate": "Rotar",
+    "rotated": "Token rotado",
+    "autolock": "Autolock",
+    "autolockHint": "Con autolock los managers piden una clave de desbloqueo tras reiniciar, así los secrets del clúster no se pueden leer en disco.",
+    "enable": "Activar",
+    "disable": "Desactivar",
+    "showKey": "Mostrar clave de desbloqueo",
+    "noKey": "Autolock está desactivado",
+    "leaveTitle": "Salir del swarm",
+    "leaveHint": "Este nodo deja de formar parte del clúster. Sus servicios se detienen.",
+    "leave": "Salir del swarm",
+    "leaveBody": "Este nodo sale del swarm y sus servicios se detienen. No se puede deshacer.",
+    "left": "Saliste del swarm"
   }
 }

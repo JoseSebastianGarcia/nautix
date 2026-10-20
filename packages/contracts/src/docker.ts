@@ -197,7 +197,7 @@ export type ComposeProject = z.infer<typeof ComposeProject>;
 export const SaveComposeProject = z.object({ content: z.string().max(262_144) });
 export type SaveComposeProject = z.infer<typeof SaveComposeProject>;
 
-export const ComposeAction = z.enum(["up", "down", "pull", "config"]);
+export const ComposeAction = z.enum(["up", "down", "pull", "config", "ps", "logs", "build"]);
 export type ComposeAction = z.infer<typeof ComposeAction>;
 
 export const RunComposeAction = z.object({

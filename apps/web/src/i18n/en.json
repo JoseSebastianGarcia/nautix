@@ -14,7 +14,8 @@
     "system": "System",
     "gateway": "Gateways",
     "resources": "Resources",
-    "builds": "Builds"
+    "builds": "Builds",
+    "swarm": "Swarm"
   },
   "common": {
     "cancel": "Cancel",
@@ -447,7 +448,10 @@
       "hostPid": "Shares the host process namespace",
       "dangerousCap": "Adds powerful Linux capabilities",
       "yaml": "YAML syntax error: {{message}}"
-    }
+    },
+    "ps": "Status",
+    "logs": "Logs",
+    "build": "Build"
   },
   "tunnel": {
     "handle": "Drag to another box to open a tunnel",
@@ -650,5 +654,90 @@
       "NX-DF012": "Unknown instruction {{keyword}}.",
       "NX-DF013": "{{keyword}} in shell form: the app does not receive stop signals. Use the [\"exec\", \"form\"]."
     }
+  },
+  "swarm": {
+    "title": "Swarm",
+    "intro": "Docker Swarm runs services replicated across one or more machines. Start a new cluster on this engine or join an existing one.",
+    "initTitle": "Create a swarm",
+    "advertiseAddr": "Advertise address",
+    "advertiseHint": "IP other machines use to reach this one. Leave empty to detect it.",
+    "init": "Initialize swarm",
+    "joinTitle": "Join a swarm",
+    "remoteAddr": "Manager address",
+    "token": "Join token",
+    "join": "Join",
+    "initialized": "Swarm initialized",
+    "joined": "Joined the swarm",
+    "locked": "This swarm is locked. Enter the unlock key to use it.",
+    "unlock": "Unlock",
+    "unlocked": "Swarm unlocked",
+    "notManager": "This node is a worker: manage the swarm from a manager node.",
+    "tab": {
+      "services": "Services",
+      "nodes": "Nodes",
+      "stacks": "Stacks",
+      "secrets": "Secrets",
+      "configs": "Configs",
+      "cluster": "Cluster"
+    },
+    "newService": "New service",
+    "replicas": "Replicas",
+    "published": "Published port",
+    "publishedWarning": "A published port opens on every node of the swarm, on all interfaces.",
+    "serviceCreated": "Service {{name}} created",
+    "scaleUp": "More replicas",
+    "scaleDown": "Fewer replicas",
+    "removeServiceTitle": "Remove service {{name}}?",
+    "removeServiceBody": "Its tasks stop and the service disappears. Volumes are not touched.",
+    "slot": "Slot",
+    "desired": "Desired",
+    "error": "Error",
+    "hostname": "Host",
+    "role": "Role",
+    "roles": {
+      "manager": "Manager",
+      "worker": "Worker"
+    },
+    "availability": "Availability",
+    "availabilities": {
+      "active": "Active",
+      "pause": "Pause",
+      "drain": "Drain"
+    },
+    "address": "Address",
+    "leader": "leader",
+    "promote": "Promote",
+    "demote": "Demote",
+    "removeNodeTitle": "Remove node {{name}}?",
+    "removeNodeBody": "The node leaves the cluster list. A node that is still running must be drained or left first.",
+    "deployStack": "Deploy stack",
+    "stackName": "Stack name",
+    "removeStackTitle": "Remove stack {{name}}?",
+    "removeStackBody": "All the services of the stack are removed.",
+    "new_secret": "New secret",
+    "new_config": "New config",
+    "secretHint": "The value is sent once and cannot be read back, not even by admins.",
+    "created": "Created",
+    "value": "Value",
+    "view": "View",
+    "removeItemTitle": "Remove {{name}}?",
+    "removeItemBody": "Services that use it keep running until they are updated.",
+    "summary": "{{nodes}} nodes, {{managers}} managers",
+    "joinTokens": "Join tokens",
+    "tokensWarning": "Anyone with a token can add a machine to this cluster. Rotate it if it leaks.",
+    "showTokens": "Show tokens",
+    "rotate": "Rotate",
+    "rotated": "Token rotated",
+    "autolock": "Autolock",
+    "autolockHint": "With autolock the managers need an unlock key after a restart, so the cluster's secrets are not readable on disk.",
+    "enable": "Enable",
+    "disable": "Disable",
+    "showKey": "Show unlock key",
+    "noKey": "Autolock is off",
+    "leaveTitle": "Leave the swarm",
+    "leaveHint": "This node stops being part of the cluster. Its services stop.",
+    "leave": "Leave swarm",
+    "leaveBody": "This node leaves the swarm and its services stop. This cannot be undone.",
+    "left": "Left the swarm"
   }
 }

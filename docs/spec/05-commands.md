@@ -9,7 +9,7 @@ Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 
 `Done` = reachable in the UI with the flags people use daily. `Partial` = works, with gaps named in the table below. `Planned` = not built yet (milestone in the M column).
 
-Gaps in `Partial` rows: **build** uses the engine's classic builder: no BuildKit DAG, secrets, buildx or bake, and the context is the typed Dockerfile plus small text files (no directory upload) · **compose** covers up/down/pull/config, not ps/logs/build · **volume** has no file browser or update · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls and has a since-window but no until.
+Gaps in `Partial` rows: **swarm** has no `ca` rotation or `update` beyond autolock · **node** has no inspect/ps · **service** creates and updates replicas, image, ports, env and networks only (no rollout policy, placement, secrets or configs attach, `rollback`) · **stack** deploys and removes; listing is derived from service labels · **build** uses the engine's classic builder: no BuildKit DAG, secrets, buildx or bake, and the context is the typed Dockerfile plus small text files (no directory upload) · **volume** has no file browser or update · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls and has a since-window but no until.
 
 ## Common (13)
 
@@ -35,7 +35,7 @@ Gaps in `Partial` rows: **build** uses the engine's classic builder: no BuildKit
 |---|---|---|---|---|
 | builder | CLI | Builds → Builders (alias of image build management: prune, ls) | M4 | Planned |
 | buildx | CLI | Builds → Builders (create/use/inspect/rm/du/prune/stop) | M4 | Planned |
-| compose | CLI | Compose editor operations bar + Projects list | M3 | Partial |
+| compose | CLI | Compose editor operations bar + Projects list | M3 | Done |
 | container | API | Containers (all subcommands in rows below) | M1 | Done |
 | context | CLI + LOCAL | Settings → Targets (list/inspect/create/update/use/export/import/rm; v1 shows the local target, remote post-1.0); top-bar target chip | M1 | Planned |
 | image | API | Images (all subcommands in rows below) | M1 | Done |
@@ -51,12 +51,12 @@ Gaps in `Partial` rows: **build** uses the engine's classic builder: no BuildKit
 
 | Command | Route | UI placement | M | Status |
 |---|---|---|---|---|
-| swarm | API | Swarm → Init/Join/Leave/Unlock/Join-token/CA/Update | M5 | Planned |
-| node | API | Swarm → Nodes | M5 | Planned |
-| service | API | Swarm → Services | M5 | Planned |
-| stack | CLI | Swarm → Stacks | M5 | Planned |
-| secret | API | Swarm → Secrets | M5 | Planned |
-| config | API | Swarm → Configs | M5 | Planned |
+| swarm | API | Swarm → Init/Join/Leave/Unlock/Join-token/CA/Update | M5 | Partial |
+| node | API | Swarm → Nodes | M5 | Partial |
+| service | API | Swarm → Services | M5 | Partial |
+| stack | CLI | Swarm → Stacks | M5 | Partial |
+| secret | API | Swarm → Secrets | M5 | Done |
+| config | API | Swarm → Configs | M5 | Done |
 | checkpoint | API (experimental) | Container → Checkpoints, shown only when the daemon has experimental features on | M5 | Planned |
 
 ## Individual commands (28)

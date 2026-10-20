@@ -1,7 +1,19 @@
 import { hasRisks, type Issue, parse, readCompose, validateCompose } from "@nautix/compose";
 import type { ComposeAction, ComposeRunResult, Container } from "@nautix/contracts";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CircleCheck, Download, Play, Redo2, Save, Square, Undo2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CircleCheck,
+  Download,
+  Hammer,
+  List,
+  Play,
+  Redo2,
+  Save,
+  ScrollText,
+  Square,
+  Undo2,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
@@ -186,6 +198,19 @@ export function ComposeEditorPage() {
           onClick={() => runAction({ action: "config" })}
         >
           <CircleCheck size={14} /> {t("compose.validate")}
+        </Button>
+        <Button disabled={blocked || run.isPending} onClick={() => runAction({ action: "ps" })}>
+          <List size={14} /> {t("compose.ps")}
+        </Button>
+        <Button disabled={blocked || run.isPending} onClick={() => runAction({ action: "logs" })}>
+          <ScrollText size={14} /> {t("compose.logs")}
+        </Button>
+        <Button
+          write
+          disabled={blocked || run.isPending}
+          onClick={() => runAction({ action: "build" })}
+        >
+          <Hammer size={14} /> {t("compose.build")}
         </Button>
         <div role="tablist" className="ml-auto flex rounded-lg border border-line p-0.5 text-sm">
           {(["visual", "yaml"] as const).map((v) => (

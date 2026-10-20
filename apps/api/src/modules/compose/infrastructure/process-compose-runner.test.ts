@@ -61,6 +61,17 @@ describe("ProcessComposeRunner", () => {
     expect(readFileSync(record(), "utf8")).not.toContain("--volumes");
   });
 
+  it("runs ps, logs and build with fixed arguments", async () => {
+    for (const [action, args] of [
+      ["ps", "ps --all"],
+      ["logs", "logs --no-color --timestamps --tail 200"],
+      ["build", "build"],
+    ] as const) {
+      await runner().run({ project: "demo", content: "x", action, removeVolumes: false });
+      expect(readFileSync(record(), "utf8")).toContain(`-f - ${args}`);
+    }
+  });
+
   it("reports failures with their output", async () => {
     const result = await runner().run({
       project: "boom",

@@ -12,6 +12,7 @@ import { ImagesPage } from "../features/resources/images-page.js";
 import { NetworksPage } from "../features/resources/networks-page.js";
 import { VolumesPage } from "../features/resources/volumes-page.js";
 import { SettingsPage } from "../features/settings/settings-page.js";
+import { SwarmPage } from "../features/swarm/swarm-page.js";
 import { SystemPage } from "../features/system/system-page.js";
 import { useSession } from "./queries.js";
 import { Shell } from "./shell.js";
@@ -63,6 +64,7 @@ export function App() {
             <Route path="volumes" element={<VolumesPage />} />
             <Route path="networks" element={<NetworksPage />} />
             <Route path="builds" element={<BuildsPage />} />
+            <Route path="swarm" element={<SwarmPage />} />
             <Route path="compose" element={<ComposeProjectsPage />} />
             <Route
               path="compose/:name"

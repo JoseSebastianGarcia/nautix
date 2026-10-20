@@ -298,6 +298,93 @@ describe("against a real Docker daemon", () => {
     );
   });
 
+  it("runs a real swarm service: create, scale, logs, secrets and configs", async () => {
+    let status = (await call("GET", "/swarm")).json as { active: boolean };
+    const startedHere = !status.active;
+    if (startedHere) {
+      expect((await call("POST", "/swarm/init", { advertiseAddr: "127.0.0.1" })).res.status).toBe(
+        201,
+      );
+    }
+    try {
+      status = (await call("GET", "/swarm")).json as { active: boolean };
+      expect(status.active).toBe(true);
+      const nodes = (await call("GET", "/swarm/nodes")).json as { role: string; leader: boolean }[];
+      expect(nodes.some((n) => n.role === "manager")).toBe(true);
+
+      const created = await call("POST", "/swarm/services", {
+        name: `${PREFIX}svc-swarm`,
+        image: IMAGE,
+        replicas: 1,
+        env: { WHO: "swarm" },
+        command: ["sh", "-c", 'echo "hello from $WHO"; sleep 300'],
+      });
+      expect(created.res.status).toBe(201);
+      const id = (created.json as { id: string }).id;
+
+      let running = 0;
+      for (let i = 0; i < 40 && running < 1; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        const list = (await call("GET", "/swarm/services")).json as {
+          id: string;
+          running: number;
+        }[];
+        running = list.find((s) => s.id === id)?.running ?? 0;
+      }
+      expect(running).toBe(1);
+      const logs = (await call("GET", `/swarm/services/${id}/logs?tail=20`)).json.logs as string;
+      expect(logs).toContain("hello from swarm");
+      const tasks = (await call("GET", `/swarm/services/${id}/tasks`)).json as { state: string }[];
+      expect(tasks.some((t) => t.state === "running")).toBe(true);
+
+      expect((await call("PATCH", `/swarm/services/${id}`, { replicas: 2 })).res.status).toBe(204);
+      const scaled = (
+        (await call("GET", "/swarm/services")).json as { id: string; replicas: number }[]
+      ).find((s) => s.id === id);
+      expect(scaled?.replicas).toBe(2);
+
+      expect(
+        (await call("POST", "/swarm/secrets", { name: `${PREFIX}secret`, value: "top-secret" })).res
+          .status,
+      ).toBe(204);
+      expect(
+        (await call("POST", "/swarm/configs", { name: `${PREFIX}config`, value: "a=1" })).res
+          .status,
+      ).toBe(204);
+      const cfg = (
+        (await call("GET", "/swarm/configs")).json as { id: string; name: string }[]
+      ).find((c) => c.name === `${PREFIX}config`);
+      expect(
+        ((await call("GET", `/swarm/configs/${cfg?.id}/data`)).json as { data: string }).data,
+      ).toBe("a=1");
+
+      const deployed = await call("POST", "/swarm/stacks", {
+        name: "nxit-stack",
+        yaml: `services:\n  worker:\n    image: ${IMAGE}\n    command: ["sleep", "300"]\n`,
+      });
+      expect(
+        (deployed.json as { ok: boolean; output: string }).ok,
+        (deployed.json as { output: string }).output,
+      ).toBe(true);
+      const stacks = (await call("GET", "/swarm/stacks")).json as {
+        name: string;
+        services: number;
+      }[];
+      expect(stacks).toContainEqual({ name: "nxit-stack", services: 1 });
+      const removed = await call("DELETE", "/swarm/stacks/nxit-stack");
+      expect((removed.json as { ok: boolean }).ok).toBe(true);
+
+      expect((await call("DELETE", `/swarm/services/${id}`)).res.status).toBe(204);
+      for (const s of (
+        (await call("GET", "/swarm/secrets")).json as { id: string; name: string }[]
+      ).filter((x) => x.name.startsWith(PREFIX)))
+        await call("DELETE", `/swarm/secrets/${s.id}`);
+      await call("DELETE", `/swarm/configs/${cfg?.id}`);
+    } finally {
+      if (startedHere) await call("POST", "/swarm/leave", { force: true });
+    }
+  });
+
   it("removes what it created", async () => {
     const list = (await call("GET", "/containers")).json as Ctr[];
     for (const c of list.filter((c) => c.name.startsWith(PREFIX)))

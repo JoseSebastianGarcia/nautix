@@ -29,6 +29,9 @@ export class ProcessComposeRunner extends ComposeRunner {
       down: ["down", "--remove-orphans", ...(removeVolumes ? ["--volumes"] : [])],
       pull: ["pull"],
       config: ["config"],
+      ps: ["ps", "--all"],
+      logs: ["logs", "--no-color", "--timestamps", "--tail", "200"],
+      build: ["build"],
     };
     const cwd = join(this.options.dataDir, "projects", project);
     mkdirSync(cwd, { recursive: true });
