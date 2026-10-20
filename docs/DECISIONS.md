@@ -86,3 +86,6 @@ Registry logins (login/logout) are stored in SQLite with the password sealed by 
 
 ## ADR-025 — Swarm
 Swarm lives in its own module behind a `SwarmEngine` port (socket adapter, in-memory fake for the demo and tests) with one CQRS handler per use case. Services, nodes, secrets and configs use the Engine API; `docker stack deploy|rm` is the only CLI part (argument array, file on stdin, minimal environment) because stacks are a client-side feature. Stacks are listed from the `com.docker.stack.namespace` service label. Join tokens, the unlock key and config contents are admin-only reads; secret values are write-only and never returned. A swarm service port is published on every node on all interfaces, so the new-service dialog warns about it. Integration tests run a real swarm (create, scale, logs, secrets, configs, stack deploy/rm).
+
+## ADR-026 — License: Apache-2.0
+The project moved from MIT to Apache-2.0 (explicit patent grant, `NOTICE` file). All code so far was written for patterna.dev, so relicensing needs no third-party consent; contributions from now on are accepted under Apache-2.0. Dependencies must stay compatible (MIT, Apache-2.0, BSD, ISC, MPL ok; GPL, AGPL, SSPL, BUSL no), enforced by `scripts/check-licenses.mjs`.

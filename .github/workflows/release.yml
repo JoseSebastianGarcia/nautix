@@ -35,7 +35,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=Nautix
             org.opencontainers.image.description=Self-hosted web client to manage Docker
-            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.licenses=Apache-2.0
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
       - uses: docker/build-push-action@v6
         with:
