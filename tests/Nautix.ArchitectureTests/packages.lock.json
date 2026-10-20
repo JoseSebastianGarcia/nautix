@@ -527,7 +527,8 @@
       "nautix.testkit": {
         "type": "Project",
         "dependencies": {
-          "Nautix.SharedKernel": "[1.0.0, )"
+          "Nautix.SharedKernel": "[1.0.0, )",
+          "Nautix.Ui": "[1.0.0, )"
         }
       },
       "nautix.ui": {

@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nautix.SharedKernel\Nautix.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Nautix.Ui\Nautix.Ui.csproj" />
   </ItemGroup>
 
 </Project>
