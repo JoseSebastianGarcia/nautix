@@ -96,3 +96,7 @@ dotnet_diagnostic.CA1062.severity = none
 [src/Nautix.Ui.Generators/**.cs]
 # Internal generator, not a published analyzer package: no release-tracking files.
 dotnet_diagnostic.RS2008.severity = none
+
+[spikes/**.cs]
+# Spikes use seeded System.Random for reproducible synthetic data; nothing here is security-sensitive.
+dotnet_diagnostic.CA5394.severity = none

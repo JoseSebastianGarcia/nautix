@@ -1,0 +1,66 @@
+<Window x:Class="Nautix.Spikes.S2.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:nodify="https://miroiu.github.io/nodify"
+        xmlns:local="clr-namespace:Nautix.Spikes.S2"
+        Title="S2 - Graph performance (Nodify)" Width="1600" Height="900"
+        Background="{DynamicResource Nx.Bg0}">
+    <nodify:NodifyEditor x:Name="Editor"
+                         ItemsSource="{Binding Nodes}"
+                         Connections="{Binding Connections}"
+                         Background="{DynamicResource Nx.Bg0}"
+                         MinViewportZoom="0.1"
+                         MaxViewportZoom="2">
+        <nodify:NodifyEditor.ItemContainerStyle>
+            <Style TargetType="{x:Type nodify:ItemContainer}">
+                <Setter Property="Location" Value="{Binding Location}" />
+            </Style>
+        </nodify:NodifyEditor.ItemContainerStyle>
+
+        <nodify:NodifyEditor.ConnectionTemplate>
+            <DataTemplate DataType="{x:Type local:ConnectionViewModel}">
+                <nodify:Connection Source="{Binding Source.Anchor}"
+                                   Target="{Binding Target.Anchor}"
+                                   Stroke="{Binding Stroke}"
+                                   StrokeThickness="1.5" />
+            </DataTemplate>
+        </nodify:NodifyEditor.ConnectionTemplate>
+
+        <nodify:NodifyEditor.Resources>
+            <DataTemplate DataType="{x:Type local:NodeViewModel}">
+                <Grid Width="220" Height="72">
+                    <Border CornerRadius="12"
+                            Background="{DynamicResource Nx.Bg1}"
+                            BorderBrush="{DynamicResource Nx.Line}"
+                            BorderThickness="1">
+                        <Grid Margin="12,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="40" Height="40" CornerRadius="8" Background="{Binding KindBrush}" Opacity="0.85" />
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Nx.Text}" />
+                                <TextBlock Text="{Binding Subtitle}" FontSize="12" Foreground="{DynamicResource Nx.TextDim}" />
+                            </StackPanel>
+                            <Ellipse Grid.Column="2" Width="8" Height="8" Fill="{Binding StatusBrush}" />
+                        </Grid>
+                    </Border>
+                    <nodify:Connector Anchor="{Binding Input.Anchor, Mode=OneWayToSource}"
+                                      IsConnected="{Binding Input.IsConnected}"
+                                      HorizontalAlignment="Left" VerticalAlignment="Center"
+                                      Margin="-5,0,0,0" Width="10" Height="10">
+                        <Ellipse Width="10" Height="10" Fill="{DynamicResource Nx.Cyan}" />
+                    </nodify:Connector>
+                    <nodify:Connector Anchor="{Binding Output.Anchor, Mode=OneWayToSource}"
+                                      IsConnected="{Binding Output.IsConnected}"
+                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                      Margin="0,0,-5,0" Width="10" Height="10">
+                        <Ellipse Width="10" Height="10" Fill="{DynamicResource Nx.Cyan}" />
+                    </nodify:Connector>
+                </Grid>
+            </DataTemplate>
+        </nodify:NodifyEditor.Resources>
+    </nodify:NodifyEditor>
+</Window>
