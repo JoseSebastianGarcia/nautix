@@ -90,6 +90,11 @@ dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1812.severity = none
 # xUnit v3 tests do not need ConfigureAwait or localized literals.
 dotnet_diagnostic.CA1861.severity = none
+# Async tests here bound every wait with an explicit timeout instead of threading TestContext.Current.CancellationToken everywhere.
+dotnet_diagnostic.xUnit1051.severity = none
+# Test doubles hand ownership of disposables to the code under test; seeded Random gives reproducible payloads.
+dotnet_diagnostic.CA2000.severity = none
+dotnet_diagnostic.CA5394.severity = none
 # Test parameters come from the test framework and are never null.
 dotnet_diagnostic.CA1062.severity = none
 
