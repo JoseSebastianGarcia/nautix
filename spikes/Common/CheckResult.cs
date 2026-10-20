@@ -8,8 +8,12 @@ public sealed record CheckResult(
     bool Passed,
     string Gate,
     ImmutableDictionary<string, double> Metrics,
-    string Notes)
+    string Notes,
+    bool Skipped = false)
 {
+    public static CheckResult Skip(string name, string gate, string reason) =>
+        new(name, true, gate, ImmutableDictionary<string, double>.Empty, reason, Skipped: true);
+
     public static CheckResult Create(string name, bool passed, string gate, string notes = "", params (string Key, double Value)[] metrics) =>
         new(name, passed, gate, metrics.ToImmutableDictionary(m => m.Key, m => m.Value, StringComparer.Ordinal), notes);
 }

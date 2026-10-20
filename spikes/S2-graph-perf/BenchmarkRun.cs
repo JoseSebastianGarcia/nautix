@@ -12,7 +12,7 @@ namespace Nautix.Spikes.S2;
 /// <summary>Runs the S2 matrix: pan / zoom / drag at two zoom levels, with Nodify defaults and with its optimizations on.</summary>
 internal sealed class BenchmarkRun(MainWindow window, GraphViewModel graph, string outputDirectory, bool screenshot, TimeSpan scenarioDuration)
 {
-    private static readonly double[] ZoomLevels = [0.35, 1.0];
+    private static readonly double[] _zoomLevels = [0.35, 1.0];
 
     private NodifyEditor Editor => window.GraphEditor;
 
@@ -28,7 +28,7 @@ internal sealed class BenchmarkRun(MainWindow window, GraphViewModel graph, stri
             var gated = new List<ScenarioStats>();
             var informational = new List<ScenarioStats>();
 
-            foreach (var zoom in ZoomLevels)
+            foreach (var zoom in _zoomLevels)
             {
                 gated.Add(await Scenario(zoom, "pan", PanStep(zoom)));
                 gated.Add(await Scenario(zoom, "zoom", ZoomStep(zoom)));

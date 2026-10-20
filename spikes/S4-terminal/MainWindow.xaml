@@ -1,0 +1,8 @@
+<Window x:Class="Nautix.Spikes.S4.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="S4 - Terminal spike (ConPTY + xterm.js)" Width="1100" Height="700"
+        Background="{DynamicResource Nx.Bg1}">
+    <wv2:WebView2 x:Name="Web" />
+</Window>
