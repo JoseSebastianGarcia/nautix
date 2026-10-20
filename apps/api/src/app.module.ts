@@ -1,6 +1,7 @@
 import { type DynamicModule, Module } from "@nestjs/common";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthController } from "./modules/auth/presentation/health.controller.js";
+import { ComposeModule } from "./modules/compose/compose.module.js";
 import { DockerModule } from "./modules/docker/docker.module.js";
 import { LayoutModule } from "./modules/layout/layout.module.js";
 import { TerminalModule } from "./modules/terminal/terminal.module.js";
@@ -16,6 +17,7 @@ export class AppModule {
         DockerModule.register(config),
         TerminalModule.register(config),
         LayoutModule.register(config),
+        ComposeModule.register(config),
       ],
       controllers: [HealthController],
     };

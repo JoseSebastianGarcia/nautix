@@ -31,6 +31,7 @@ import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
 import { DeployDialog, type DeployTarget } from "./deploy-dialog.js";
 import { ExportDialog, type ExportTarget } from "./export-dialog.js";
+import { type FlowNode, nodeTypes, toEdges, toNodes } from "./flow-graph.js";
 import { Inspector, type Selection } from "./inspector.js";
 import {
   EXTERNAL_ID,
@@ -43,64 +44,12 @@ import {
 } from "./layout.js";
 import { type MoveStep, planMove } from "./move-plan.js";
 import { NetworkDialog } from "./network-dialog.js";
-import { type ContainerFlowNode, ContainerNode, type ZoneFlowNode, ZoneNode } from "./nodes.js";
 import { CUSTOM_TEMPLATE_ID, DRAG_TYPE, Palette } from "./palette.js";
 
 const NO_CONTAINERS: Container[] = [];
 const NO_NETWORKS: Network[] = [];
 const NO_TEMPLATES: Template[] = [];
 const EMPTY_LAYOUT: Layout = { zones: {}, nodes: {} };
-
-const nodeTypes = { container: ContainerNode, zone: ZoneNode };
-
-type FlowNode = ContainerFlowNode | ZoneFlowNode;
-
-const toNodes = (
-  topology: Topology,
-  containers: Container[],
-  draggableZones: boolean,
-): FlowNode[] => {
-  const byId = new Map(containers.map((c) => [c.id, c]));
-  const zones: ZoneFlowNode[] = topology.zones.map((z) => ({
-    id: `z:${z.id}`,
-    type: "zone",
-    position: { x: z.x, y: z.y },
-    data: { network: z.network, count: z.containerIds.length, w: z.w, h: z.h },
-    draggable: draggableZones,
-    zIndex: -1,
-    width: z.w,
-    height: z.h,
-  }));
-  const nodes: ContainerFlowNode[] = topology.placements.flatMap((p) => {
-    const container = byId.get(p.containerId);
-    const zone = topology.zones.find((z) => z.id === p.zoneId);
-    return container && zone
-      ? [
-          {
-            id: `c:${p.containerId}`,
-            type: "container" as const,
-            // Children are positioned relative to their box, so dragging a box moves them with it.
-            parentId: `z:${p.zoneId}`,
-            position: { x: p.x - zone.x, y: p.y - zone.y },
-            data: { container },
-            zIndex: 1,
-            width: NODE_W,
-            height: NODE_H,
-          },
-        ]
-      : [];
-  });
-  return [...zones, ...nodes];
-};
-
-const toEdges = (topology: Topology): Edge[] =>
-  topology.links.map((l) => ({
-    id: `l:${l.containerId}:${l.zoneId}`,
-    source: `c:${l.containerId}`,
-    target: `z:${l.zoneId}`,
-    animated: true,
-    style: { strokeDasharray: "6 4", stroke: "var(--nx-accent)" },
-  }));
 
 interface PendingMove {
   container: Container;

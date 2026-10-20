@@ -50,6 +50,7 @@ pnpm lint && pnpm typecheck && pnpm test
 - **Export as Compose** (whole canvas or one box): networks, loopback port bindings, volumes; env values become `${NAME}` placeholders unless you opt in.
 - Data directories of database templates use named volumes (`<name>-data`), so they survive recreating the container.
 - The UI updates live from the daemon's event stream.
+- **Compose editor** (`Compose` in the top bar): visual canvas and YAML tab in sync, undo/redo, live checks (unknown networks, duplicate ports, public ports, privileged features), and Up / Down / Pull / Validate. Visual edits keep your comments and layout of the file.
 - Every action has a **Show command** with the equivalent `docker` CLI line.
 
 ## Docs

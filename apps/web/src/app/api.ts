@@ -1,5 +1,9 @@
 import type {
   ApiTokenInfo,
+  ComposeAction,
+  ComposeProject,
+  ComposeProjectSummary,
+  ComposeRunResult,
   Container,
   ContainerAction,
   CreateContainer,
@@ -61,6 +65,17 @@ export const api = {
 
   layout: () => request<Layout>("GET", "/layout"),
   saveLayout: (layout: Layout) => request<void>("PUT", "/layout", layout),
+
+  composeProjects: () => request<ComposeProjectSummary[]>("GET", "/compose/projects"),
+  composeProject: (name: string) => request<ComposeProject>("GET", `/compose/projects/${name}`),
+  saveComposeProject: (name: string, content: string) =>
+    request<void>("PUT", `/compose/projects/${name}`, { content }),
+  deleteComposeProject: (name: string) => request<void>("DELETE", `/compose/projects/${name}`),
+  runCompose: (
+    name: string,
+    action: ComposeAction,
+    opts: { acknowledgeRisks?: boolean; removeVolumes?: boolean } = {},
+  ) => request<ComposeRunResult>("POST", `/compose/projects/${name}/${action}`, opts),
 
   engine: () => request<EngineInfo>("GET", "/engine"),
   catalog: () => request<Template[]>("GET", "/catalog"),

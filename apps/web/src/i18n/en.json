@@ -9,7 +9,8 @@
     "images": "Images",
     "volumes": "Volumes",
     "networks": "Networks",
-    "settings": "Settings"
+    "settings": "Settings",
+    "compose": "Compose"
   },
   "common": {
     "cancel": "Cancel",
@@ -191,7 +192,11 @@
     "adminOnly": "Admin role required",
     "usernameTaken": "That username already exists",
     "deleteSelf": "You cannot delete yourself",
-    "lastAdmin": "You cannot delete the last admin"
+    "lastAdmin": "You cannot delete the last admin",
+    "composeInvalid": "The file has errors; fix them first",
+    "composeRisk": "The file uses privileged features; confirm the risks",
+    "composeBusy": "Another operation is running for this project",
+    "notRunning": "The container is not running"
   },
   "terminal": {
     "title": "Terminal",
@@ -228,5 +233,80 @@
     "deleteUserBody": "Their sessions end immediately.",
     "roleHint": "Viewers can look but not change anything, and cannot open terminals or see environment values.",
     "you": "you"
+  },
+  "compose": {
+    "title": "Compose projects",
+    "newProject": "New project",
+    "updated": "Updated",
+    "notDeployed": "not deployed",
+    "runningCount": "{{running}}/{{total}} running",
+    "deleteTitle": "Delete project {{name}}?",
+    "deleteBody": "Only the saved file is deleted. Containers it started keep running until you bring the project down.",
+    "nameHint": "Lowercase letters, numbers, - and _",
+    "startFrom": "Start from",
+    "source": {
+      "blank": "An empty file",
+      "engine": "What is running now (export)"
+    },
+    "tab": {
+      "visual": "Visual",
+      "yaml": "YAML"
+    },
+    "save": "Save",
+    "saved": "Project saved",
+    "unsaved": "unsaved changes",
+    "undo": "Undo",
+    "redo": "Redo",
+    "up": "Up",
+    "down": "Down",
+    "pull": "Pull",
+    "validate": "Validate",
+    "config": "Validate",
+    "output": "Operation output",
+    "succeeded": "succeeded",
+    "failed": "failed (exit code {{code}})",
+    "inspectorEmpty": "Select a service or a network box. Drag templates from the palette to add services.",
+    "issues": "Checks",
+    "noIssues": "No problems found",
+    "add": "add",
+    "serviceName": "Service name",
+    "containerName": "Container name",
+    "restart": "Restart policy",
+    "environment": "Environment",
+    "volumes": "Volumes",
+    "dependsOn": "Depends on",
+    "noNetworks": "No networks defined yet. Create one with “New network”.",
+    "publicHint": "Published on all interfaces. Use 127.0.0.1:host:container to keep it private.",
+    "removeService": "Remove service",
+    "removeServiceTitle": "Remove service {{name}}?",
+    "removeServiceBody": "It is removed from the file, together with references to it in depends_on.",
+    "removeNetwork": "Remove network",
+    "removeNetworkBody": "The network is removed from the file and from every service that used it.",
+    "defaultBoxHint": "Services that name no network share this implicit network, as Docker Compose does.",
+    "addService": "Add service",
+    "riskTitle": "This file uses privileged features",
+    "riskBody": "These settings give containers broad control over this machine. Continue only if you trust the images.",
+    "riskAck": "I understand the risks",
+    "downTitle": "Bring {{name}} down?",
+    "downBody": "Containers and networks of this project are stopped and removed.",
+    "removeVolumes": "Also remove named volumes",
+    "removeVolumesWarning": "Their data is deleted permanently.",
+    "issue": {
+      "noServices": "The file defines no services",
+      "noImage": "Needs an image or a build",
+      "unknownDependency": "depends_on refers to “{{target}}”, which does not exist",
+      "unknownNetwork": "Uses the network “{{target}}”, which is not defined",
+      "duplicateContainerName": "Container name “{{name}}” is also used by {{other}}",
+      "invalidPort": "“{{port}}” is not a valid port mapping",
+      "publicPort": "Port {{port}} is published on all interfaces",
+      "duplicateHostPort": "Host port {{port}} is also used by {{other}}",
+      "relativeBind": "“{{volume}}” is a relative path; use an absolute host path or a named volume",
+      "dockerSocket": "Mounts the Docker socket (full control of the host)",
+      "privileged": "Runs privileged",
+      "hostNetwork": "Uses the host network",
+      "hostPid": "Shares the host process namespace",
+      "dangerousCap": "Adds powerful Linux capabilities",
+      "yaml": "YAML syntax error: {{message}}"
+    }
   }
 }

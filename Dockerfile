@@ -7,6 +7,8 @@ RUN pnpm install --frozen-lockfile && pnpm build
 RUN pnpm --filter @nautix/api deploy --prod --legacy /out/api \
  && cp -r apps/web/dist /out/web
 
+FROM docker:27-cli AS docker-cli
+
 FROM node:22-bookworm-slim
 ENV NODE_ENV=production \
     NAUTIX_HOST=0.0.0.0 \
@@ -14,6 +16,9 @@ ENV NODE_ENV=production \
     NAUTIX_DATA=/data \
     NAUTIX_WEB_DIST=/app/web \
     NAUTIX_DOCKER_SOCKET=/var/run/docker.sock
+# The compose editor shells out to `docker compose` (argument arrays, no shell).
+COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker-cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
 WORKDIR /app/api
 COPY --from=build /out/api /app/api
 COPY --from=build /out/web /app/web

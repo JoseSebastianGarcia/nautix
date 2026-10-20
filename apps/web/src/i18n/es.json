@@ -9,7 +9,8 @@
     "images": "Imágenes",
     "volumes": "Volúmenes",
     "networks": "Redes",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "compose": "Compose"
   },
   "common": {
     "cancel": "Cancelar",
@@ -191,7 +192,11 @@
     "adminOnly": "Se requiere rol de administrador",
     "usernameTaken": "Ese usuario ya existe",
     "deleteSelf": "No podés eliminarte a vos mismo",
-    "lastAdmin": "No podés eliminar al último administrador"
+    "lastAdmin": "No podés eliminar al último administrador",
+    "composeInvalid": "El archivo tiene errores; corregilos primero",
+    "composeRisk": "El archivo usa funciones privilegiadas; confirmá los riesgos",
+    "composeBusy": "Hay otra operación en curso para este proyecto",
+    "notRunning": "El contenedor no está en ejecución"
   },
   "terminal": {
     "title": "Terminal",
@@ -228,5 +233,80 @@
     "deleteUserBody": "Sus sesiones terminan de inmediato.",
     "roleHint": "Los lectores pueden mirar pero no cambiar nada, y no pueden abrir terminales ni ver valores de entorno.",
     "you": "vos"
+  },
+  "compose": {
+    "title": "Proyectos Compose",
+    "newProject": "Nuevo proyecto",
+    "updated": "Actualizado",
+    "notDeployed": "sin desplegar",
+    "runningCount": "{{running}}/{{total}} en ejecución",
+    "deleteTitle": "¿Eliminar el proyecto {{name}}?",
+    "deleteBody": "Solo se elimina el archivo guardado. Los contenedores que levantó siguen corriendo hasta que lo bajes.",
+    "nameHint": "Minúsculas, números, - y _",
+    "startFrom": "Empezar desde",
+    "source": {
+      "blank": "Un archivo vacío",
+      "engine": "Lo que está corriendo ahora (exportar)"
+    },
+    "tab": {
+      "visual": "Visual",
+      "yaml": "YAML"
+    },
+    "save": "Guardar",
+    "saved": "Proyecto guardado",
+    "unsaved": "cambios sin guardar",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "up": "Levantar",
+    "down": "Bajar",
+    "pull": "Descargar",
+    "validate": "Validar",
+    "config": "Validar",
+    "output": "Salida de la operación",
+    "succeeded": "correcto",
+    "failed": "falló (código de salida {{code}})",
+    "inspectorEmpty": "Seleccioná un servicio o una caja de red. Arrastrá plantillas desde la paleta para agregar servicios.",
+    "issues": "Comprobaciones",
+    "noIssues": "No se encontraron problemas",
+    "add": "agregar",
+    "serviceName": "Nombre del servicio",
+    "containerName": "Nombre del contenedor",
+    "restart": "Política de reinicio",
+    "environment": "Entorno",
+    "volumes": "Volúmenes",
+    "dependsOn": "Depende de",
+    "noNetworks": "Todavía no hay redes. Creá una con “Nueva red”.",
+    "publicHint": "Publicado en todas las interfaces. Usá 127.0.0.1:host:contenedor para mantenerlo privado.",
+    "removeService": "Quitar servicio",
+    "removeServiceTitle": "¿Quitar el servicio {{name}}?",
+    "removeServiceBody": "Se quita del archivo, junto con las referencias en depends_on.",
+    "removeNetwork": "Quitar red",
+    "removeNetworkBody": "La red se quita del archivo y de todos los servicios que la usaban.",
+    "defaultBoxHint": "Los servicios que no nombran una red comparten esta red implícita, como hace Docker Compose.",
+    "addService": "Agregar servicio",
+    "riskTitle": "Este archivo usa funciones privilegiadas",
+    "riskBody": "Estas opciones dan a los contenedores mucho control sobre esta máquina. Continuá solo si confiás en las imágenes.",
+    "riskAck": "Entiendo los riesgos",
+    "downTitle": "¿Bajar {{name}}?",
+    "downBody": "Los contenedores y redes de este proyecto se detienen y se eliminan.",
+    "removeVolumes": "Eliminar también los volúmenes con nombre",
+    "removeVolumesWarning": "Sus datos se borran de forma permanente.",
+    "issue": {
+      "noServices": "El archivo no define servicios",
+      "noImage": "Necesita una imagen o un build",
+      "unknownDependency": "depends_on apunta a “{{target}}”, que no existe",
+      "unknownNetwork": "Usa la red “{{target}}”, que no está definida",
+      "duplicateContainerName": "El nombre de contenedor “{{name}}” también lo usa {{other}}",
+      "invalidPort": "“{{port}}” no es un mapeo de puerto válido",
+      "publicPort": "El puerto {{port}} se publica en todas las interfaces",
+      "duplicateHostPort": "El puerto del host {{port}} también lo usa {{other}}",
+      "relativeBind": "“{{volume}}” es una ruta relativa; usá una ruta absoluta del host o un volumen con nombre",
+      "dockerSocket": "Monta el socket de Docker (control total del equipo)",
+      "privileged": "Se ejecuta privilegiado",
+      "hostNetwork": "Usa la red del host",
+      "hostPid": "Comparte el espacio de procesos del host",
+      "dangerousCap": "Agrega capacidades de Linux poderosas",
+      "yaml": "Error de sintaxis YAML: {{message}}"
+    }
   }
 }

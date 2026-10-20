@@ -161,3 +161,35 @@ export const Layout = z.object({
   nodes: z.record(z.string().max(128), Point).refine((r) => Object.keys(r).length <= 2000),
 });
 export type Layout = z.infer<typeof Layout>;
+
+export const ComposeProjectName = z
+  .string()
+  .regex(/^[a-z0-9][a-z0-9_-]{0,62}$/, "invalid project name");
+
+export const ComposeProjectSummary = z.object({ name: z.string(), updatedAt: z.number() });
+export type ComposeProjectSummary = z.infer<typeof ComposeProjectSummary>;
+
+export const ComposeProject = ComposeProjectSummary.extend({ content: z.string() });
+export type ComposeProject = z.infer<typeof ComposeProject>;
+
+/** 256 KB is far above any real Compose file and keeps requests cheap to validate. */
+export const SaveComposeProject = z.object({ content: z.string().max(262_144) });
+export type SaveComposeProject = z.infer<typeof SaveComposeProject>;
+
+export const ComposeAction = z.enum(["up", "down", "pull", "config"]);
+export type ComposeAction = z.infer<typeof ComposeAction>;
+
+export const RunComposeAction = z.object({
+  /** Needed when the file uses privileged mode, host network, the Docker socket, etc. */
+  acknowledgeRisks: z.boolean().default(false),
+  /** `down` only: also delete named volumes (data loss). */
+  removeVolumes: z.boolean().default(false),
+});
+export type RunComposeAction = z.infer<typeof RunComposeAction>;
+
+export const ComposeRunResult = z.object({
+  ok: z.boolean(),
+  exitCode: z.number().nullable(),
+  output: z.string(),
+});
+export type ComposeRunResult = z.infer<typeof ComposeRunResult>;

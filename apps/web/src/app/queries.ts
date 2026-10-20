@@ -10,6 +10,7 @@ export const keys = {
   images: ["images"],
   volumes: ["volumes"],
   layout: ["layout"],
+  composeProjects: ["compose-projects"],
 } as const;
 
 /** Live updates come from the SSE stream; polling is only a slow safety net. */
@@ -35,3 +36,6 @@ export const useIsAdmin = (): boolean => useSession().data?.role === "admin";
 
 export const useLayout = () =>
   useQuery({ queryKey: keys.layout, queryFn: api.layout, staleTime: 60_000 });
+
+export const useComposeProjects = () =>
+  useQuery({ queryKey: keys.composeProjects, queryFn: api.composeProjects });

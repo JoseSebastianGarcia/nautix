@@ -2,6 +2,7 @@ import {
   Boxes,
   HardDrive,
   Image as ImageIcon,
+  Layers,
   LogOut,
   Network as NetworkIcon,
   Settings,
@@ -24,6 +25,7 @@ const NAV = [
   { to: "/images", key: "nav.images", icon: ImageIcon },
   { to: "/volumes", key: "nav.volumes", icon: HardDrive },
   { to: "/networks", key: "nav.networks", icon: NetworkIcon },
+  { to: "/compose", key: "nav.compose", icon: Layers },
   { to: "/settings", key: "nav.settings", icon: Settings, adminOnly: true },
 ] as const;
 

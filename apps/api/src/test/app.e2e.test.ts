@@ -350,3 +350,45 @@ describe("layout", () => {
     ).toBe(422);
   });
 });
+
+describe("compose projects", () => {
+  const GOOD = "services:\n  web:\n    image: nginx\n    ports: ['127.0.0.1:8081:80']\n";
+  const RISKY =
+    "services:\n  agent:\n    image: x\n    volumes: ['/var/run/docker.sock:/var/run/docker.sock']\n";
+
+  it("saves, lists, reads and runs a project", async () => {
+    expect((await call("PUT", "/compose/projects/demo", { content: GOOD })).res.status).toBe(204);
+    const list = (await call("GET", "/compose/projects")).json as { name: string }[];
+    expect(list.map((p) => p.name)).toContain("demo");
+    expect(
+      ((await call("GET", "/compose/projects/demo")).json as { content: string }).content,
+    ).toBe(GOOD);
+    const up = await call("POST", "/compose/projects/demo/up", {});
+    expect(up.res.status).toBe(200);
+    expect(up.json).toMatchObject({ ok: true, exitCode: 0 });
+  });
+
+  it("refuses invalid names, invalid files and unacknowledged risks", async () => {
+    expect((await call("PUT", "/compose/projects/Bad_Name", { content: GOOD })).res.status).toBe(
+      422,
+    );
+    await call("PUT", "/compose/projects/broken", { content: "services:\n  a: {}\n" });
+    const invalid = await call("POST", "/compose/projects/broken/up", {});
+    expect(invalid.res.status).toBe(422);
+    expect(invalid.json.hintKey).toBe("errors.composeInvalid");
+
+    await call("PUT", "/compose/projects/risky", { content: RISKY });
+    const refused = await call("POST", "/compose/projects/risky/up", {});
+    expect(refused.res.status).toBe(409);
+    expect(refused.json.hintKey).toBe("errors.composeRisk");
+    expect(
+      (await call("POST", "/compose/projects/risky/up", { acknowledgeRisks: true })).res.status,
+    ).toBe(200);
+  });
+
+  it("lets `down` run even when the file is invalid, and deletes projects", async () => {
+    expect((await call("POST", "/compose/projects/broken/down", {})).res.status).toBe(200);
+    expect((await call("DELETE", "/compose/projects/broken")).res.status).toBe(204);
+    expect((await call("GET", "/compose/projects/broken")).res.status).toBe(404);
+  });
+});
