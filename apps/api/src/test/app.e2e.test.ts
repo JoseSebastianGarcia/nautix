@@ -335,3 +335,18 @@ describe("roles and API tokens", () => {
     expect((await call("DELETE", `/settings/users/${viewer?.id}`)).res.status).toBe(204);
   });
 });
+
+describe("layout", () => {
+  it("persists canvas positions and rejects junk", async () => {
+    expect((await call("GET", "/layout")).json).toEqual({ zones: {}, nodes: {} });
+    const layout = { zones: { backend: { x: 10, y: 20 } }, nodes: { kong: { x: 30, y: 80 } } };
+    expect((await call("PUT", "/layout", layout)).res.status).toBe(204);
+    expect((await call("GET", "/layout")).json).toEqual(layout);
+    expect(
+      (await call("PUT", "/layout", { zones: { a: { x: "no", y: 1 } }, nodes: {} })).res.status,
+    ).toBe(422);
+    expect(
+      (await call("PUT", "/layout", { zones: {}, nodes: { a: { x: 1e12, y: 0 } } })).res.status,
+    ).toBe(422);
+  });
+});

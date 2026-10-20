@@ -1,4 +1,4 @@
-import type { Container, Network, Template } from "@nautix/contracts";
+import type { Container, Layout, Network, Template } from "@nautix/contracts";
 import {
   applyNodeChanges,
   Background,
@@ -13,18 +13,34 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { useQueryClient } from "@tanstack/react-query";
 import { FileDown, LayoutGrid } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
-import { keys, useCatalog, useContainers, useIsAdmin, useNetworks } from "../../app/queries.js";
+import {
+  keys,
+  useCatalog,
+  useContainers,
+  useIsAdmin,
+  useLayout,
+  useNetworks,
+} from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
 import { DeployDialog, type DeployTarget } from "./deploy-dialog.js";
 import { ExportDialog, type ExportTarget } from "./export-dialog.js";
 import { Inspector, type Selection } from "./inspector.js";
-import { EXTERNAL_ID, layoutTopology, NODE_H, NODE_W, type Topology, zoneAt } from "./layout.js";
+import {
+  EXTERNAL_ID,
+  layoutTopology,
+  NODE_H,
+  NODE_W,
+  type Topology,
+  zoneAt,
+  zoneKey,
+} from "./layout.js";
 import { type MoveStep, planMove } from "./move-plan.js";
 import { NetworkDialog } from "./network-dialog.js";
 import { type ContainerFlowNode, ContainerNode, type ZoneFlowNode, ZoneNode } from "./nodes.js";
@@ -33,31 +49,39 @@ import { CUSTOM_TEMPLATE_ID, DRAG_TYPE, Palette } from "./palette.js";
 const NO_CONTAINERS: Container[] = [];
 const NO_NETWORKS: Network[] = [];
 const NO_TEMPLATES: Template[] = [];
+const EMPTY_LAYOUT: Layout = { zones: {}, nodes: {} };
 
 const nodeTypes = { container: ContainerNode, zone: ZoneNode };
 
 type FlowNode = ContainerFlowNode | ZoneFlowNode;
 
-const toNodes = (topology: Topology, containers: Container[]): FlowNode[] => {
+const toNodes = (
+  topology: Topology,
+  containers: Container[],
+  draggableZones: boolean,
+): FlowNode[] => {
   const byId = new Map(containers.map((c) => [c.id, c]));
   const zones: ZoneFlowNode[] = topology.zones.map((z) => ({
     id: `z:${z.id}`,
     type: "zone",
     position: { x: z.x, y: z.y },
     data: { network: z.network, count: z.containerIds.length, w: z.w, h: z.h },
-    draggable: false,
+    draggable: draggableZones,
     zIndex: -1,
     width: z.w,
     height: z.h,
   }));
   const nodes: ContainerFlowNode[] = topology.placements.flatMap((p) => {
     const container = byId.get(p.containerId);
-    return container
+    const zone = topology.zones.find((z) => z.id === p.zoneId);
+    return container && zone
       ? [
           {
             id: `c:${p.containerId}`,
             type: "container" as const,
-            position: { x: p.x, y: p.y },
+            // Children are positioned relative to their box, so dragging a box moves them with it.
+            parentId: `z:${p.zoneId}`,
+            position: { x: p.x - zone.x, y: p.y - zone.y },
             data: { container },
             zIndex: 1,
             width: NODE_W,
@@ -93,27 +117,41 @@ function Canvas() {
   const flow = useReactFlow();
   const isAdmin = useIsAdmin();
 
-  const topology = useMemo(() => layoutTopology(containers, networks), [containers, networks]);
+  const { data: savedLayout = EMPTY_LAYOUT } = useLayout();
+  const qc = useQueryClient();
+  const saveLayout = useApiMutation((layout: Layout) => api.saveLayout(layout), []);
+  const persist = useCallback(
+    (next: Layout) => {
+      qc.setQueryData(keys.layout, next);
+      saveLayout.mutate(next);
+    },
+    [qc, saveLayout],
+  );
+  const topology = useMemo(
+    () => layoutTopology(containers, networks, savedLayout),
+    [containers, networks, savedLayout],
+  );
   const [nodes, setNodes] = useState<FlowNode[]>([]);
   const [selection, setSelection] = useState<Selection>(null);
   const [deploy, setDeploy] = useState<DeployTarget | null>(null);
   const [newNetwork, setNewNetwork] = useState(false);
   const [exporting, setExporting] = useState<ExportTarget | null>(null);
+  const [resetting, setResetting] = useState(false);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
 
   // Re-sync from engine data whenever it changes (drag offsets are intentionally discarded).
   const fitted = useRef(false);
   useEffect(() => {
-    setNodes(toNodes(topology, containers));
+    setNodes(toNodes(topology, containers, isAdmin));
     if (!fitted.current && containers.length > 0) {
       fitted.current = true;
       requestAnimationFrame(() => void flow.fitView({ padding: 0.1, maxZoom: 1 }));
     }
-  }, [topology, containers, flow]);
+  }, [topology, containers, flow, isAdmin]);
 
   const relayout = useCallback(
-    () => setNodes(toNodes(topology, containers)),
-    [topology, containers],
+    () => setNodes(toNodes(topology, containers, isAdmin)),
+    [topology, containers, isAdmin],
   );
 
   const move = useApiMutation(
@@ -133,29 +171,48 @@ function Canvas() {
 
   const onNodeDragStop = useCallback(
     (_: unknown, node: Node) => {
-      if (!node.id.startsWith("c:")) return;
+      // Dragging a box: remember where it is.
+      if (node.id.startsWith("z:")) {
+        const zone = topology.zones.find((z) => `z:${z.id}` === node.id);
+        if (zone) {
+          persist({
+            ...savedLayout,
+            zones: {
+              ...savedLayout.zones,
+              [zoneKey(zone)]: { x: node.position.x, y: node.position.y },
+            },
+          });
+        }
+        return;
+      }
       const id = node.id.slice(2);
       const container = containers.find((c) => c.id === id);
       const current = topology.placements.find((p) => p.containerId === id);
-      const target = zoneAt(
-        topology.zones,
-        node.position.x + NODE_W / 2,
-        node.position.y + NODE_H / 2,
-      );
-      if (!container || !current || !target || target.id === current.zoneId) {
-        relayout();
+      const currentZone = topology.zones.find((z) => z.id === current?.zoneId);
+      if (!container || !current || !currentZone) return relayout();
+      // `node.position` is relative to its box; the drop point decides which box it landed in.
+      const absX = currentZone.x + node.position.x;
+      const absY = currentZone.y + node.position.y;
+      const target = zoneAt(topology.zones, absX + NODE_W / 2, absY + NODE_H / 2);
+      if (!target) return relayout();
+      if (target.id === current.zoneId) {
+        // Same box: just remember the new spot.
+        persist({
+          ...savedLayout,
+          nodes: {
+            ...savedLayout.nodes,
+            [container.name]: { x: node.position.x, y: node.position.y },
+          },
+        });
         return;
       }
-      const from = topology.zones.find((z) => z.id === current.zoneId)?.network ?? null;
+      const from = currentZone.network;
       const to = target.network;
       const steps = planMove(container, networks, from, to);
-      if (steps.length === 0) {
-        relayout();
-        return;
-      }
+      if (steps.length === 0) return relayout();
       setPendingMove({ container, from, to, steps });
     },
-    [containers, networks, topology, relayout],
+    [containers, networks, topology, relayout, persist, savedLayout],
   );
 
   const onDrop = useCallback(
@@ -221,7 +278,7 @@ function Canvas() {
           />
         </ReactFlow>
         <div className="absolute left-4 top-4 flex gap-2">
-          <Button onClick={relayout}>
+          <Button write onClick={() => setResetting(true)}>
             <LayoutGrid size={14} /> {t("topology.autoLayout")}
           </Button>
           <Button onClick={() => setExporting({ networkId: undefined, label: undefined })}>
@@ -243,6 +300,14 @@ function Canvas() {
       />
 
       <DeployDialog target={deploy} onClose={() => setDeploy(null)} />
+      <ConfirmDialog
+        open={resetting}
+        danger={false}
+        title={t("topology.resetLayoutTitle")}
+        body={t("topology.resetLayoutBody")}
+        onConfirm={() => persist(EMPTY_LAYOUT)}
+        onClose={() => setResetting(false)}
+      />
       <ExportDialog target={exporting} onClose={() => setExporting(null)} />
       <NetworkDialog open={newNetwork} onClose={() => setNewNetwork(false)} />
       <ConfirmDialog
@@ -265,7 +330,12 @@ function Canvas() {
               : cli.disconnect(s.networkName, pendingMove.container.name),
           )
           .join("\n")}
-        onConfirm={() => pendingMove && move.mutate(pendingMove)}
+        onConfirm={() => {
+          if (!pendingMove) return;
+          const { [pendingMove.container.name]: _old, ...rest } = savedLayout.nodes;
+          persist({ ...savedLayout, nodes: rest });
+          move.mutate(pendingMove);
+        }}
         onClose={() => {
           setPendingMove(null);
           relayout();

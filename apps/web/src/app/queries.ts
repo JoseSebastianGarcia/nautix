@@ -9,6 +9,7 @@ export const keys = {
   networks: ["networks"],
   images: ["images"],
   volumes: ["volumes"],
+  layout: ["layout"],
 } as const;
 
 /** Live updates come from the SSE stream; polling is only a slow safety net. */
@@ -31,3 +32,6 @@ export const useVolumes = () =>
 
 /** UI hint only: the server enforces roles. Viewers get read-only controls. */
 export const useIsAdmin = (): boolean => useSession().data?.role === "admin";
+
+export const useLayout = () =>
+  useQuery({ queryKey: keys.layout, queryFn: api.layout, staleTime: 60_000 });

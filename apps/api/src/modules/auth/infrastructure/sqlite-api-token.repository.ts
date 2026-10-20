@@ -1,6 +1,6 @@
+import type { Db } from "../../../shared/sqlite-database.js";
 import { ApiTokenRepository } from "../application/ports/api-token-repository.js";
 import type { ApiToken } from "../domain/api-token.js";
-import type { Db } from "./sqlite-database.js";
 
 const COLUMNS =
   "id, name, role, token_hash AS tokenHash, created_at AS createdAt, last_used_at AS lastUsedAt";

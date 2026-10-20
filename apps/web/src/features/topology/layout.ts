@@ -1,4 +1,4 @@
-import type { Container, Network } from "@nautix/contracts";
+import type { Container, Layout, Network } from "@nautix/contracts";
 
 export const NODE_W = 220;
 export const NODE_H = 72;
@@ -11,6 +11,13 @@ const MAX_COLS = 2;
 const MIN_ZONE_W = 300;
 
 export const EXTERNAL_ID = "external";
+
+const NO_LAYOUT: Layout = { zones: {}, nodes: {} };
+const MIN_OFFSET_X = 8;
+
+/** Key under which a zone's position is saved: the network name, or "external". */
+export const zoneKey = (zone: { id: string; network: Network | null }): string =>
+  zone.network?.name ?? EXTERNAL_ID;
 
 export interface ZoneLayout {
   /** Network id, or EXTERNAL_ID for the "outside" frame. */
@@ -60,7 +67,11 @@ const size = (count: number): { w: number; h: number; cols: number } => {
  * (its "zone"); extra memberships become links. Containers with no user network sit in
  * the external frame — they share nothing with the zones.
  */
-export const layoutTopology = (containers: Container[], networks: Network[]): Topology => {
+export const layoutTopology = (
+  containers: Container[],
+  networks: Network[],
+  saved: Layout = NO_LAYOUT,
+): Topology => {
   const userNetworks = networks.filter(isZoneNetwork);
   const byName = new Map(userNetworks.map((n) => [n.name, n]));
 
@@ -91,16 +102,39 @@ export const layoutTopology = (containers: Container[], networks: Network[]): To
     x: number,
     y: number,
   ): ZoneLayout => {
-    const { w, h, cols } = size(list.length);
+    const auto = size(list.length);
+    // A saved zone position wins over the automatic flow.
+    const origin = saved.zones[network?.name ?? EXTERNAL_ID] ?? { x, y };
+    let maxRight = 0;
+    let maxBottom = 0;
     list.forEach((c, i) => {
+      const autoOffset = {
+        x: PAD + (i % auto.cols) * (NODE_W + GAP),
+        y: HEADER + PAD + Math.floor(i / auto.cols) * (NODE_H + GAP),
+      };
+      const savedOffset = saved.nodes[c.name];
+      const offset = savedOffset
+        ? { x: Math.max(MIN_OFFSET_X, savedOffset.x), y: Math.max(HEADER, savedOffset.y) }
+        : autoOffset;
+      maxRight = Math.max(maxRight, offset.x + NODE_W + PAD);
+      maxBottom = Math.max(maxBottom, offset.y + NODE_H + PAD);
       placements.push({
         containerId: c.id,
         zoneId: id,
-        x: x + PAD + (i % cols) * (NODE_W + GAP),
-        y: y + HEADER + PAD + Math.floor(i / cols) * (NODE_H + GAP),
+        x: origin.x + offset.x,
+        y: origin.y + offset.y,
       });
     });
-    const zone = { id, network, x, y, w, h, containerIds: list.map((c) => c.id) };
+    // The box grows to keep every (possibly moved) container inside it.
+    const zone = {
+      id,
+      network,
+      x: origin.x,
+      y: origin.y,
+      w: Math.max(auto.w, maxRight),
+      h: Math.max(auto.h, maxBottom),
+      containerIds: list.map((c) => c.id),
+    };
     zones.push(zone);
     return zone;
   };
@@ -108,9 +142,9 @@ export const layoutTopology = (containers: Container[], networks: Network[]): To
   let cursorX = 0;
   let cursorY = 0;
   let rowHeight = 0;
-  const advance = (zone: ZoneLayout): void => {
-    cursorX += zone.w + ZONE_GAP;
-    rowHeight = Math.max(rowHeight, zone.h);
+  const advance = (zone: ZoneLayout, slot: { w: number; h: number }): void => {
+    cursorX += Math.max(zone.w, slot.w) + ZONE_GAP;
+    rowHeight = Math.max(rowHeight, Math.max(zone.h, slot.h));
   };
   const wrapIfNeeded = (nextWidth: number): void => {
     if (cursorX > 0 && cursorX + nextWidth > ROW_WIDTH) {
@@ -121,12 +155,12 @@ export const layoutTopology = (containers: Container[], networks: Network[]): To
   };
 
   wrapIfNeeded(size(external.length).w);
-  advance(place(EXTERNAL_ID, null, external, cursorX, cursorY));
+  advance(place(EXTERNAL_ID, null, external, cursorX, cursorY), size(external.length));
 
   for (const network of userNetworks) {
     const list = members.get(network.id) ?? [];
     wrapIfNeeded(size(list.length).w);
-    advance(place(network.id, network, list, cursorX, cursorY));
+    advance(place(network.id, network, list, cursorX, cursorY), size(list.length));
   }
 
   return { zones, placements, links };

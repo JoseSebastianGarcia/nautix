@@ -68,4 +68,42 @@ describe("layoutTopology", () => {
     expect(p && zoneAt(t.zones, p.x + 10, p.y + 10)?.id).toBe("e");
     expect(zoneAt(t.zones, -999, -999)).toBeUndefined();
   });
+
+  it("applies saved zone positions and moves the containers with them", () => {
+    const base = layoutTopology([ctr("a", ["edge"])], networks);
+    const moved = layoutTopology([ctr("a", ["edge"])], networks, {
+      zones: { edge: { x: 900, y: 700 } },
+      nodes: {},
+    });
+    const zone = moved.zones.find((z) => z.id === "e");
+    expect(zone).toMatchObject({ x: 900, y: 700 });
+    const before = base.placements[0];
+    const after = moved.placements[0];
+    const baseZone = base.zones.find((z) => z.id === "e");
+    expect(after?.x ? after.x - 900 : undefined).toBe(
+      before && baseZone ? before.x - baseZone.x : null,
+    );
+  });
+
+  it("applies saved container offsets and grows the box around them", () => {
+    const t = layoutTopology([ctr("a", ["edge"])], networks, {
+      zones: {},
+      nodes: { a: { x: 500, y: 300 } },
+    });
+    const zone = t.zones.find((z) => z.id === "e");
+    const p = t.placements[0];
+    expect(zone && p && p.x === zone.x + 500 && p.y === zone.y + 300).toBe(true);
+    expect(zone && zone.w >= 500 + 220).toBe(true);
+    expect(zone && zone.h >= 300 + 72).toBe(true);
+  });
+
+  it("keeps saved offsets from escaping above or left of the box", () => {
+    const t = layoutTopology([ctr("a", ["edge"])], networks, {
+      zones: {},
+      nodes: { a: { x: -50, y: -50 } },
+    });
+    const zone = t.zones.find((z) => z.id === "e");
+    const p = t.placements[0];
+    expect(zone && p && p.x >= zone.x && p.y >= zone.y + 52).toBe(true);
+  });
 });

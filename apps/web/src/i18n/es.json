@@ -115,7 +115,9 @@
     "exportCopy": "Copiar",
     "exportDownload": "Descargar",
     "exportScope": "Alcance: {{scope}}",
-    "exportAll": "todos los contenedores"
+    "exportAll": "todos los contenedores",
+    "resetLayoutTitle": "¿Restablecer el orden?",
+    "resetLayoutBody": "Se descartan las posiciones guardadas y las cajas y contenedores vuelven al orden automático."
   },
   "containers": {
     "title": "Contenedores",

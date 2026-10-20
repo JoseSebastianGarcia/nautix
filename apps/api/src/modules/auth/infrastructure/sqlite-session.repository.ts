@@ -1,5 +1,5 @@
+import type { Db } from "../../../shared/sqlite-database.js";
 import { SessionRepository, type StoredSession } from "../application/ports/session-repository.js";
-import type { Db } from "./sqlite-database.js";
 
 export class SqliteSessionRepository extends SessionRepository {
   constructor(private readonly db: Db) {

@@ -115,7 +115,9 @@
     "exportCopy": "Copy",
     "exportDownload": "Download",
     "exportScope": "Scope: {{scope}}",
-    "exportAll": "all containers"
+    "exportAll": "all containers",
+    "resetLayoutTitle": "Reset layout?",
+    "resetLayoutBody": "Saved positions are discarded and boxes and containers go back to the automatic arrangement."
   },
   "containers": {
     "title": "Containers",

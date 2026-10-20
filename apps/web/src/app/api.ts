@@ -8,6 +8,7 @@ import type {
   CreateUser,
   EngineInfo,
   Image,
+  Layout,
   Network,
   Session,
   Template,
@@ -57,6 +58,9 @@ export const api = {
   createToken: (b: CreateToken) =>
     request<{ id: string; token: string }>("POST", "/settings/tokens", b),
   revokeToken: (id: string) => request<void>("DELETE", `/settings/tokens/${id}`),
+
+  layout: () => request<Layout>("GET", "/layout"),
+  saveLayout: (layout: Layout) => request<void>("PUT", "/layout", layout),
 
   engine: () => request<EngineInfo>("GET", "/engine"),
   catalog: () => request<Template[]>("GET", "/catalog"),

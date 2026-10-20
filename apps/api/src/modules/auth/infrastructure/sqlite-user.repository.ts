@@ -1,6 +1,6 @@
+import type { Db } from "../../../shared/sqlite-database.js";
 import { UserRepository } from "../application/ports/user-repository.js";
 import type { User } from "../domain/user.js";
-import type { Db } from "./sqlite-database.js";
 
 const COLUMNS = "id, username, password_hash AS passwordHash, role";
 

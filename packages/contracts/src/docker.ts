@@ -146,3 +146,18 @@ export const ContainerDetails = z.object({
   mounts: z.array(Mount),
 });
 export type ContainerDetails = z.infer<typeof ContainerDetails>;
+
+const Point = z.object({
+  x: z.number().finite().min(-100000).max(100000),
+  y: z.number().finite().min(-100000).max(100000),
+});
+
+/**
+ * Saved canvas positions. `zones` is keyed by network name (or "external") with absolute
+ * coordinates; `nodes` is keyed by container name with coordinates relative to its zone.
+ */
+export const Layout = z.object({
+  zones: z.record(z.string().max(128), Point).refine((r) => Object.keys(r).length <= 500),
+  nodes: z.record(z.string().max(128), Point).refine((r) => Object.keys(r).length <= 2000),
+});
+export type Layout = z.infer<typeof Layout>;
