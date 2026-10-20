@@ -8,6 +8,8 @@ export type TemplateCategory =
   | "automation"
   | "dns"
   | "identity"
+  | "storage"
+  | "secrets"
   | "app"
   | "custom";
 
@@ -311,6 +313,101 @@ export const TEMPLATES: readonly Template[] = [
     ports: [{ containerPort: 8000, label: "web", hostPort: 8000 }],
     // The first login is built-in: change that admin password right away.
     volumes: ["/var/lib/mysql"],
+  },
+  {
+    id: "rustfs",
+    name: "RustFS",
+    category: "storage",
+    image: "rustfs/rustfs:1.0.3",
+    description: "S3-compatible object storage (buckets, access keys, web console)",
+    icon: "rust",
+    color: "#DEA584",
+    ports: [
+      { containerPort: 9000, label: "s3", hostPort: 9000 },
+      { containerPort: 9001, label: "console", hostPort: 9001 },
+    ],
+    // These are the S3 access key and secret key: apps use them to connect. Change them.
+    env: {
+      RUSTFS_ACCESS_KEY: "nautixadmin",
+      RUSTFS_SECRET_KEY: "change-me",
+      RUSTFS_VOLUMES: "/data",
+      RUSTFS_ADDRESS: ":9000",
+      RUSTFS_CONSOLE_ENABLE: "true",
+      RUSTFS_CONSOLE_ADDRESS: ":9001",
+    },
+    volumes: ["/data"],
+  },
+  {
+    id: "azurite",
+    name: "Azurite",
+    category: "storage",
+    image: "mcr.microsoft.com/azure-storage/azurite:3.37.0",
+    description: "Azure Blob, Queue and Table storage emulator (fixed well-known dev account)",
+    icon: "microsoftazure",
+    color: "#0078D4",
+    ports: [
+      { containerPort: 10000, label: "blob", hostPort: 10000 },
+      { containerPort: 10001, label: "queue", hostPort: 10001 },
+      { containerPort: 10002, label: "table", hostPort: 10002 },
+    ],
+    // Connect with the public development account devstoreaccount1: for testing, never production.
+    volumes: ["/data"],
+  },
+  {
+    id: "fake-gcs-server",
+    name: "fake-gcs-server",
+    category: "storage",
+    image: "fsouza/fake-gcs-server:1.56.1",
+    description: "Google Cloud Storage emulator (buckets and objects over HTTP, no authentication)",
+    icon: "googlecloud",
+    color: "#4285F4",
+    ports: [{ containerPort: 4443, label: "gcs", hostPort: 4443 }],
+    // Plain HTTP so clients need no certificate. Point STORAGE_EMULATOR_HOST at http://host:4443.
+    command: ["-scheme", "http", "-port", "4443", "-data", "/data"],
+    volumes: ["/data"],
+  },
+  {
+    id: "openbao",
+    name: "OpenBao",
+    category: "secrets",
+    image: "openbao/openbao:2.7.1",
+    description:
+      "Open-source secrets vault (Vault-compatible API). Dev mode: data is lost on restart",
+    icon: "openbao",
+    color: "#7B61FF",
+    ports: [{ containerPort: 8200, label: "api and ui", hostPort: 8200 }],
+    // Dev mode: starts unsealed with this root token and keeps everything in memory.
+    // For real use run it with a storage backend and initialise it (bao operator init).
+    env: { BAO_DEV_ROOT_TOKEN_ID: "change-me", BAO_DEV_LISTEN_ADDRESS: "0.0.0.0:8200" },
+    command: ["server", "-dev"],
+  },
+  {
+    id: "vault",
+    name: "HashiCorp Vault",
+    category: "secrets",
+    image: "hashicorp/vault:2.2.0",
+    description: "Secrets vault and encryption service. Dev mode: data is lost on restart",
+    icon: "vault",
+    color: "#FFEC6E",
+    ports: [{ containerPort: 8200, label: "api and ui", hostPort: 8201 }],
+    // Dev mode: starts unsealed with this root token and keeps everything in memory.
+    // Vault is source-available (BUSL); OpenBao is the open-source fork with the same API.
+    env: { VAULT_DEV_ROOT_TOKEN_ID: "change-me", VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200" },
+    command: ["server", "-dev"],
+  },
+  {
+    id: "lowkey-vault",
+    name: "Lowkey Vault",
+    category: "secrets",
+    image: "nagyesta/lowkey-vault:7.3.127",
+    description: "Azure Key Vault emulator (keys, secrets, certificates) for development",
+    icon: "microsoftazure",
+    color: "#0078D4",
+    ports: [
+      { containerPort: 8443, label: "https", hostPort: 8443 },
+      { containerPort: 8080, label: "http", hostPort: 8080 },
+    ],
+    // Uses a self-signed certificate on 8443; keeps data in memory. For testing only.
   },
   {
     id: "kafka",

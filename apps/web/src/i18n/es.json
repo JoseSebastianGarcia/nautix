@@ -143,6 +143,8 @@
       "cache": "Caché",
       "broker": "Mensajería",
       "identity": "Identidad",
+      "storage": "Almacenamiento",
+      "secrets": "Secretos",
       "observability": "Observabilidad",
       "automation": "Automatización",
       "app": "Aplicaciones",
