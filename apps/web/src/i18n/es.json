@@ -197,7 +197,10 @@
     "deployed": "{{name}} desplegado",
     "networkCreated": "Red {{name}} creada",
     "moved": "{{name}} movido",
-    "pulled": "Imagen descargada"
+    "pulled": "Imagen descargada",
+    "deploying": "Desplegando {{name}}… la primera vez descarga la imagen",
+    "pulling": "Descargando {{ref}}…",
+    "openingTunnel": "Abriendo túnel… la primera vez descarga una imagen pequeña"
   },
   "errors": {
     "generic": "Algo salió mal",

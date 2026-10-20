@@ -20,6 +20,7 @@ export function ImagesPage() {
     (ref: string) => api.pullImage(ref),
     [keys.images],
     () => t("toast.pulled"),
+    (ref) => t("toast.pulling", { ref }),
   );
   const remove = useApiMutation((id: string) => api.removeImage(id, false), [keys.images]);
   const name = (i: Image) => i.tags[0] ?? t("images.untagged");
@@ -77,12 +78,9 @@ export function ImagesPage() {
           className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
-            pull.mutate(reference, {
-              onSuccess: () => {
-                setPulling(false);
-                setReference("");
-              },
-            });
+            pull.mutate(reference);
+            setPulling(false);
+            setReference("");
           }}
         >
           <Field label={t("images.reference")}>

@@ -124,6 +124,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
       saveAs
         ? t("topology.templateSaved", { name: templateName.trim() })
         : t("toast.deployed", { name }),
+    () => t("toast.deploying", { name }),
   );
 
   const command_ = cli.run({
@@ -143,7 +144,10 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
       className="flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
-        if (canSubmit) deploy.mutate(undefined, { onSuccess: onClose });
+        if (!canSubmit || deploy.isPending) return;
+        // Pulling a large image can take minutes: keep working in the background, don't hold the dialog.
+        deploy.mutate();
+        onClose();
       }}
     >
       <p className="text-sm text-dim">

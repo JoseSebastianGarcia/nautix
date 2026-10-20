@@ -215,3 +215,57 @@ export const CustomTemplateInput = z.object({
   command: z.array(z.string().max(512)).max(64).optional(),
 });
 export type CustomTemplateInput = z.infer<typeof CustomTemplateInput>;
+
+export const ContainerStats = z.object({
+  cpuPercent: z.number(),
+  memoryBytes: z.number(),
+  memoryLimitBytes: z.number(),
+  networkRxBytes: z.number(),
+  networkTxBytes: z.number(),
+  pids: z.number(),
+});
+export type ContainerStats = z.infer<typeof ContainerStats>;
+
+export const ContainerTop = z.object({
+  titles: z.array(z.string()),
+  processes: z.array(z.array(z.string())),
+});
+export type ContainerTop = z.infer<typeof ContainerTop>;
+
+export const FsChange = z.object({
+  kind: z.enum(["added", "modified", "deleted"]),
+  path: z.string(),
+});
+export type FsChange = z.infer<typeof FsChange>;
+
+export const RenameContainer = z.object({ name: ResourceName });
+export type RenameContainer = z.infer<typeof RenameContainer>;
+
+export const UpdateContainer = z.object({
+  restartPolicy: RestartPolicy.optional(),
+  /** 0 = unlimited. */
+  memoryMb: z.number().int().min(0).max(1_048_576).optional(),
+  cpus: z.number().min(0).max(1024).optional(),
+});
+export type UpdateContainer = z.infer<typeof UpdateContainer>;
+
+export const CommitContainer = z.object({
+  repository: z.string().min(1).max(255),
+  tag: z.string().max(128).default("latest"),
+  comment: z.string().max(500).optional(),
+  pause: z.boolean().default(true),
+});
+export type CommitContainer = z.infer<typeof CommitContainer>;
+
+export const WaitResult = z.object({ exited: z.boolean(), statusCode: z.number().nullable() });
+export type WaitResult = z.infer<typeof WaitResult>;
+
+export const KILL_SIGNALS = [
+  "SIGKILL",
+  "SIGTERM",
+  "SIGINT",
+  "SIGHUP",
+  "SIGUSR1",
+  "SIGUSR2",
+  "SIGQUIT",
+] as const;

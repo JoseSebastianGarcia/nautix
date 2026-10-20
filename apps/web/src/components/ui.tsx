@@ -1,3 +1,4 @@
+import { Loader2 } from "lucide-react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -170,10 +171,15 @@ export function Toaster() {
           key={toast.id}
           type="button"
           onClick={() => dismiss(toast.id)}
-          className={`pointer-events-auto rounded-lg border px-4 py-2 text-left text-sm shadow-lg ${
-            toast.kind === "ok" ? "border-ok bg-bg1 text-fg" : "border-danger bg-bg1 text-fg"
+          className={`pointer-events-auto flex items-center gap-2 rounded-lg border bg-bg1 px-4 py-2 text-left text-sm text-fg shadow-lg ${
+            toast.kind === "ok"
+              ? "border-ok"
+              : toast.kind === "error"
+                ? "border-danger"
+                : "border-accent"
           }`}
         >
+          {toast.kind === "pending" && <Loader2 size={14} className="animate-spin text-accent" />}
           {toast.text}
         </button>
       ))}

@@ -197,7 +197,10 @@
     "deployed": "{{name}} deployed",
     "networkCreated": "Network {{name}} created",
     "moved": "{{name}} moved",
-    "pulled": "Image pulled"
+    "pulled": "Image pulled",
+    "deploying": "Deploying {{name}}… the first time it downloads the image",
+    "pulling": "Pulling {{ref}}…",
+    "openingTunnel": "Opening tunnel… the first time it downloads a small image"
   },
   "errors": {
     "generic": "Something went wrong",

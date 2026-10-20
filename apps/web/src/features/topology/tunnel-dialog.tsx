@@ -64,6 +64,8 @@ function TunnelForm({
         ...(listen ? { listenPort: Number(listen) } : {}),
       }),
     [keys.containers, keys.networks],
+    undefined,
+    () => t("toast.openingTunnel"),
   );
 
   const effectiveListen = listen || port;
@@ -81,7 +83,9 @@ function TunnelForm({
       className="flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
-        if (valid) create.mutate(undefined, { onSuccess: onClose });
+        if (!valid || create.isPending) return;
+        create.mutate();
+        onClose();
       }}
     >
       <p className="text-sm text-dim">
