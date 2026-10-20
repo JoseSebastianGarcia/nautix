@@ -1163,6 +1163,32 @@ describe("image tools and system commands", () => {
     expect((await call("GET", "/dns/dns1/lookup?host=bad%20host")).res.status).toBe(422);
   });
 
+  it("edits records of a CoreDNS container, starting it on the first apply", async () => {
+    await call("POST", "/containers", {
+      name: "core1",
+      image: "coredns/coredns:1.14.7",
+      networkId: null,
+    });
+    const servers = (
+      (await call("GET", "/dns")).json as { name: string; kind: string | null }[]
+    ).filter((x) => x.name === "core1");
+    expect(servers).toEqual([expect.objectContaining({ name: "core1", kind: "coredns" })]);
+    await call("PUT", "/dns/core1/records", { records: [{ name: "svc.lab", ip: "10.1.1.1" }] });
+    const core = ((await call("GET", "/containers")).json as { id: string; name: string }[]).find(
+      (c) => c.name === "core1",
+    );
+    expect((await call("POST", `/containers/${core?.id}/stop`)).res.status).toBe(204);
+    // CoreDNS cannot boot without its Corefile: applying writes it into the stopped container and starts it
+    const first = await call("POST", "/dns/core1/apply");
+    expect(first.json.ok).toBe(true);
+    expect(
+      ((await call("GET", "/containers")).json as { name: string; state: string }[]).find(
+        (c) => c.name === "core1",
+      )?.state,
+    ).toBe("running");
+    expect((await call("GET", "/dns/core1/lookup?host=svc.lab")).json.ok).toBe(true);
+  });
+
   it("lists the IP of running containers on each network", async () => {
     const list = (await call("GET", "/containers")).json as {
       name: string;

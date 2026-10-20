@@ -330,7 +330,8 @@
     "fixedIp_reserved": "Esa dirección es la de red o la de broadcast",
     "fixedIp_gateway": "Esa dirección (la primera) es la del gateway de la red",
     "notOnNetwork": "El contenedor no está en esa red",
-    "fixedIp_inUse": "Otro contenedor ya usa esa dirección"
+    "fixedIp_inUse": "Otro contenedor ya usa esa dirección",
+    "dnsNoAddress": "El contenedor DNS no tiene dirección de red"
   },
   "terminal": {
     "title": "Terminal",
@@ -899,9 +900,9 @@
     "intro": "Asigná una IP a tus propios nombres (por ejemplo app.home.lab). Los contenedores y equipos que usen tu contenedor DNS como resolver los van a encontrar; cualquier otro nombre se reenvía al DNS externo.",
     "server": "Servidor DNS",
     "needServer": "Primero necesitás un contenedor DNS",
-    "needServerBody": "Desplegá dnsmasq desde la paleta (Topología → DNS → dnsmasq) y va a aparecer acá, listo para editar.",
+    "needServerBody": "Desplegá dnsmasq o CoreDNS desde la paleta (Topología → DNS) y va a aparecer acá, listo para editar.",
     "goDeploy": "Ir a la paleta",
-    "unsupported": "Encontrados, pero Nautix todavía no los puede editar (solo dnsmasq de la paleta):",
+    "unsupported": "Encontrados, pero Nautix todavía no tiene adaptador para estos (puede editar dnsmasq y CoreDNS de la paleta):",
     "useIt": "Cómo usar este DNS",
     "useInNetwork": "Contenedores en {{network}}",
     "useFromHost": "Desde esta máquina",
@@ -917,6 +918,13 @@
     "unsaved": "Cambios sin guardar",
     "applied": "Registros DNS aplicados",
     "rejected": "El servidor DNS rechazó los registros",
-    "pickContainer": "Usar la IP de un contenedor"
+    "pickContainer": "Usar la IP de un contenedor",
+    "manageApply": {
+      "restart": "Aplicar reinicia el contenedor (cerca de un segundo sin DNS).",
+      "reload": "Aplicar recarga el servidor solo, sin cortes."
+    },
+    "firstApply": "Este servidor no puede arrancar sin su configuración: tocá \"Guardar y aplicar\" y Nautix la escribe e inicia el contenedor.",
+    "serverKind": "Servidor",
+    "subdomainsNote": "Un nombre también responde por sus subdominios."
   }
 }

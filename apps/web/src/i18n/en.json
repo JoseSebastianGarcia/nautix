@@ -330,7 +330,8 @@
     "fixedIp_reserved": "That address is the network or broadcast address",
     "fixedIp_gateway": "That address (the first one) belongs to the network's gateway",
     "notOnNetwork": "The container is not on that network",
-    "fixedIp_inUse": "Another container already uses that address"
+    "fixedIp_inUse": "Another container already uses that address",
+    "dnsNoAddress": "The DNS container has no network address"
   },
   "terminal": {
     "title": "Terminal",
@@ -899,9 +900,9 @@
     "intro": "Give your own names (for example app.home.lab) an IP address. Containers and machines that use your DNS container as their resolver will find them; every other name is forwarded to the upstream DNS.",
     "server": "DNS server",
     "needServer": "You need a DNS container first",
-    "needServerBody": "Deploy dnsmasq from the palette (Topology → DNS → dnsmasq) and it will show up here, ready to edit.",
+    "needServerBody": "Deploy dnsmasq or CoreDNS from the palette (Topology → DNS) and it will show up here, ready to edit.",
     "goDeploy": "Go to the palette",
-    "unsupported": "Found, but Nautix cannot edit these yet (only dnsmasq from the palette):",
+    "unsupported": "Found, but Nautix has no adapter for these yet (it can edit dnsmasq and CoreDNS from the palette):",
     "useIt": "How to use this DNS",
     "useInNetwork": "Containers on {{network}}",
     "useFromHost": "From this machine",
@@ -917,6 +918,13 @@
     "unsaved": "Unsaved changes",
     "applied": "DNS records applied",
     "rejected": "The DNS server rejected the records",
-    "pickContainer": "Use the IP of a container"
+    "pickContainer": "Use the IP of a container",
+    "manageApply": {
+      "restart": "Applying restarts the container (about a second without DNS).",
+      "reload": "Applying reloads the server by itself, with no downtime."
+    },
+    "firstApply": "This server cannot start without its configuration: press \"Save and apply\" and Nautix writes it and starts the container.",
+    "serverKind": "Server",
+    "subdomainsNote": "A name also answers for its subdomains."
   }
 }

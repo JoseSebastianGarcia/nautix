@@ -223,7 +223,12 @@ export class FakeDockerEngine extends DockerEngine {
       : [...this.networks.values()].find((n) => n.name === "bridge");
     if (target) this.attach(target.id, id);
     if (target && spec.ipv4Address) this.fixedIps.set(id, { [target.name]: spec.ipv4Address });
-    this.logs.set(id, "");
+    this.logs.set(
+      id,
+      spec.labels["nautix.helper"] === "dns-lookup"
+        ? `Server: ${spec.cmd?.[2] ?? ""}\n\nName: ${spec.cmd?.[1] ?? ""}\nAddress: 10.0.0.5\n`
+        : "",
+    );
     this.env.set(
       id,
       Object.fromEntries(
@@ -345,7 +350,9 @@ export class FakeDockerEngine extends DockerEngine {
 
   async waitContainer(id: string, timeoutMs: number): Promise<WaitResult> {
     const c = this.container(id);
-    if (c.state !== "running") return { exited: true, statusCode: 0 };
+    // Short-lived helpers (DNS lookups) finish at once in the demo.
+    if (c.state !== "running" || c.labels["nautix.helper"] === "dns-lookup")
+      return { exited: true, statusCode: 0 };
     await new Promise((resolve) => setTimeout(resolve, Math.min(timeoutMs, 200)));
     return { exited: false, statusCode: null };
   }

@@ -1,17 +1,34 @@
 import { z } from "zod";
 
-/** DNS servers Nautix can edit records for (detected from the image name). */
-export const DNS_KINDS = ["dnsmasq"] as const;
+/** DNS servers Nautix can edit records for (detected from the image name). One adapter each. */
+export const DNS_KINDS = ["dnsmasq", "coredns"] as const;
 export type DnsKind = (typeof DNS_KINDS)[number];
 
 const EDITABLE: Record<DnsKind, RegExp> = {
   // dockurr/dnsmasq reads /etc/dnsmasq.d/*.conf, which Nautix owns one file of.
   dnsmasq: /(^|\/)dockurr\/dnsmasq(:|$|@)/,
+  // CoreDNS has no shell: Nautix writes its Corefile and the `reload` plugin picks it up.
+  coredns: /(^|\/)coredns\/coredns(:|$|@)/,
 };
 
 export const dnsKind = (image: string): DnsKind | null => {
   const name = image.toLowerCase();
   return DNS_KINDS.find((k) => EDITABLE[k].test(name)) ?? null;
+};
+
+export interface DnsInfo {
+  label: string;
+  /** How a change reaches the running server. */
+  applies: "restart" | "reload";
+  /** A name also answers for its subdomains. */
+  subdomains: boolean;
+  /** Records can be written while the container is stopped, and applying starts it (its image cannot boot without them). */
+  writesWhileStopped: boolean;
+}
+
+export const DNS_INFO: Record<DnsKind, DnsInfo> = {
+  dnsmasq: { label: "dnsmasq", applies: "restart", subdomains: true, writesWhileStopped: false },
+  coredns: { label: "CoreDNS", applies: "reload", subdomains: true, writesWhileStopped: true },
 };
 
 /** Any DNS server image Nautix recognises, even those it cannot edit yet (shown with a reason). */

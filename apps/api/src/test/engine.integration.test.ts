@@ -643,6 +643,81 @@ describe("against a real Docker daemon", () => {
     );
   });
 
+  it("serves custom DNS records from a real CoreDNS and reloads them without a restart", async () => {
+    try {
+      docker("image", "inspect", "coredns/coredns:1.14.7");
+    } catch {
+      return; // image not available offline: nothing to verify
+    }
+    const nets = (await call("GET", "/networks")).json as Net[];
+    const b = nets.find((n) => n.name === `${PREFIX}b`);
+    const template = (await call("GET", "/catalog")).json.find(
+      (t: { id: string }) => t.id === "coredns",
+    );
+    const created = await call("POST", "/containers", {
+      name: `${PREFIX}core`,
+      image: template.image,
+      networkId: b?.id,
+      restartPolicy: "no",
+      command: template.command,
+      start: false,
+    });
+    expect(created.res.status).toBe(201);
+
+    expect(
+      (
+        await call("PUT", `/dns/${PREFIX}core/records`, {
+          records: [
+            { name: "app.lab.test", ip: "10.9.8.7" },
+            { name: "db.app.lab.test", ip: "10.9.8.8" },
+            { name: "v6.lab.test", ip: "fd00::7" },
+          ],
+        })
+      ).res.status,
+    ).toBe(204);
+    // never started: the first apply writes the Corefile and starts it
+    const first = await call("POST", `/dns/${PREFIX}core/apply`);
+    expect(first.json.ok, first.json.output).toBe(true);
+    await new Promise((r) => setTimeout(r, 1500));
+
+    const lookup = async (host: string) => {
+      let out = "";
+      for (let i = 0; i < 10; i++) {
+        out = (await call("GET", `/dns/${PREFIX}core/lookup?host=${host}`)).json.output;
+        if (/Address:.*\d|Address:.*:/.test(out.split("Name:")[1] ?? "")) break;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      return out;
+    };
+    expect(await lookup("app.lab.test")).toContain("10.9.8.7");
+    expect(await lookup("sub.app.lab.test")).toContain("10.9.8.7"); // subdomains follow
+    expect(await lookup("db.app.lab.test")).toContain("10.9.8.8"); // most specific wins
+    expect(await lookup("v6.lab.test")).toContain("fd00::7");
+
+    const ip = (
+      (await call("GET", "/dns")).json as { name: string; ips: Record<string, string> }[]
+    ).find((s) => s.name === `${PREFIX}core`)?.ips[`${PREFIX}b`] as string;
+    const noV6 = docker(
+      "exec",
+      `${PREFIX}svc`,
+      "sh",
+      "-c",
+      `nslookup -type=AAAA app.lab.test ${ip} 2>&1 || true`,
+    );
+    expect(noV6).not.toContain("fd00");
+    expect(noV6).not.toContain("NXDOMAIN");
+
+    // change a record: reloaded in place, the container keeps running
+    const startedBefore = docker("inspect", "-f", "{{.State.StartedAt}}", `${PREFIX}core`);
+    await call("PUT", `/dns/${PREFIX}core/records`, {
+      records: [{ name: "app.lab.test", ip: "10.9.8.99" }],
+    });
+    const second = await call("POST", `/dns/${PREFIX}core/apply`);
+    expect(second.json.ok, second.json.output).toBe(true);
+    expect(await lookup("app.lab.test")).toContain("10.9.8.99");
+    expect(docker("inspect", "-f", "{{.State.StartedAt}}", `${PREFIX}core`)).toBe(startedBefore);
+  });
+
   it("lists plugins through the real engine", async () => {
     const res = await call("GET", "/plugins");
     expect(res.res.status).toBe(200);

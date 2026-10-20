@@ -3,16 +3,18 @@ import { type DnsApplyResult, dnsKind } from "@nautix/contracts";
 import { Inject } from "@nestjs/common";
 import { CommandHandler, type ICommandHandler } from "@nestjs/cqrs";
 import { ConflictError, NotFoundError, ValidationError } from "../../../../shared/domain-error.js";
-import { buildDnsmasqConfig, DNSMASQ_DIR, DNSMASQ_SCRIPT } from "../../domain/dns-config.js";
+import { dnsStrategyFor } from "../../domain/dns-strategies/index.js";
+import type { DnsApply } from "../../domain/dns-strategy.js";
 import { buildTar } from "../../domain/tar.js";
 import { DockerEngine } from "../ports/docker-engine.js";
 import { ApplyDnsCommand } from "./apply-dns.command.js";
 
 const COMMAND_MS = 20_000;
+const POLL_MS = 500;
 
 /**
- * Writes the records into the DNS container, checks them with dnsmasq's own syntax test and
- * restarts the container (dnsmasq reads its configuration only at start).
+ * Delivers the records to a DNS container, whatever its type: the adapter (see dns-strategies)
+ * says which files to write, what to check, and whether the server is restarted or reloads itself.
  */
 @CommandHandler(ApplyDnsCommand)
 export class ApplyDnsHandler implements ICommandHandler<ApplyDnsCommand, DnsApplyResult> {
@@ -23,24 +25,55 @@ export class ApplyDnsHandler implements ICommandHandler<ApplyDnsCommand, DnsAppl
       (c) => c.id === container || c.name === container,
     );
     if (!server) throw new NotFoundError("DNS container not found", "errors.notFound");
-    if (!dnsKind(server.image))
+    const kind = dnsKind(server.image);
+    if (!kind)
       throw new ValidationError("this container is not an editable DNS server", "errors.notDns");
-    if (server.state !== "running")
+    const strategy = dnsStrategyFor(kind);
+    const running = server.state === "running";
+    if (!running && !strategy.writesWhileStopped)
       throw new ConflictError("the DNS container is not running", "errors.dnsNotRunning");
 
-    const content = buildDnsmasqConfig(records); // validates every record first
-    await this.engine.putArchive(
-      server.id,
-      "/",
-      Readable.from([buildTar([{ path: `${DNSMASQ_DIR}/nautix.conf.new`, content }])]),
-    );
-    const checked = await this.engine.runCommand(
-      server.id,
-      ["sh", "-c", DNSMASQ_SCRIPT],
-      COMMAND_MS,
-    );
-    if (checked.exitCode !== 0) return { ok: false, output: checked.output.trim() };
-    await this.engine.containerAction(server.id, "restart");
-    return { ok: true, output: checked.output.trim() };
+    const plan = strategy.plan(records); // validates every record first
+    const since = Math.floor(Date.now() / 1000);
+    await this.engine.putArchive(server.id, "/", Readable.from([buildTar(plan.files)]));
+    const outputs: string[] = [];
+    for (const command of plan.commands) {
+      const out = await this.engine.runCommand(server.id, command, COMMAND_MS);
+      if (out.output.trim()) outputs.push(out.output.trim());
+      if (out.exitCode !== 0) return { ok: false, output: outputs.join("\n") };
+    }
+    if (!running) {
+      await this.engine.containerAction(server.id, "start");
+      return { ok: true, output: outputs.join("\n") };
+    }
+    return this.finish(server.id, plan.apply, since, outputs);
+  }
+
+  private async finish(
+    id: string,
+    apply: DnsApply,
+    since: number,
+    outputs: string[],
+  ): Promise<DnsApplyResult> {
+    if (apply.type === "restart") {
+      await this.engine.containerAction(id, "restart");
+      return { ok: true, output: outputs.join("\n") };
+    }
+    // The server reloads on its own: report what it says about the new configuration.
+    const deadline = Date.now() + apply.waitMs;
+    while (Date.now() < deadline) {
+      const logs = await this.engine.containerLogs(
+        id,
+        50,
+        Math.max(1, Math.floor(Date.now() / 1000) - since + 1),
+      );
+      if (apply.failed.test(logs)) return { ok: false, output: logs.trim().slice(-2000) };
+      if (apply.ok.test(logs)) return { ok: true, output: outputs.join("\n") };
+      await new Promise((r) => setTimeout(r, POLL_MS));
+    }
+    return {
+      ok: false,
+      output: [...outputs, "the server did not confirm the reload in time"].join("\n"),
+    };
   }
 }

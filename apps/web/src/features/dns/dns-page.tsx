@@ -1,4 +1,11 @@
-import { type DnsRecord, type DnsServer, HOSTNAME, ipFamily, isIpAddress } from "@nautix/contracts";
+import {
+  DNS_INFO,
+  type DnsRecord,
+  type DnsServer,
+  HOSTNAME,
+  ipFamily,
+  isIpAddress,
+} from "@nautix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { Pencil, Plus, Radar, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -129,6 +136,8 @@ function Editor({ server }: { server: DnsServer }) {
   const canAdd = nameOk && ipOk && !clash;
   const dirty = !same(draft, saved.data ?? NO_RECORDS);
   const running = server.state === "running";
+  const info = server.kind ? DNS_INFO[server.kind] : null;
+  const canApply = running || info?.writesWhileStopped === true;
 
   const submit = () => {
     if (!canAdd) return;
@@ -151,7 +160,18 @@ function Editor({ server }: { server: DnsServer }) {
             {t("dns.useFromHost")}: <code className="text-fg">dig @127.0.0.1 -p 5353 name</code>
           </li>
         </ul>
-        {!running && <p className="mt-2 text-xs text-amber">{t("dns.notRunning")}</p>}
+        {info && (
+          <p className="mt-2 text-xs text-dim">
+            <span className="font-medium text-fg">{info.label}</span> ·{" "}
+            {t(`dns.manageApply.${info.applies}`)} {info.subdomains && t("dns.subdomainsNote")}
+          </p>
+        )}
+        {!running &&
+          (info?.writesWhileStopped ? (
+            <p className="mt-2 text-xs text-amber">{t("dns.firstApply")}</p>
+          ) : (
+            <p className="mt-2 text-xs text-amber">{t("dns.notRunning")}</p>
+          ))}
       </div>
 
       <form
@@ -238,7 +258,7 @@ function Editor({ server }: { server: DnsServer }) {
         <Button
           write
           variant="primary"
-          disabled={!running || apply.isPending || (!dirty && !saved.data)}
+          disabled={!canApply || apply.isPending || (!dirty && !saved.data)}
           onClick={() =>
             apply.mutate(undefined, {
               onSuccess: (res) => {
@@ -251,7 +271,6 @@ function Editor({ server }: { server: DnsServer }) {
           {t("dns.apply")}
         </Button>
         {dirty && <span className="text-xs text-amber">{t("dns.unsaved")}</span>}
-        <span className="text-xs text-dim">{t("dns.applyHint")}</span>
       </div>
       {output && (
         <pre className="max-h-48 overflow-auto rounded-lg border border-line bg-bg0 p-2 font-mono text-xs whitespace-pre-wrap">

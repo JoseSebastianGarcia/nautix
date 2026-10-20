@@ -1,35 +1,7 @@
-import { DnsRecord, dnsKind, isDnsImage, SaveDnsRecords } from "@nautix/contracts";
+import { DnsRecord, isDnsImage, SaveDnsRecords } from "@nautix/contracts";
 import { describe, expect, it } from "vitest";
-import { buildDnsmasqConfig } from "./dns-config.js";
 
 const rec = (name: string, ip: string) => DnsRecord.parse({ name, ip });
-
-describe("dnsmasq config", () => {
-  it("writes one address= line per record, sorted, with a banner", () => {
-    const text = buildDnsmasqConfig([
-      rec("b.lab", "10.0.0.2"),
-      rec("A.lab", "10.0.0.1"),
-      rec("v6.lab", "fd00::1"),
-    ]);
-    expect(text.split("\n")).toEqual([
-      expect.stringContaining("Managed by Nautix"),
-      "address=/a.lab/10.0.0.1",
-      "address=/b.lab/10.0.0.2",
-      "address=/v6.lab/fd00::1",
-      "",
-    ]);
-  });
-
-  it("cannot be tricked into writing other directives", () => {
-    expect(() =>
-      buildDnsmasqConfig([{ name: "x/1.1.1.1\nserver=8.8.8.8", ip: "10.0.0.1" }]),
-    ).toThrow();
-    expect(() =>
-      buildDnsmasqConfig([{ name: "ok.lab", ip: "10.0.0.1\nserver=8.8.8.8" }]),
-    ).toThrow();
-    expect(() => buildDnsmasqConfig([{ name: "ok.lab", ip: "999.1.1.1" }])).toThrow();
-  });
-});
 
 describe("DNS contracts", () => {
   it("normalises names and rejects bad ones", () => {
@@ -44,7 +16,7 @@ describe("DNS contracts", () => {
       "a b.lab",
       "a_b.lab",
       "http://x.lab",
-      "x".repeat(64) + ".lab",
+      `${"x".repeat(64)}.lab`,
     ])
       expect(() => rec(bad, "10.0.0.1")).toThrow();
     for (const ip of [
@@ -88,10 +60,7 @@ describe("DNS contracts", () => {
     ).toBe(false);
   });
 
-  it("only dockurr/dnsmasq is editable; other DNS images are recognised", () => {
-    expect(dnsKind("dockurr/dnsmasq:2.93")).toBe("dnsmasq");
-    expect(dnsKind("jpillora/dnsmasq:1.1")).toBeNull();
-    expect(dnsKind("adguard/adguardhome")).toBeNull();
+  it("recognises other DNS servers even when they cannot be edited", () => {
     expect(isDnsImage("adguard/adguardhome")).toBe(true);
     expect(isDnsImage("pihole/pihole:latest")).toBe(true);
     expect(isDnsImage("nginx")).toBe(false);

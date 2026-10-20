@@ -253,6 +253,23 @@ export const TEMPLATES: readonly Template[] = [
     volumes: ["/etc/dnsmasq.d"],
   },
   {
+    id: "coredns",
+    name: "CoreDNS",
+    category: "dns",
+    image: "coredns/coredns:1.14.7",
+    description:
+      "Cloud-native DNS: edit your own domains in the DNS tab (reloads with no downtime)",
+    icon: "coredns",
+    color: "#1F6FEB",
+    ports: [
+      { containerPort: 53, label: "dns", protocol: "udp", hostPort: 5353 },
+      { containerPort: 53, label: "dns", protocol: "tcp", hostPort: 5353 },
+    ],
+    // The image has no default config. Deploy it, then press "Save and apply" in the DNS tab:
+    // Nautix writes /etc/coredns/Corefile and starts it.
+    command: ["-conf", "/etc/coredns/Corefile"],
+  },
+  {
     id: "kafka",
     name: "Kafka",
     category: "broker",
