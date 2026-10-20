@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Nautix.TestKit;
 
 namespace Nautix.ArchitectureTests;
 

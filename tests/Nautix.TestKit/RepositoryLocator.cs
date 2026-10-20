@@ -1,6 +1,6 @@
-namespace Nautix.ArchitectureTests;
+namespace Nautix.TestKit;
 
-internal static class RepositoryLocator
+public static class RepositoryLocator
 {
     private static readonly Lazy<string> _root = new(FindRoot);
 
@@ -9,6 +9,8 @@ internal static class RepositoryLocator
     public static string SourceDirectory => Path.Combine(Root, "src");
 
     public static string SolutionFile => Path.Combine(Root, "Nautix.sln");
+
+    public static string Resolve(params string[] relative) => Path.Combine([Root, .. relative]);
 
     private static string FindRoot()
     {

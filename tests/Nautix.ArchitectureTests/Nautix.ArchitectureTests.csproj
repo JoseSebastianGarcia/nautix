@@ -21,6 +21,7 @@
 
   <!-- Referencing every non-WPF project makes their assemblies loadable by name. -->
   <ItemGroup>
+    <ProjectReference Include="..\Nautix.TestKit\Nautix.TestKit.csproj" />
     <ProjectReference Include="..\..\src\Nautix.SharedKernel\Nautix.SharedKernel.csproj" />
     <ProjectReference Include="..\..\src\Nautix.Ui\Nautix.Ui.csproj" />
     <ProjectReference Include="..\..\src\Modules\Containers\Nautix.Containers.Contracts\Nautix.Containers.Contracts.csproj" />

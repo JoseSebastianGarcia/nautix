@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Nautix.TestKit;
 using Shouldly;
 
 namespace Nautix.ArchitectureTests;
