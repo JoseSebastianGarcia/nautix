@@ -120,7 +120,34 @@
     "resetLayoutTitle": "¿Restablecer el orden?",
     "resetLayoutBody": "Se descartan las posiciones guardadas y las cajas y contenedores vuelven al orden automático.",
     "restartPolicy": "Política de reinicio",
-    "restartHint": "Usá “no” para contenedores de una sola ejecución (como hello-world) o se reinician sin parar."
+    "restartHint": "Usá “no” para contenedores de una sola ejecución (como hello-world) o se reinician sin parar.",
+    "anyImage": "Cualquier imagen",
+    "category": {
+      "proxy": "Proxies",
+      "gateway": "API gateways",
+      "database": "Bases de datos",
+      "cache": "Caché",
+      "broker": "Mensajería",
+      "observability": "Observabilidad",
+      "automation": "Automatización",
+      "app": "Aplicaciones",
+      "custom": "Mis imágenes"
+    },
+    "image": "Imagen",
+    "addPort": "Agregar puerto",
+    "containerPort": "Puerto del contenedor",
+    "hostPortShort": "Puerto del host",
+    "environment": "Variables de entorno",
+    "volumesPaths": "Volúmenes de datos (rutas del contenedor)",
+    "command": "Comando (opcional)",
+    "commandHint": "Reemplaza el comando por defecto de la imagen. Se admiten comillas.",
+    "saveTemplate": "Guardar en el panel para reutilizar",
+    "templateName": "Nombre de la plantilla",
+    "templateSaved": "“{{name}}” guardada en el panel",
+    "templateHint": "Puertos, variables y volúmenes se guardan en este servidor, incluidos los valores de las variables.",
+    "deleteTemplate": "Quitar del panel",
+    "remove": "Quitar",
+    "invalidPort": "Los puertos deben estar entre 1 y 65535"
   },
   "containers": {
     "title": "Contenedores",
@@ -189,7 +216,6 @@
     "conflict": "Conflicto con el estado actual",
     "imagePullFailed": "No se pudo descargar la imagen",
     "validation": "Revisá el formulario",
-    "selfProtected": "Este es el contenedor que ejecuta Nautix. Confirmá escribiendo su nombre.",
     "readOnly": "Tu rol es de solo lectura",
     "adminOnly": "Se requiere rol de administrador",
     "usernameTaken": "Ese usuario ya existe",
@@ -198,7 +224,9 @@
     "composeInvalid": "El archivo tiene errores; corregilos primero",
     "composeRisk": "El archivo usa funciones privilegiadas; confirmá los riesgos",
     "composeBusy": "Hay otra operación en curso para este proyecto",
-    "notRunning": "El contenedor no está en ejecución"
+    "notRunning": "El contenedor no está en ejecución",
+    "tooManyTemplates": "Demasiadas plantillas guardadas",
+    "selfLocked": "Este contenedor está bloqueado y no se puede modificar desde Nautix"
   },
   "terminal": {
     "title": "Terminal",
@@ -210,9 +238,7 @@
   },
   "self": {
     "badge": "Nautix",
-    "title": "Este es Nautix",
-    "body": "Detenerlo, reiniciarlo o eliminarlo dejará esta interfaz inaccesible. Escribí el nombre del contenedor para continuar.",
-    "typeName": "Nombre del contenedor"
+    "lockedNote": "Este es Nautix. Está bloqueado: no se puede detener, reiniciar, eliminar ni editar desde aquí. Si hace falta, usá la CLI de Docker en el host."
   },
   "settings": {
     "title": "Ajustes",

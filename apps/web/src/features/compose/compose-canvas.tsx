@@ -11,7 +11,6 @@ import {
   Background,
   BackgroundVariant,
   Controls,
-  MiniMap,
   type Node,
   type NodeChange,
   ReactFlow,
@@ -203,14 +202,6 @@ function Canvas({
         >
           <Background variant={BackgroundVariant.Lines} gap={24} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
-          <MiniMap
-            pannable
-            zoomable
-            nodeColor="var(--nx-accent)"
-            maskColor="transparent"
-            style={{ background: "var(--nx-bg-1)" }}
-            bgColor="var(--nx-bg-1)"
-          />
         </ReactFlow>
       </div>
       <ComposeNetworkDialog

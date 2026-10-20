@@ -1,6 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import type { Session } from "@nautix/contracts";
+import type { Container, Session } from "@nautix/contracts";
 import {
   Inject,
   Injectable,
@@ -11,6 +11,7 @@ import { HttpAdapterHost } from "@nestjs/core";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { type RawData, WebSocket, WebSocketServer } from "ws";
 import { GetSessionQuery } from "../../auth/application/queries/get-session.query.js";
+import { ListContainersQuery } from "../../docker/application/queries/list-containers.query.js";
 import { OpenTerminalCommand } from "../application/commands/open-terminal.command.js";
 import type { TerminalChannel } from "../application/ports/terminal-engine.js";
 
@@ -75,6 +76,13 @@ export class TerminalGateway implements OnApplicationBootstrap, OnApplicationShu
     );
     if (!session.authenticated) return this.reject(socket, "401 Unauthorized");
     if (session.role !== "admin") return this.reject(socket, "403 Forbidden");
+
+    // The container running Nautix is locked: no shell inside it either.
+    const containers = await this.queries.execute<ListContainersQuery, Container[]>(
+      new ListContainersQuery(),
+    );
+    const target = containers.find((c) => c.id === containerId || c.name === containerId);
+    if (target?.isSelf) return this.reject(socket, "403 Forbidden");
 
     const cols = Number(url.searchParams.get("cols") ?? 80);
     const rows = Number(url.searchParams.get("rows") ?? 24);

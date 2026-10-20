@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsAdmin } from "../app/queries.js";
 import { useToasts } from "./toast-store.js";
@@ -82,7 +82,7 @@ export function Dialog({
       ref={ref}
       onClose={onClose}
       aria-label={title}
-      className="m-auto w-[min(32rem,92vw)] rounded-2xl border border-line bg-bg1 p-0 text-fg backdrop:bg-black/60"
+      className="m-auto max-h-[92vh] w-[min(32rem,92vw)] overflow-y-auto rounded-2xl border border-line bg-bg1 p-0 text-fg backdrop:bg-black/60"
     >
       {open && (
         <div className="flex flex-col gap-4 p-6">
@@ -178,48 +178,5 @@ export function Toaster() {
         </button>
       ))}
     </div>
-  );
-}
-
-/** Asks the user to type a name before a risky action (used to protect Nautix's own container). */
-export function TypeConfirmDialog({
-  open,
-  name,
-  onConfirm,
-  onClose,
-}: {
-  open: boolean;
-  name: string;
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const [typed, setTyped] = useState("");
-  return (
-    <Dialog open={open} onClose={onClose} title={t("self.title")}>
-      <p className="text-sm text-amber">{t("self.body")}</p>
-      <Field label={t("self.typeName")}>
-        <Input
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
-          placeholder={name}
-          autoFocus
-        />
-      </Field>
-      <div className="flex justify-end gap-2">
-        <Button onClick={onClose}>{t("common.cancel")}</Button>
-        <Button
-          variant="danger"
-          disabled={typed !== name}
-          onClick={() => {
-            setTyped("");
-            onConfirm();
-            onClose();
-          }}
-        >
-          {t("common.confirm")}
-        </Button>
-      </div>
-    </Dialog>
   );
 }

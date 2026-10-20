@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { formatEnv, namedVolumes, parseEnv, randomizeSecrets, uniqueName } from "./deploy.js";
+import {
+  formatEnv,
+  namedVolumes,
+  parseEnv,
+  randomizeSecrets,
+  randomSecret,
+  splitCommand,
+  uniqueName,
+} from "./deploy.js";
 
 describe("deploy helpers", () => {
   it("round-trips env text and ignores comments", () => {
@@ -25,5 +33,27 @@ describe("deploy helpers", () => {
       "db-data:/var/lib/data",
       "db-data-2:/etc/x",
     ]);
+  });
+
+  it("generates secrets that satisfy common password policies", () => {
+    for (let i = 0; i < 200; i++) {
+      const secret = randomSecret();
+      expect(secret).toHaveLength(24);
+      expect(secret).toMatch(/[A-Z]/);
+      expect(secret).toMatch(/[a-z]/);
+      expect(secret).toMatch(/[0-9]/);
+      expect(secret).toMatch(/^[A-Za-z0-9]+$/);
+    }
+  });
+
+  it("splits commands with quotes and no shell", () => {
+    expect(splitCommand("--a=1  --b 'two words' \"x y\"")).toEqual([
+      "--a=1",
+      "--b",
+      "two words",
+      "x y",
+    ]);
+    expect(splitCommand("")).toEqual([]);
+    expect(splitCommand("sh -c ''")).toEqual(["sh", "-c", ""]);
   });
 });

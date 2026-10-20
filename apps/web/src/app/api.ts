@@ -10,6 +10,7 @@ import type {
   CreateNetwork,
   CreateToken,
   CreateUser,
+  CustomTemplateInput,
   EngineInfo,
   Image,
   Layout,
@@ -79,21 +80,17 @@ export const api = {
 
   engine: () => request<EngineInfo>("GET", "/engine"),
   catalog: () => request<Template[]>("GET", "/catalog"),
+  saveCustomTemplate: (b: CustomTemplateInput) => request<Template>("POST", "/catalog/custom", b),
+  deleteCustomTemplate: (id: string) => request<void>("DELETE", `/catalog/custom/${id}`),
 
   containers: () => request<Container[]>("GET", "/containers"),
   createContainer: (
     b: Omit<CreateContainer, "env" | "ports" | "labels" | "volumes"> & Partial<CreateContainer>,
   ) => request<{ id: string }>("POST", "/containers", b),
-  containerAction: (id: string, action: ContainerAction, confirm?: string) =>
-    request<void>(
-      "POST",
-      `/containers/${id}/${action}${confirm ? `?confirm=${encodeURIComponent(confirm)}` : ""}`,
-    ),
-  removeContainer: (id: string, force: boolean, confirm?: string) =>
-    request<void>(
-      "DELETE",
-      `/containers/${id}?force=${force}${confirm ? `&confirm=${encodeURIComponent(confirm)}` : ""}`,
-    ),
+  containerAction: (id: string, action: ContainerAction) =>
+    request<void>("POST", `/containers/${id}/${action}`),
+  removeContainer: (id: string, force: boolean) =>
+    request<void>("DELETE", `/containers/${id}?force=${force}`),
   logs: (id: string) => request<{ logs: string }>("GET", `/containers/${id}/logs?tail=300`),
 
   exportCompose: (networkId: string | undefined, includeEnv: boolean) =>
@@ -107,11 +104,8 @@ export const api = {
   removeNetwork: (id: string) => request<void>("DELETE", `/networks/${id}`),
   connect: (networkId: string, containerId: string) =>
     request<void>("POST", `/networks/${networkId}/connect`, { containerId }),
-  disconnect: (networkId: string, containerId: string, confirm?: string) =>
-    request<void>("POST", `/networks/${networkId}/disconnect`, {
-      containerId,
-      ...(confirm ? { confirm } : {}),
-    }),
+  disconnect: (networkId: string, containerId: string) =>
+    request<void>("POST", `/networks/${networkId}/disconnect`, { containerId }),
 
   images: () => request<Image[]>("GET", "/images"),
   pullImage: (reference: string) => request<void>("POST", "/images/pull", { reference }),

@@ -16,6 +16,9 @@ export type ZoneNodeData = {
 export type ContainerFlowNode = Node<ContainerNodeData, "container">;
 export type ZoneFlowNode = Node<ZoneNodeData, "zone">;
 
+// Handles only anchor edges (extra networks, depends_on); they are not interactive, so they stay invisible.
+const HIDDEN_HANDLE = { opacity: 0, pointerEvents: "none" as const };
+
 const STATE_COLOR: Record<string, string> = {
   running: "bg-ok",
   paused: "bg-amber",
@@ -42,7 +45,7 @@ export function ContainerNode({ data, selected }: NodeProps<ContainerFlowNode>) 
       style={{ width: NODE_W, height: NODE_H, boxShadow: selected ? "var(--nx-glow)" : undefined }}
       className="flex items-center gap-3 rounded-xl border border-line bg-bg1 px-3"
     >
-      <Handle type="target" position={Position.Left} isConnectable={false} />
+      <Handle type="target" position={Position.Left} isConnectable={false} style={HIDDEN_HANDLE} />
       <LogoBadge image={c.image} name={c.name} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -75,7 +78,7 @@ export function ContainerNode({ data, selected }: NodeProps<ContainerFlowNode>) 
           )}
         </div>
       </div>
-      <Handle type="source" position={Position.Right} isConnectable={false} />
+      <Handle type="source" position={Position.Right} isConnectable={false} style={HIDDEN_HANDLE} />
     </div>
   );
 }

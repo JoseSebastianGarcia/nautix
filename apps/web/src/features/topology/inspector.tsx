@@ -18,7 +18,7 @@ import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
 import { keys, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
-import { Button, ConfirmDialog, ShowCommand, TypeConfirmDialog } from "../../components/ui.js";
+import { Button, ConfirmDialog, ShowCommand } from "../../components/ui.js";
 import type { ExportTarget } from "./export-dialog.js";
 import { LogoBadge } from "./logo-badge.js";
 
@@ -82,19 +82,11 @@ function ContainerInspector({
   const refresh = [keys.containers, keys.networks];
 
   const isAdmin = useIsAdmin();
-  const confirm = c.isSelf ? c.name : undefined;
-  const [pendingSelf, setPendingSelf] = useState<(() => void) | null>(null);
-  // Nautix's own container needs the name typed before anything that could take it down.
-  const guard = (run: () => void) => (c.isSelf ? setPendingSelf(() => run) : run());
-  const act = useApiMutation(
-    (a: ContainerAction) => api.containerAction(c.id, a, confirm),
-    refresh,
-  );
-  const remove = useApiMutation(() => api.removeContainer(c.id, true, confirm), refresh);
-  const leave = useApiMutation(
-    (networkId: string) => api.disconnect(networkId, c.id, confirm),
-    refresh,
-  );
+  // The container running Nautix is locked by the server; the UI just doesn't offer the actions.
+  const locked = c.isSelf === true;
+  const act = useApiMutation((a: ContainerAction) => api.containerAction(c.id, a), refresh);
+  const remove = useApiMutation(() => api.removeContainer(c.id, true), refresh);
+  const leave = useApiMutation((networkId: string) => api.disconnect(networkId, c.id), refresh);
   const join = useApiMutation((networkId: string) => api.connect(networkId, c.id), refresh);
   const joinable = networks.filter((n) => !n.system && !c.networks.includes(n.name));
   const logs = useQuery({
@@ -122,20 +114,21 @@ function ContainerInspector({
         {t(`containers.state.${c.state}`)} · <span className="text-dim">{c.status}</span>
       </div>
 
+      {locked && (
+        <p className="flex items-start gap-2 rounded-lg border border-line bg-bg2 p-2 text-xs text-amber">
+          <Lock size={14} className="mt-0.5 shrink-0" /> {t("self.lockedNote")}
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         {running ? (
           <>
-            <Button write onClick={() => guard(() => act.mutate("stop"))} disabled={act.isPending}>
+            <Button write onClick={() => act.mutate("stop")} disabled={act.isPending || locked}>
               <Square size={14} /> {t("containers.stop")}
             </Button>
-            <Button
-              write
-              onClick={() => guard(() => act.mutate("restart"))}
-              disabled={act.isPending}
-            >
+            <Button write onClick={() => act.mutate("restart")} disabled={act.isPending || locked}>
               <RotateCw size={14} /> {t("containers.restart")}
             </Button>
-            {isAdmin && (
+            {isAdmin && !locked && (
               <Link
                 to={`/terminal/${c.id}`}
                 className="inline-flex items-center gap-2 rounded-lg border border-line bg-bg1 px-3 py-1.5 text-sm font-medium hover:bg-bg2"
@@ -154,7 +147,7 @@ function ContainerInspector({
             <Play size={14} /> {t("containers.start")}
           </Button>
         )}
-        <Button write variant="danger" onClick={() => setConfirmRemove(true)}>
+        <Button write variant="danger" disabled={locked} onClick={() => setConfirmRemove(true)}>
           <Trash2 size={14} /> {t("containers.remove")}
         </Button>
       </div>
@@ -175,13 +168,13 @@ function ContainerInspector({
               className="flex items-center justify-between rounded-lg bg-bg2 px-2 py-1 text-sm"
             >
               <span className="font-mono">{n.name}</span>
-              {!n.system && (
+              {!n.system && !locked && (
                 <button
                   type="button"
                   title={t("topology.disconnect")}
                   aria-label={`${t("topology.disconnect")} ${n.name}`}
                   className="text-dim hover:text-danger"
-                  onClick={() => guard(() => leave.mutate(n.id))}
+                  onClick={() => leave.mutate(n.id)}
                 >
                   <Unplug size={14} />
                 </button>
@@ -189,7 +182,7 @@ function ContainerInspector({
             </li>
           ))}
         </ul>
-        {joinable.length > 0 && (
+        {joinable.length > 0 && !locked && (
           <select
             aria-label={t("topology.joinNetwork")}
             className="mt-2 w-full rounded-lg border border-line bg-bg0 px-2 py-1.5 text-sm text-fg"
@@ -250,18 +243,12 @@ function ContainerInspector({
         )}
       </section>
 
-      <TypeConfirmDialog
-        open={pendingSelf !== null}
-        name={c.name}
-        onConfirm={() => pendingSelf?.()}
-        onClose={() => setPendingSelf(null)}
-      />
       <ConfirmDialog
         open={confirmRemove}
         title={t("topology.removeContainerTitle", { name: c.name })}
         body={t("topology.removeContainerBody", { image: c.image })}
         command={cli.removeContainer(c.name, true)}
-        onConfirm={() => guard(() => remove.mutate(undefined, { onSuccess: onGone }))}
+        onConfirm={() => remove.mutate(undefined, { onSuccess: onGone })}
         onClose={() => setConfirmRemove(false)}
       />
     </div>

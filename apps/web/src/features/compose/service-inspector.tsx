@@ -12,9 +12,9 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Document } from "yaml";
+import { CheckList, CommitInput, EnvEditor, StringListEditor } from "../../components/fields.js";
 import { Button, ConfirmDialog, Field } from "../../components/ui.js";
 import { LogoBadge } from "../topology/logo-badge.js";
-import { CheckList, CommitInput, EnvEditor, StringListEditor } from "./fields.js";
 
 export type Patch = (doc: Document) => void;
 

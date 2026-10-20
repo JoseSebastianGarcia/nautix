@@ -5,7 +5,6 @@ import {
   BackgroundVariant,
   Controls,
   type Edge,
-  MiniMap,
   type Node,
   type NodeChange,
   ReactFlow,
@@ -217,14 +216,6 @@ function Canvas() {
         >
           <Background variant={BackgroundVariant.Lines} gap={24} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
-          <MiniMap
-            pannable
-            zoomable
-            nodeColor="var(--nx-accent)"
-            maskColor="transparent"
-            style={{ background: "var(--nx-bg-1)" }}
-            bgColor="var(--nx-bg-1)"
-          />
         </ReactFlow>
         <div className="absolute left-4 top-4 flex gap-2">
           <Button write onClick={() => setResetting(true)}>

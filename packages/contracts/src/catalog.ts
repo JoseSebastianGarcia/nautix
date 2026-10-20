@@ -5,7 +5,9 @@ export type TemplateCategory =
   | "cache"
   | "broker"
   | "observability"
-  | "app";
+  | "automation"
+  | "app"
+  | "custom";
 
 export interface TemplatePort {
   containerPort: number;
@@ -26,6 +28,8 @@ export interface Template {
   env?: Record<string, string>;
   volumes?: string[];
   command?: string[];
+  /** True for templates a user saved on this server (they can be deleted). */
+  custom?: boolean;
 }
 
 /** Curated, version-pinned-by-tag images. Keep it small; users can deploy any image too. */
@@ -144,6 +148,18 @@ export const TEMPLATES: readonly Template[] = [
     volumes: ["/data/db"],
   },
   {
+    id: "mssql",
+    name: "SQL Server",
+    category: "database",
+    image: "mcr.microsoft.com/mssql/server:2022-latest",
+    description: "Microsoft SQL Server (needs ≥ 2 GB RAM; accepts the Microsoft EULA)",
+    icon: "microsoftsqlserver",
+    color: "#CC2927",
+    ports: [{ containerPort: 1433, label: "sql" }],
+    env: { ACCEPT_EULA: "Y", MSSQL_SA_PASSWORD: "change-me", MSSQL_PID: "Developer" },
+    volumes: ["/var/opt/mssql"],
+  },
+  {
     id: "redis",
     name: "Redis",
     category: "cache",
@@ -165,6 +181,29 @@ export const TEMPLATES: readonly Template[] = [
       { containerPort: 5672, label: "amqp" },
       { containerPort: 15672, label: "console" },
     ],
+  },
+  {
+    id: "kafka",
+    name: "Kafka",
+    category: "broker",
+    image: "apache/kafka:4.3.1",
+    description: "Event streaming, single node (KRaft)",
+    icon: "apachekafka",
+    color: "#231F20",
+    ports: [{ containerPort: 9092, label: "broker" }],
+    volumes: ["/var/lib/kafka/data"],
+  },
+  {
+    id: "n8n",
+    name: "n8n",
+    category: "automation",
+    image: "n8nio/n8n:2.44.4",
+    description: "Workflow automation",
+    icon: "n8n",
+    color: "#EA4B71",
+    ports: [{ containerPort: 5678, label: "web" }],
+    env: { N8N_SECURE_COOKIE: "false", GENERIC_TIMEZONE: "UTC" },
+    volumes: ["/home/node/.n8n"],
   },
   {
     id: "prometheus",

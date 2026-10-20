@@ -4,12 +4,12 @@ import { api } from "./api.js";
 export const keys = {
   session: ["session"],
   engine: ["engine"],
-  catalog: ["catalog"],
   containers: ["containers"],
   networks: ["networks"],
   images: ["images"],
   volumes: ["volumes"],
   layout: ["layout"],
+  catalog: ["catalog"],
   composeProjects: ["compose-projects"],
 } as const;
 

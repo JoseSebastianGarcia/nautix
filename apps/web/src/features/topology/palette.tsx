@@ -1,7 +1,9 @@
 import type { Template } from "@nautix/contracts";
-import { Network as NetworkIcon, Plus } from "lucide-react";
+import { Network as NetworkIcon, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useCatalog, useIsAdmin } from "../../app/queries.js";
+import { api } from "../../app/api.js";
+import { keys, useCatalog, useIsAdmin } from "../../app/queries.js";
+import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button } from "../../components/ui.js";
 import { LogoBadge } from "./logo-badge.js";
 
@@ -20,6 +22,10 @@ export function Palette({
   const { t } = useTranslation();
   const { data } = useCatalog();
   const isAdmin = useIsAdmin();
+  const removeTemplate = useApiMutation(
+    (id: string) => api.deleteCustomTemplate(id),
+    [keys.catalog],
+  );
   const groups = new Map<string, Template[]>();
   for (const tpl of data ?? [])
     groups.set(tpl.category, [...(groups.get(tpl.category) ?? []), tpl]);
@@ -40,23 +46,37 @@ export function Palette({
       </Button>
       {[...groups.entries()].map(([category, items]) => (
         <section key={category} className="flex flex-col gap-2">
-          <h3 className="font-mono text-[11px] uppercase tracking-wider text-dim">{category}</h3>
+          <h3 className="font-mono text-[11px] uppercase tracking-wider text-dim">
+            {t(`topology.category.${category}`)}
+          </h3>
           {items.map((tpl) => (
-            <button
-              key={tpl.id}
-              type="button"
-              draggable={isAdmin}
-              disabled={!isAdmin}
-              onDragStart={(e) => e.dataTransfer.setData(DRAG_TYPE, tpl.id)}
-              onClick={() => onPick(tpl)}
-              className="flex items-center gap-3 rounded-xl border border-line bg-bg0 p-2 text-left hover:border-accent"
-            >
-              <LogoBadge image={tpl.image} name={tpl.name} />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold">{tpl.name}</span>
-                <span className="block truncate text-[11px] text-dim">{tpl.description}</span>
-              </span>
-            </button>
+            <div key={tpl.id} className="group relative">
+              <button
+                type="button"
+                draggable={isAdmin}
+                disabled={!isAdmin}
+                onDragStart={(e) => e.dataTransfer.setData(DRAG_TYPE, tpl.id)}
+                onClick={() => onPick(tpl)}
+                className="flex w-full items-center gap-3 rounded-xl border border-line bg-bg0 p-2 text-left hover:border-accent"
+              >
+                <LogoBadge image={tpl.image} name={tpl.name} />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">{tpl.name}</span>
+                  <span className="block truncate text-[11px] text-dim">{tpl.description}</span>
+                </span>
+              </button>
+              {tpl.custom && isAdmin && (
+                <button
+                  type="button"
+                  title={t("topology.deleteTemplate")}
+                  aria-label={`${t("topology.deleteTemplate")}: ${tpl.name}`}
+                  className="absolute right-2 top-2 rounded p-1 text-dim opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100"
+                  onClick={() => removeTemplate.mutate(tpl.id)}
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </div>
           ))}
         </section>
       ))}
@@ -71,7 +91,7 @@ export function Palette({
         <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent-soft text-accent">
           <Plus size={18} />
         </span>
-        <span className="text-sm font-semibold">{t("common.image")}</span>
+        <span className="text-sm font-semibold">{t("topology.anyImage")}</span>
       </button>
     </aside>
   );

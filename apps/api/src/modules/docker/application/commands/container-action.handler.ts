@@ -14,7 +14,7 @@ export class ContainerActionHandler implements ICommandHandler<ContainerActionCo
   ) {}
 
   async execute(c: ContainerActionCommand): Promise<void> {
-    if (DESTRUCTIVE.has(c.action)) await this.guard.assertAllowed(c.id, c.confirm);
+    if (DESTRUCTIVE.has(c.action)) await this.guard.assertNotSelf(c.id);
     await this.engine.containerAction(c.id, c.action);
   }
 }

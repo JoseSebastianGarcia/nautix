@@ -164,7 +164,7 @@ describe("docker api (fake engine)", () => {
     expect(withEnv.json.yaml).toContain("topsecret");
   });
 
-  it("protects the container that runs Nautix itself", async () => {
+  it("locks the container that runs Nautix: nobody can stop, remove, rewire or open a shell in it", async () => {
     const list = (await call("GET", "/containers")).json as {
       id: string;
       name: string;
@@ -172,14 +172,27 @@ describe("docker api (fake engine)", () => {
     }[];
     const self = list.find((c) => c.isSelf);
     expect(self?.name).toBe("nautix");
-    const refused = await call("POST", `/containers/${self?.id}/stop`);
-    expect(refused.res.status).toBe(409);
-    expect(refused.json.hintKey).toBe("errors.selfProtected");
-    expect((await call("DELETE", `/containers/${self?.id}?force=true`)).res.status).toBe(409);
-    expect((await call("POST", `/containers/${self?.id}/stop?confirm=nautix`)).res.status).toBe(
-      204,
-    );
+    const networks = (await call("GET", "/networks")).json as { id: string; name: string }[];
+    const edge = networks.find((n) => n.name === "edge");
+
+    for (const action of ["stop", "kill", "restart", "pause"]) {
+      const refused = await call("POST", `/containers/${self?.id}/${action}`);
+      expect(refused.res.status).toBe(403);
+      expect(refused.json.hintKey).toBe("errors.selfLocked");
+    }
+    expect((await call("DELETE", `/containers/${self?.id}?force=true`)).res.status).toBe(403);
+    expect(
+      (await call("POST", `/networks/${edge?.id}/connect`, { containerId: self?.id })).res.status,
+    ).toBe(403);
+    expect(
+      (await call("POST", `/networks/${edge?.id}/disconnect`, { containerId: self?.id })).res
+        .status,
+    ).toBe(403);
+    expect(await openTerminalOn(self?.id ?? "", { origin: base, cookie })).toBe("403");
+    // Harmless actions still work, and the container is untouched.
     expect((await call("POST", `/containers/${self?.id}/start`)).res.status).toBe(204);
+    const after = (await call("GET", "/containers")).json as { id: string; state: string }[];
+    expect(after.find((c) => c.id === self?.id)?.state).toBe("running");
   });
 
   it("validates input", async () => {
@@ -245,11 +258,14 @@ describe("terminal websocket", () => {
   });
 });
 
-const openTerminal = (headers: Record<string, string>) =>
+const openTerminalOn = (containerId: string, headers: Record<string, string>) =>
   new Promise<string | undefined>((resolve) => {
-    const ws = new WebSocket(`${base.replace("http", "ws")}/ws/terminal/abc?cols=80&rows=24`, {
-      headers,
-    });
+    const ws = new WebSocket(
+      `${base.replace("http", "ws")}/ws/terminal/${containerId}?cols=80&rows=24`,
+      {
+        headers,
+      },
+    );
     ws.on("open", () => {
       ws.close();
       resolve(undefined);
@@ -322,7 +338,7 @@ describe("roles and API tokens", () => {
     expect((await asViewer("GET", "/settings/users")).status).toBe(403);
     expect((await asViewer("GET", "/settings/tokens")).status).toBe(403);
 
-    expect(await openTerminal({ origin: base, cookie: viewerCookie })).toBe("403");
+    expect(await openTerminalOn("abc", { origin: base, cookie: viewerCookie })).toBe("403");
   });
 
   it("will not delete yourself or the last admin", async () => {
@@ -390,5 +406,41 @@ describe("compose projects", () => {
     expect((await call("POST", "/compose/projects/broken/down", {})).res.status).toBe(200);
     expect((await call("DELETE", "/compose/projects/broken")).res.status).toBe(204);
     expect((await call("GET", "/compose/projects/broken")).res.status).toBe(404);
+  });
+});
+
+describe("catalog", () => {
+  const list = async () =>
+    (await call("GET", "/catalog")).json as {
+      id: string;
+      custom?: boolean;
+      env?: Record<string, string>;
+    }[];
+
+  it("ships SQL Server, Kafka and n8n", async () => {
+    const ids = (await list()).map((t) => t.id);
+    expect(ids).toEqual(expect.arrayContaining(["mssql", "kafka", "n8n"]));
+  });
+
+  it("saves, updates and deletes the user's own templates", async () => {
+    const body = {
+      name: "Mi API",
+      image: "ghcr.io/acme/api:1.0",
+      ports: [{ containerPort: 8080 }],
+      env: { MODE: "dev" },
+      volumes: ["/data"],
+    };
+    const saved = await call("POST", "/catalog/custom", body);
+    expect(saved.res.status).toBe(201);
+    expect(saved.json).toMatchObject({ id: "custom-mi-api", custom: true, category: "custom" });
+
+    await call("POST", "/catalog/custom", { ...body, env: { MODE: "prod" } });
+    const mine = (await list()).filter((t) => t.custom);
+    expect(mine).toHaveLength(1);
+    expect(mine[0]?.env).toEqual({ MODE: "prod" });
+
+    expect((await call("POST", "/catalog/custom", { name: "", image: "x" })).res.status).toBe(422);
+    expect((await call("DELETE", "/catalog/custom/custom-mi-api")).res.status).toBe(204);
+    expect((await list()).filter((t) => t.custom)).toHaveLength(0);
   });
 });

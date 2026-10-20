@@ -1,9 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { ConflictError } from "../../../shared/domain-error.js";
+import { ForbiddenError } from "../../../shared/domain-error.js";
 import { DockerEngine } from "./ports/docker-engine.js";
 import { SelfIdentity } from "./ports/self-identity.js";
 
-/** Nautix never stops, removes or cuts off its own container unless the user types its name. */
+/**
+ * The container running Nautix is locked: nobody (no role, no API token) can stop, restart,
+ * pause, remove or reconfigure it from here. To manage it, use the Docker CLI on the host.
+ */
 @Injectable()
 export class SelfGuard {
   constructor(
@@ -11,14 +14,14 @@ export class SelfGuard {
     @Inject(SelfIdentity) private readonly self: SelfIdentity,
   ) {}
 
-  async assertAllowed(containerId: string, confirm: string | undefined): Promise<void> {
+  async assertNotSelf(containerId: string): Promise<void> {
     const target = (await this.engine.listContainers()).find(
       (c) => c.id === containerId || c.name === containerId,
     );
-    if (target && this.self.matches(target) && confirm !== target.name) {
-      throw new ConflictError(
-        "this is the container running Nautix; type its name to confirm",
-        "errors.selfProtected",
+    if (target && this.self.matches(target)) {
+      throw new ForbiddenError(
+        "this is the container running Nautix and it is locked",
+        "errors.selfLocked",
       );
     }
   }

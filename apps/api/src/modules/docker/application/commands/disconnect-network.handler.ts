@@ -12,7 +12,7 @@ export class DisconnectNetworkHandler implements ICommandHandler<DisconnectNetwo
   ) {}
 
   async execute(c: DisconnectNetworkCommand): Promise<void> {
-    await this.guard.assertAllowed(c.containerId, c.confirm);
+    await this.guard.assertNotSelf(c.containerId);
     await this.engine.disconnectNetwork(c.networkId, c.containerId);
   }
 }

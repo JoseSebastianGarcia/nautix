@@ -120,7 +120,34 @@
     "resetLayoutTitle": "Reset layout?",
     "resetLayoutBody": "Saved positions are discarded and boxes and containers go back to the automatic arrangement.",
     "restartPolicy": "Restart policy",
-    "restartHint": "Use “no” for one-shot containers (like hello-world) or they restart forever."
+    "restartHint": "Use “no” for one-shot containers (like hello-world) or they restart forever.",
+    "anyImage": "Any image",
+    "category": {
+      "proxy": "Proxies",
+      "gateway": "API gateways",
+      "database": "Databases",
+      "cache": "Cache",
+      "broker": "Messaging",
+      "observability": "Observability",
+      "automation": "Automation",
+      "app": "Apps",
+      "custom": "My images"
+    },
+    "image": "Image",
+    "addPort": "Add port",
+    "containerPort": "Container port",
+    "hostPortShort": "Host port",
+    "environment": "Environment variables",
+    "volumesPaths": "Data volumes (container paths)",
+    "command": "Command (optional)",
+    "commandHint": "Replaces the image's default command. Quotes are supported.",
+    "saveTemplate": "Save to the panel for reuse",
+    "templateName": "Template name",
+    "templateSaved": "“{{name}}” saved to the panel",
+    "templateHint": "Ports, variables and volumes are stored on this server, including variable values.",
+    "deleteTemplate": "Remove from the panel",
+    "remove": "Remove",
+    "invalidPort": "Ports must be between 1 and 65535"
   },
   "containers": {
     "title": "Containers",
@@ -189,7 +216,6 @@
     "conflict": "Conflict with the current state",
     "imagePullFailed": "Could not pull the image",
     "validation": "Please check the form",
-    "selfProtected": "This is the container running Nautix. Confirm by typing its name.",
     "readOnly": "Your role is read-only",
     "adminOnly": "Admin role required",
     "usernameTaken": "That username already exists",
@@ -198,7 +224,9 @@
     "composeInvalid": "The file has errors; fix them first",
     "composeRisk": "The file uses privileged features; confirm the risks",
     "composeBusy": "Another operation is running for this project",
-    "notRunning": "The container is not running"
+    "notRunning": "The container is not running",
+    "tooManyTemplates": "Too many saved templates",
+    "selfLocked": "This container is locked and cannot be changed from Nautix"
   },
   "terminal": {
     "title": "Terminal",
@@ -210,9 +238,7 @@
   },
   "self": {
     "badge": "Nautix",
-    "title": "This is Nautix itself",
-    "body": "Stopping, restarting or removing it will make this interface unavailable. Type the container name to continue.",
-    "typeName": "Container name"
+    "lockedNote": "This is Nautix itself. It is locked: it cannot be stopped, restarted, removed or edited from here. Use the Docker CLI on the host if you need to."
   },
   "settings": {
     "title": "Settings",

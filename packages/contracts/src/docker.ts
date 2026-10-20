@@ -94,11 +94,7 @@ export type CreateVolume = z.infer<typeof CreateVolume>;
 export const PullImage = z.object({ reference: z.string().min(1).max(255) });
 export type PullImage = z.infer<typeof PullImage>;
 
-export const ConnectNetwork = z.object({
-  containerId: z.string().min(1),
-  /** Container name typed by the user; required to touch Nautix's own container. */
-  confirm: z.string().optional(),
-});
+export const ConnectNetwork = z.object({ containerId: z.string().min(1) });
 export type ConnectNetwork = z.infer<typeof ConnectNetwork>;
 
 export const ContainerAction = z.enum(["start", "stop", "restart", "kill", "pause", "unpause"]);
@@ -198,3 +194,24 @@ export const ComposeRunResult = z.object({
   output: z.string(),
 });
 export type ComposeRunResult = z.infer<typeof ComposeRunResult>;
+
+/** What a user can save as a reusable template from the deploy dialog. */
+export const CustomTemplateInput = z.object({
+  name: z.string().min(1).max(64),
+  image: z.string().min(1).max(255),
+  description: z.string().max(200).default(""),
+  ports: z
+    .array(
+      z.object({
+        containerPort: z.number().int().min(1).max(65535),
+        label: z.string().max(32).default(""),
+      }),
+    )
+    .max(32)
+    .default([]),
+  env: z.record(z.string().max(128), z.string().max(4096)).default({}),
+  /** Container paths that become named volumes. */
+  volumes: z.array(z.string().min(1).max(255)).max(32).default([]),
+  command: z.array(z.string().max(512)).max(64).optional(),
+});
+export type CustomTemplateInput = z.infer<typeof CustomTemplateInput>;

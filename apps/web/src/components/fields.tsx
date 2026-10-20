@@ -1,7 +1,7 @@
 import { Plus, X } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Input } from "../../components/ui.js";
+import { Input } from "./ui.js";
 
 /** Text input that commits on blur or Enter, so each edit is one undo step and one YAML patch. */
 export function CommitInput({

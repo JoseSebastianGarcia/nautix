@@ -12,7 +12,7 @@ export class RemoveContainerHandler implements ICommandHandler<RemoveContainerCo
   ) {}
 
   async execute(c: RemoveContainerCommand): Promise<void> {
-    await this.guard.assertAllowed(c.id, c.confirm);
+    await this.guard.assertNotSelf(c.id);
     await this.engine.removeContainer(c.id, c.force);
   }
 }
