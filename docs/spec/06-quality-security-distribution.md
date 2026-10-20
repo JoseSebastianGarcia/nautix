@@ -21,7 +21,7 @@ CI (GitHub Actions): `build` (windows-latest: restore, build -warnaserror, forma
 
 1. **No network listeners.** Engine only via the per-user named pipe. A test enumerates `netstat`-equivalent listeners after provisioning and asserts none belong to Nautix or `nautix-engine` besides user-published container ports.
 2. **Pipe ACL** restricted to the current user SID; test with a second user in integration (denied).
-3. **Credentials**: Windows Credential Manager only (target `Nautix/registry/<host>`); `docker login` uses `--password-stdin`; never write to `config.json` plaintext — configure `credsStore: "wincred"` in Nautix's docker config or use a Nautix credential helper (`docker-credential-nautix.exe`) that reads Credential Manager. Decide at M1 in DECISIONS.
+3. **Credentials**: Windows Credential Manager only; `docker login` uses `--password-stdin`; never plaintext in `config.json`. Decided (ADR-018): ship the upstream `docker-credential-wincred.exe` (MIT) and set `credsStore: "wincred"` in Nautix's `DOCKER_CONFIG`; the Credential Manager target is the registry URL, not `Nautix/registry/<host>`. Must be validated on a corporate laptop (application-control policies).
 4. **Secrets in builds** (`--secret`) are passed by file/env at execution time and never persisted in history.
 5. **Destructive confirmations** through `IConfirmationPolicy`; "Don't ask again" allowed only for non-destructive operations.
 6. **Privileged requests** (privileged containers, host network, mounting `/`, `docker.sock`, `--cap-add=SYS_ADMIN`, `--security-opt apparmor=unconfined`) show a security warning dialog with the specific risk.
@@ -35,7 +35,7 @@ CI (GitHub Actions): `build` (windows-latest: restore, build -warnaserror, forma
 
 ## Installer and lifecycle
 
-- **MSI** with WiX v5, per-user install (`%LocalAppData%\Programs\Nautix`) by default; per-machine optional. UI languages en-US/es-ES. Signed.
+- **MSI** with WiX v5 (MS-RL accepted as a build-time-only exception, ADR-003), per-user install (`%LocalAppData%\Programs\Nautix`) by default; per-machine optional. UI languages en-US/es-ES. Signed.
 - First run launches the **provisioning wizard** (same steps as `02-engine.md`), resumable after reboot. Modes: *Full* (engine + tools + context) and *Client only* (skip engine/WSL changes; just tools and context management) for corporate environments.
 - Uninstall: removes app, relay task, PATH entry; asks whether to delete the engine distro and data (default: keep data, offer export).
 - Auto-update: check on launch + every 24 h against GitHub Releases manifest (signed); apply on next restart; rollback to previous version on failed start (2 consecutive crashes within 60 s).

@@ -96,17 +96,18 @@ New entries go at the end; never edit an accepted ADR, supersede it.
 
 ## ADR-013 — Terminal control: xterm.js in WebView2 over our own ConPTY (not `Microsoft.Terminal.Wpf`)
 
-- **Status:** Proposed — **needs owner approval; confirmed or rejected by S4 results.**
+- **Status:** Accepted by the owner (2026-10-20) — **to be confirmed or reversed by the S4 run.**
+- **Why a WebView at all:** a terminal emulator is a large component (VT parsing, alternate screen, mouse reporting, wide glyphs, selection, scrollback). WPF has none built in and the Microsoft one is not downloadable, so the options are writing one (weeks of work and bugs) or reusing the de-facto engine, xterm.js, which is JavaScript and therefore needs a browser surface; WebView2 is that surface and is already part of Windows 11.
 - **Context:** `03-ui-wpf.md` says to evaluate `Microsoft.Terminal.Wpf` first and fall back to "a custom VT renderer (use a maintained VT parser library)". Checked 2026-10-20: nuget.org lists `Microsoft.Terminal.Wpf` 1.0 with no license metadata, and its `.nupkg` returns `404 BlobNotFound`; it is unusable. A custom renderer means writing selection, scrollback, alternate screen, mouse reporting, wide glyphs, IME and accessibility ourselves.
-- **Decision (proposed):** Render with **xterm.js 6.0.0** (MIT; used by VS Code) inside **WebView2** (SDK is BSD-3-Clause; the runtime ships with Windows 11), fed by our own ConPTY wrapper (`ConPtySession`, the prototype of `ConPtyTerminalAdapter`). Theme colours come from the `Nx.*` tokens. Assets are fetched by pinned SHA-512, not committed.
+- **Decision:** Render with **xterm.js 6.0.0** (MIT; used by VS Code) inside **WebView2** (SDK is BSD-3-Clause; the runtime ships with Windows 11), fed by our own ConPTY wrapper (`ConPtySession`, the prototype of `ConPtyTerminalAdapter`). Theme colours come from the `Nx.*` tokens. Assets are fetched by pinned SHA-512, not committed.
 - **Evidence so far:** spike S4 compiles; behaviour unverified (see `spikes/S4-terminal/README.md`). Gate: shell + vim + `docker exec -it` + resize render correctly, asserted from xterm's buffer.
 - **Consequences:** Adds WebView2 processes (extra memory while a terminal is open; to measure in M1 against the 250 MB idle budget). The spec's "custom VT renderer" remains the fallback if S4 fails or the owner rejects the WebView dependency. `03-ui-wpf.md` must be updated if approved.
 
 ## ADR-014 — The engine distro keep-alive defaults to ON
 
-- **Status:** Proposed — owner decision (M1).
+- **Status:** Accepted by the owner (2026-10-20).
 - **Context:** WSL stops a distro with no process started from Windows. `02-engine.md` says the relay holds `sleep infinity` "while ≥ 1 client or `engine.keepAlive` is true" without a default. With the default off, running `docker run -d …` and closing every terminal would stop the VM and kill the container.
-- **Decision (proposed):** `engine.keepAlive` defaults to **true**; the relay releases the keep-alive 30 s after the last client only when the user turned it off. Cost: the WSL VM stays resident (its memory is bounded by `.wslconfig`, and is outside the GUI's 250 MB budget).
+- **Decision:** `engine.keepAlive` defaults to **true**; the relay releases the keep-alive 30 s after the last client only when the user turned it off. Cost: the WSL VM stays resident (its memory is bounded by `.wslconfig`, and is outside the GUI's 250 MB budget).
 - **Consequences:** The Settings module exposes the toggle with this explanation; `RelayOptions.KeepAlive` already defaults to true.
 
 ## ADR-015 — Docker API client: `Docker.DotNet.Enhanced`, not `Docker.DotNet`
@@ -131,18 +132,22 @@ New entries go at the end; never edit an accepted ADR, supersede it.
 
 ## ADR-018 — Credential helper for registries
 
-- **Status:** Proposed — owner decision (needed before M1 registries work).
+- **Status:** Accepted with conditions (owner, 2026-10-20): option (a), provided the license is compatible and it runs on a corporate laptop. See "Conditions".
 - **Context:** `06-...` requires credentials only in Windows Credential Manager, never plaintext in `config.json`, and leaves "wincred vs a Nautix helper" to M1. The standalone Windows `docker.exe` zip contains no credential helper (`docker-credential-wincred.exe` ships with Docker Desktop), so Nautix must supply one.
 - **Options:** (a) ship the upstream `docker-credential-wincred.exe` (MIT, `docker/docker-credential-helpers`), pinned and checksum-verified, with `credsStore: "wincred"` in Nautix's `DOCKER_CONFIG`; (b) write `docker-credential-nautix.exe` (about 150 lines, `get`/`store`/`erase`/`list`) that uses target names `Nautix/registry/<host>`.
 - **Recommendation:** (a). It is smaller attack surface on a security path, battle-tested, and other docker tools can share the entries. Cost: the Credential Manager target is the registry URL, not `Nautix/registry/<host>` as the spec wrote; `ICredentialStore` talks to the helper protocol instead of calling `CredRead` directly. Choose (b) only if namespacing under `Nautix/` is a hard requirement.
+- **Conditions checked:**
+  - *License:* `docker-credential-helpers` is MIT, compatible with the rule in `CLAUDE.md`; add it to `THIRD_PARTY_NOTICES.md` when it is first bundled.
+  - *Corporate laptop:* it is a small per-user executable that only talks to Windows Credential Manager; it needs no admin rights, no service and no network. **Unverified risk:** application-control policies (AppLocker, WDAC, Smart App Control) may block executables that are not Authenticode-signed, and I could not confirm that the upstream release binary is signed. The same risk applies to `Nautix.EngineRelay.exe`, `docker.exe` and `docker-compose.exe`, so the pilot on a real corporate machine (client-only mode, see `00-product.md`) must test it. If it is blocked, fall back to option (b): an in-house helper signed with our certificate.
 - **Consequences:** Needs the helper's checksum in `build/checksums.json` and a download step in `InstallClientTools`.
 
-## ADR-019 — Charts: start with an in-house lightweight control; decide LiveCharts2 vs ScottPlot only if needed
+## ADR-019 — Charts: ScottPlot 5 (WPF) behind `IChartHost`
 
-- **Status:** Proposed — final choice at M1 as the spec says.
-- **Context:** Facts checked 2026-10-20: `ScottPlot.WPF` 5.1.59 (MIT) depends on `SkiaSharp.Views.WPF` 3.119 **and** OpenTK + OpenTK.GLWpfControl; `LiveChartsCore.SkiaSharpView.WPF` 2.0.5 (MIT) depends on `SkiaSharp.Views.WPF` 3.119 and `SkiaSharp.HarfBuzz`. Both therefore ship SkiaSharp native binaries. The Dashboard needs a few small live line/area charts (CPU, memory, network, disk), a handful of series with a few hundred points at 1 Hz.
-- **Decision (proposed):** Build a small `Sparkline`/`AreaChart` control (StreamGeometry, theme tokens, no dependency) behind `IChartHost`, and adopt LiveCharts2 or ScottPlot only if the Stats view needs zoom, axes and tooltips beyond it. In M1 measure all three on 12 series × 300 points at 1 Hz (working set and CPU) before committing.
-- **Consequences:** If rejected, pick ScottPlot for raw speed or LiveCharts2 for animated styling; both are MIT and already vetted for license.
+- **Status:** Accepted by the owner's criterion (2026-10-20): "what scales best and saves us work later". This **supersedes my earlier proposal** of an in-house control, which would have cost more work later.
+- **Context:** Both candidates are MIT and need SkiaSharp 3.119 (checked 2026-10-20: `ScottPlot.WPF` 5.1.59 also pulls OpenTK + OpenTK.GLWpfControl; `LiveChartsCore.SkiaSharpView.WPF` 2.0.5 pulls SkiaSharp.HarfBuzz). The Dashboard needs a few live line/area charts now; later views (Stats per container, Builds timings, disk usage) need zoom, crosshair and many points.
+- **Decision:** ScottPlot.WPF 5.x. Reasons: built for fast streaming data (millions of points) so it scales with history length and series count; pan/zoom/crosshair/many chart types come built in; the imperative API is simple to drive from an MVU effect; very active releases. Everything sits behind `IChartHost` so it can be replaced. LiveCharts2 remains the fallback (more animated, declarative styling).
+- **Not yet measured:** the first M1 Dashboard task benchmarks ScottPlot on 12 series × 300 points at 1 Hz (working set, CPU) against the 250 MB idle budget before it is wired into more views. If OpenTK can be excluded without losing needed features, exclude it.
+- **Consequences:** Add to `Directory.Packages.props` and `THIRD_PARTY_NOTICES.md` (ScottPlot, SkiaSharp, OpenTK licenses all MIT/BSD-style; re-verify at adoption). Theme colours come from the `Nx.*` tokens through a small adapter.
 
 ## ADR-020 — Pending evidence: graph canvas (S2) and editor (S5)
 

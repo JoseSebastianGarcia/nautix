@@ -27,6 +27,8 @@ Fallbacks (implement behind `IEngineTransport`, selectable by setting `engine.tr
 - Listens on `\\.\pipe\nautix_engine` using `NamedPipeServerStream` with `PipeSecurity` granting `FullControl` to the current user SID only; `PipeOptions.Asynchronous`, `maxNumberOfServerInstances = NamedPipeServerStream.MaxAllowedServerInstances`; always keep ≥ 1 pending listener.
 - For each accepted client: spawn transport process, pump bytes both ways with `System.IO.Pipelines`, 64 KB buffers, propagate half-close (client write-shutdown → close child stdin), kill child when either side closes.
 - Keeps the distro alive: holds one child `wsl.exe -d nautix-engine --exec sleep infinity` while ≥ 1 client or `engine.keepAlive` setting is true.
+- Engine pipe is created in **message mode** (`PipeTransmissionMode.Message`): the Docker CLI's `CloseWrite` is a zero-length write that exists only on message pipes, and the relay treats a zero-length read as write-shutdown (it completes the engine's stdin, keeps delivering the response). First instance uses `FirstPipeInstance`; several accept loops keep a listener pending. Verified by S3 (pending run).
+- `engine.keepAlive` defaults to **true** (ADR-014).
 - Health endpoint: second pipe `\\.\pipe\nautix_relay_control` (JSON lines): `ping`, `status`, `shutdown`. Same ACL.
 - Started by `IEngineRelayControl` on app start; also registered as a per-user logon Scheduled Task (`Nautix Engine Relay`) when setting `engine.autostart` is on, so `docker` works from any terminal without the GUI.
 - Logging: rolling file `%LocalAppData%\Nautix\logs\relay-.log`, no payload logging.
@@ -34,7 +36,7 @@ Fallbacks (implement behind `IEngineTransport`, selectable by setting `engine.tr
 
 ## Distro provisioning (`IEngineHost`)
 
-Distro name `nautix-engine`. Base: pinned minimal rootfs (Alpine or Debian slim — decide in `DECISIONS.md` at M0, prefer Debian slim for systemd/moby packages). The rootfs tarball is built by CI (`build/engine-rootfs/`) and shipped inside the installer (or downloaded with SHA-256 verification).
+Distro name `nautix-engine`. Base: **Debian 13 (trixie) slim**, pinned by SHA-256 (ADR-017). It has no systemd; provisioning installs it plus Docker Engine from Docker's apt repository. `daemon.json` must not contain `hosts` (the packaged unit already passes `-H fd://`).
 
 Provisioning steps, each idempotent and reported as `ProvisionStep` progress:
 1. `CheckPrerequisites`: Windows build ≥ 22000, virtualization enabled, WSL2 present (`wsl --status`).
@@ -55,7 +57,7 @@ States (`EngineState`): `NotInstalled → Provisioning → Stopped → Starting 
 
 ## Docker API access (`IContainerEngine`)
 
-- Client: `Docker.DotNet` using `new DockerClientConfiguration(new Uri("npipe://./pipe/nautix_engine"))`. Pin API version negotiation (`NegotiateApiVersion`). If the library lags (missing endpoints/fields), add an internal typed `HttpClient` for those endpoints; record in `DECISIONS.md`. Do not fork silently.
+- Client: **`Docker.DotNet.Enhanced`** (maintained MIT fork; the original `Docker.DotNet` has had no release since 2023, ADR-015) using `new DockerClientBuilder().WithEndpoint(new Uri("npipe://./pipe/nautix_engine")).Build()`. Pin API version negotiation (`NegotiateApiVersion`). If the library lags (missing endpoints/fields), add an internal typed `HttpClient` for those endpoints; record in `DECISIONS.md`. Do not fork silently.
 - Streaming endpoints (logs, stats, events, pull, build, attach, exec) use the multiplexed stream demux (stdcopy) — implement `StdCopyDemuxer` with tests.
 - Everything not in the API (compose, buildx, bake, login, context, plugin CLI, trust, manifest) goes through `IDockerCli` / dedicated adapter with `Process`, `--context nautix` explicit, `DOCKER_CONFIG` pointing to the user config, output parsed from JSON formats (`--format json`, `--progress=rawjson`).
 - Timeouts: default 30 s for unary calls; none for streams (cancellation only).

@@ -6,8 +6,8 @@
 - Shell/controls base: **WPF-UI** (lepoco, MIT) for Fluent window chrome, Mica backdrop, navigation view. Wrap behind own styles; do not leak WPF-UI types into feature code.
 - Node/graph canvas: **Nodify** (MIT) behind port `IGraphCanvas`. If it fails the M0 performance gate (300 nodes ≥ 30 fps, 600 edges), write a custom `Canvas` + `DrawingVisual` renderer behind the same port.
 - Code editor (YAML, Dockerfile): **AvalonEdit** (MIT) with custom `IHighlightingDefinition` and `IBackgroundRenderer` for diagnostics. Alternative evaluated at M0: Monaco in WebView2 (only if AvalonEdit can't meet folding/diagnostics needs; record in DECISIONS).
-- Terminal: ConPTY (`CreatePseudoConsole`) via `ConPtyTerminalAdapter` + a terminal control. Evaluate `Microsoft.Terminal.Wpf` (MIT) first; fallback: custom VT renderer (use a maintained VT parser library). Decide at M0.
-- Charts (stats): LiveCharts2 or ScottPlot (both MIT) — choose at M1, behind `IChartHost` if used in more than one view.
+- Terminal: ConPTY (`ConPtyTerminalAdapter`, prototype `spikes/Common/ConPtySession.cs`) + **xterm.js in WebView2** as the terminal control. `Microsoft.Terminal.Wpf` is not downloadable (nuget `.nupkg` returns 404), so the spec's first choice is unavailable; see ADR-013. A custom VT renderer remains the fallback if S4 fails.
+- Charts (stats): **ScottPlot.WPF 5.x** behind `IChartHost` (ADR-019); LiveCharts2 is the fallback. Benchmarked at the start of M1.
 - Icons: Segoe Fluent Icons for system affordances + SVG set in `Assets/Icons` (MIT-compatible, e.g. Fluent UI System Icons) rendered via `SharpVectors` or converted to `DrawingImage` at build.
 
 ## MVU runtime (`Nautix.Ui`)

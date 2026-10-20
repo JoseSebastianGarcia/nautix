@@ -9,10 +9,10 @@ Legend: `[ ]` task · **AC** = acceptance criterion (must be automated unless ma
 ## M0 — Foundations and risk spikes (≈ 3 pw)
 
 Tasks
-- [ ] Create solution layout, `Directory.Build.props`, central packages, `.editorconfig`, CI skeleton, `LICENSE`, `CLAUDE.md` copy, `docs/DECISIONS.md`.
-- [ ] `Nautix.SharedKernel`: `Result<T>`, `Error`, `IClock`, `IConfirmationPolicy`.
-- [ ] `Nautix.Ui`: MVU runtime (`Store`, `Update`, effects), `[GenerateViewState]` source generator, theme manager, localizer, resource tests.
-- [ ] Spike S1 — **Compose round-trip**: parser + patch on 50-file corpus.
+- [x] Create solution layout, `Directory.Build.props`, central packages, `.editorconfig`, CI skeleton, `LICENSE`, `CLAUDE.md` copy, `docs/DECISIONS.md`.
+- [x] `Nautix.SharedKernel`: `Result<T>`, `Error`, `IClock`, `IConfirmationPolicy`.
+- [x] `Nautix.Ui`: MVU runtime (`Store`, `Update`, effects), `[GenerateViewState]` source generator, theme manager, localizer, resource tests.
+- [x] Spike S1 — **Compose round-trip**: parser + patch on 50-file corpus.
 - [ ] Spike S2 — **Graph perf**: Nodify with 300 nodes / 600 edges, pan/zoom/drag.
 - [ ] Spike S3 — **Relay**: `Nautix.EngineRelay` + `Docker.DotNet` + `docker.exe` against a manually imported distro: `ps`, `logs -f`, `exec -it`, `build`, `save | load`.
 - [ ] Spike S4 — **Terminal**: ConPTY + `Microsoft.Terminal.Wpf` (or fallback) running `docker exec -it sh` and `vim`.
@@ -25,6 +25,23 @@ AC (gate)
 - S3: 100 concurrent connections, `docker save` 1 GB at ≥ 100 MB/s, `exec -it` interactive resize works, relay restart does not break new connections.
 - S4: interactive shell + full-screen app render correctly.
 - Architecture tests exist and pass on the empty skeleton; CI green.
+
+### M0 status (2026-10-20) — **not closed: M1 must not start**
+
+| Item | State | Evidence |
+|---|---|---|
+| Skeleton, props, central packages, `.editorconfig`, CI, LICENSE, DECISIONS | Done | builds with 0 warnings; ADR-001..020 |
+| `SharedKernel` | Done | 22 tests |
+| `Nautix.Ui`: MVU runtime, `[GenerateViewState]`, theme manager, localizer (+ plurals), resource tests | Done | 81 tests; contrast fixed (ADR-009) |
+| S1 Compose round-trip | **Passed** (67/67 real files, 100%; gate ≥ 98%) | `spikes/S1-compose-roundtrip/README.md` |
+| S2 Graph performance | **Pending your run** (code compiles) | `spikes/S2-graph-perf/README.md` |
+| S3 Relay | **Pending your run**; relay unit-tested (25 tests) | `spikes/S3-relay/README.md` |
+| S4 Terminal | **Pending your run** | `spikes/S4-terminal/README.md` |
+| S5 Editor | **Pending your run** | `spikes/S5-editor/README.md` |
+| Architecture tests pass on the skeleton | Passed locally (78 tests) | `tests/Nautix.ArchitectureTests` |
+| CI green on GitHub (windows-latest) | **Not yet verified** — workflow had never run; first run triggered 2026-10-20 | Actions |
+| ADRs: rootfs, YAML, terminal, charts, credential helper, localization | Done (terminal pending S4 confirmation) | ADR-011, 013, 016–019 |
+| ADRs: graph canvas, editor | **Blocked on S2 / S5 data** | ADR-020 |
 
 ---
 

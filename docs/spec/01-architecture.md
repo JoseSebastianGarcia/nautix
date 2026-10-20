@@ -22,7 +22,9 @@ THIRD_PARTY_NOTICES.md
 src/
   Nautix.SharedKernel/       # Result<T>, Error, IClock, base abstractions, IConfirmationPolicy
   Nautix.Host.Wpf/           # App.xaml, composition root (DI), windows, tray, startup
-  Nautix.Ui/                 # MVU runtime, theming, i18n, shared controls, canvas controls
+  Nautix.Ui/                 # framework-free: MVU runtime, theme manager, localizer, tokens (net10.0)
+  Nautix.Ui.Generators/      # [GenerateViewState] source generator (netstandard2.0)
+  Nautix.Ui.Wpf/             # theme dictionaries, applier, {loc:T} markup extension (net10.0-windows)  (ADR-001)
   Nautix.EngineRelay/        # Console/tray-less background exe: named pipe <-> WSL engine relay
   Nautix.Installer/          # WiX v5 project(s) + provisioning scripts
   Modules/
@@ -42,7 +44,7 @@ tests/
 docs/
   spec/  DECISIONS.md
 corpus/
-  compose/  dockerfile/             # real-world files for round-trip tests
+  compose/  dockerfile/             # manifest.json (URL + sha256) for third-party files, fetched not committed (ADR-012); synthetic edge cases committed
 ```
 
 Module with UI: view code lives in `Nautix.Host.Wpf/Features/<Module>/` (XAML) and state in `Nautix.Ui` or the module's `Application` layer **only if framework-free**. MVU `State`/`Msg`/`Update` for a feature live in `Nautix.<Module>.Application/Ui/` (pure, no WPF types). XAML views bind to that state through the MVU runtime.
