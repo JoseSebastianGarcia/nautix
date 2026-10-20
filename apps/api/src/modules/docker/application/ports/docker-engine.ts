@@ -72,6 +72,8 @@ export abstract class DockerEngine {
     id: string,
     command: string[],
     timeoutMs: number,
+    /** Keep only the last N characters of the output (default 8000). */
+    maxOutput?: number,
   ): Promise<{ exitCode: number | null; output: string }>;
   abstract getArchive(id: string, path: string): Promise<Readable>;
   abstract putArchive(id: string, path: string, tar: Readable): Promise<void>;

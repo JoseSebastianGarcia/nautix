@@ -9,7 +9,7 @@ Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 
 `Done` = reachable in the UI with the flags people use daily. `Partial` = works, with gaps named in the table below. `Planned` = not built yet (milestone in the M column).
 
-Gaps in `Partial` rows: **swarm** has no `ca` rotation or `update` beyond autolock · **node** has no inspect/ps · **service** creates and updates replicas, image, ports, env and networks only (no rollout policy, placement, secrets or configs attach, `rollback`) · **stack** deploys and removes; listing is derived from service labels · **build** uses the engine's classic builder: no BuildKit DAG, secrets, buildx or bake, and the context is the typed Dockerfile plus small text files (no directory upload) · **volume** has no file browser or update · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls and has a since-window but no until.
+Gaps in `Partial` rows: **swarm** has no `ca` rotation or `update` beyond autolock · **node** has no inspect/ps · **service** creates and updates replicas, image, ports, env and networks only (no rollout policy, placement, secrets or configs attach, `rollback`) · **stack** deploys and removes; listing is derived from service labels · **build** uses the engine's classic builder: no BuildKit DAG, secrets, buildx or bake, and the context is the typed Dockerfile plus small text files (no directory upload) · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls and has a since-window but no until.
 
 ## Common (13)
 
@@ -43,7 +43,7 @@ Gaps in `Partial` rows: **swarm** has no `ca` rotation or `update` beyond autolo
 | network | API | Networks list + graph | M2 | Done |
 | plugin | API | System → Plugins (ls/install/enable/disable/inspect/upgrade/set/rm) | M5 | Planned |
 | system | API + CLI | System → Disk usage, Prune wizard, Events, Info | M1 | Done |
-| volume | API | Volumes (create/ls/inspect/rm/prune/update; browse files via helper container) | M1 | Partial |
+| volume | API | Volumes (create/ls/inspect/rm/prune/update; browse files via helper container) | M1 | Done |
 
 > `trust`, `model`, `mcp`, `ai` and other plugin-provided top-level commands appear in `docker --help` only on some versions. If present in `corpus/docker-help.txt`, add rows here (Route: CLI, UI: Terminal + dedicated dialog for `trust` in Registries). Do not invent entries.
 

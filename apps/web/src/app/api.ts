@@ -49,6 +49,7 @@ import type {
   UpdateSwarmService,
   UserInfo,
   Volume,
+  VolumeBrowseResult,
   WaitResult,
 } from "@nautix/contracts";
 
@@ -122,6 +123,11 @@ export const api = {
       throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey);
     }
   },
+  browseVolume: (name: string, path: string, view: boolean) =>
+    request<VolumeBrowseResult>(
+      "GET",
+      `/volumes/${encodeURIComponent(name)}/browse?path=${encodeURIComponent(path)}&view=${view}`,
+    ),
   swarm: () => request<SwarmStatus>("GET", "/swarm"),
   swarmInit: (advertiseAddr?: string) =>
     request<{ nodeId: string }>("POST", "/swarm/init", advertiseAddr ? { advertiseAddr } : {}),

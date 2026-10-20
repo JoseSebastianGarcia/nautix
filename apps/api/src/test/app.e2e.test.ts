@@ -950,6 +950,27 @@ describe("image tools and system commands", () => {
     expect(((await call("GET", "/swarm")).json as { active: boolean }).active).toBe(false);
   });
 
+  it("browses a volume read-only through a throw-away helper", async () => {
+    await call("POST", "/volumes", { name: "browse-me" });
+    const dir = await call("GET", "/volumes/browse-me/browse?path=/");
+    expect(dir.res.status).toBe(200);
+    expect(dir.json.kind).toBe("directory");
+    expect(dir.json.entries.map((e: { name: string }) => e.name)).toEqual(["data", "hello.txt"]);
+    const file = await call("GET", "/volumes/browse-me/browse?path=/hello.txt&view=true");
+    expect(file.json).toMatchObject({
+      kind: "file",
+      content: "hello from the volume\n",
+      truncated: false,
+    });
+    expect((await call("GET", "/volumes/browse-me/browse?path=../etc")).res.status).toBe(422);
+    expect((await call("GET", "/volumes/nope/browse")).res.status).toBe(404);
+    const left = (
+      (await call("GET", "/containers")).json as { labels: Record<string, string> }[]
+    ).filter((c) => c.labels["nautix.helper"]);
+    expect(left).toHaveLength(0);
+    await call("DELETE", "/volumes/browse-me");
+  });
+
   it("reports info, version and disk usage", async () => {
     expect(
       ((await call("GET", "/system/info")).json as { ServerVersion: string }).ServerVersion,

@@ -33,6 +33,7 @@ import { WaitContainerHandler } from "./application/commands/wait-container.hand
 import { DockerEngine } from "./application/ports/docker-engine.js";
 import { RegistryStore } from "./application/ports/registry-store.js";
 import { SelfIdentity } from "./application/ports/self-identity.js";
+import { BrowseVolumeHandler } from "./application/queries/browse-volume.handler.js";
 import { ExportComposeHandler } from "./application/queries/export-compose.handler.js";
 import { ExportContainerHandler } from "./application/queries/export-container.handler.js";
 import { GetArchiveHandler } from "./application/queries/get-archive.handler.js";
@@ -102,6 +103,7 @@ const HANDLERS = [
   ImportImageHandler,
   PushImageHandler,
   BuildImageHandler,
+  BrowseVolumeHandler,
   SaveRegistryHandler,
   RemoveRegistryHandler,
   ListRegistriesHandler,

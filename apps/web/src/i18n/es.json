@@ -227,7 +227,12 @@
     "new": "Nuevo volumen",
     "removeTitle": "¿Eliminar el volumen {{name}}?",
     "removeBody": "Se perderán todos los datos de este volumen. No se puede deshacer.",
-    "mountpoint": "Punto de montaje"
+    "mountpoint": "Punto de montaje",
+    "browse": "Explorar archivos",
+    "browseHint": "Solo lectura. Nautix monta el volumen en un contenedor auxiliar efímero y sin red.",
+    "up": "Volver",
+    "notReadable": "Este archivo no se puede leer como texto.",
+    "truncated": "Se muestra el primer 1 MB."
   },
   "networks": {
     "title": "Redes",

@@ -1,5 +1,5 @@
 import type { Volume } from "@nautix/contracts";
-import { Braces, Plus, Trash2 } from "lucide-react";
+import { Braces, FolderOpen, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
@@ -9,6 +9,7 @@ import { useApiMutation } from "../../app/use-api-mutation.js";
 import { InspectDialog } from "../../components/inspect-dialog.js";
 import { Button, ConfirmDialog, Dialog, Field, Input, ShowCommand } from "../../components/ui.js";
 import { PageHeader, Table, Td } from "./table.js";
+import { VolumeBrowser } from "./volume-browser.js";
 
 export function VolumesPage() {
   const { t } = useTranslation();
@@ -18,6 +19,7 @@ export function VolumesPage() {
   const [inspecting, setInspecting] = useState<{ key: string; name: string; id: string } | null>(
     null,
   );
+  const [browsing, setBrowsing] = useState<string | null>(null);
   const [name, setName] = useState("");
   const create = useApiMutation((n: string) => api.createVolume(n), [keys.volumes]);
   const remove = useApiMutation((n: string) => api.removeVolume(n), [keys.volumes]);
@@ -59,6 +61,14 @@ export function VolumesPage() {
                 </Button>
                 <Button
                   write
+                  aria-label={`${t("volumes.browse")} ${v.name}`}
+                  title={t("volumes.browse")}
+                  onClick={() => setBrowsing(v.name)}
+                >
+                  <FolderOpen size={14} />
+                </Button>
+                <Button
+                  write
                   variant="danger"
                   disabled={v.inUse}
                   aria-label={`${t("common.delete")} ${v.name}`}
@@ -71,6 +81,7 @@ export function VolumesPage() {
           </tr>
         ))}
       </Table>
+      <VolumeBrowser volume={browsing} onClose={() => setBrowsing(null)} />
       <InspectDialog
         target={
           inspecting

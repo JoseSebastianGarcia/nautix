@@ -346,6 +346,13 @@ export class FakeDockerEngine extends DockerEngine {
     command: string[],
   ): Promise<{ exitCode: number | null; output: string }> {
     this.container(id);
+    if (command[0] === "ls")
+      return {
+        exitCode: 0,
+        output:
+          "total 8\n-rw-r--r--    1 root     root            18 Oct 20 12:00 hello.txt\ndrwxr-xr-x    2 root     root          4096 Oct 20 12:00 data/\n",
+      };
+    if (command[0] === "head") return { exitCode: 0, output: "hello from the volume\n" };
     return { exitCode: 0, output: `ran: ${command[0] ?? ""}` };
   }
 

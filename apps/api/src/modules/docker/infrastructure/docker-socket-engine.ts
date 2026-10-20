@@ -498,6 +498,7 @@ export class DockerSocketEngine extends DockerEngine {
     id: string,
     command: string[],
     timeoutMs: number,
+    maxOutput = 8000,
   ): Promise<{ exitCode: number | null; output: string }> {
     const created = await this.json<{ Id: string }>(
       "POST",
@@ -517,7 +518,7 @@ export class DockerSocketEngine extends DockerEngine {
       this.assertOk(reply);
       const output = (
         isMultiplexed(reply.body) ? demuxStdcopy(reply.body) : reply.body.toString("utf8")
-      ).slice(-8000);
+      ).slice(-maxOutput);
       const info = await this.json<{ ExitCode: number | null }>("GET", `/exec/${created.Id}/json`);
       return { exitCode: info.ExitCode, output };
     })();

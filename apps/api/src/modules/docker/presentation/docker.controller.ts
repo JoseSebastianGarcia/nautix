@@ -29,6 +29,7 @@ import { stringify } from "yaml";
 import { z } from "zod";
 import { requireAdmin } from "../../../shared/principal.js";
 import { parse } from "../../../shared/zod-body.js";
+import { AdminOnly } from "../../auth/presentation/admin-only.decorator.js";
 import { ConnectNetworkCommand } from "../application/commands/connect-network.command.js";
 import { ContainerActionCommand } from "../application/commands/container-action.command.js";
 import { CreateContainerCommand } from "../application/commands/create-container.command.js";
@@ -42,6 +43,7 @@ import { RemoveImageCommand } from "../application/commands/remove-image.command
 import { RemoveNetworkCommand } from "../application/commands/remove-network.command.js";
 import { RemoveVolumeCommand } from "../application/commands/remove-volume.command.js";
 import type { EngineEventKind } from "../application/ports/docker-engine.js";
+import { BrowseVolumeQuery } from "../application/queries/browse-volume.query.js";
 import { ExportComposeQuery } from "../application/queries/export-compose.query.js";
 import { GetContainerLogsQuery } from "../application/queries/get-container-logs.query.js";
 import { GetEngineInfoQuery } from "../application/queries/get-engine-info.query.js";
@@ -63,6 +65,11 @@ const ActionQuery = z.object({
   signal: z.enum(KILL_SIGNALS).optional(),
   timeout: z.coerce.number().int().min(0).max(600).optional(),
 });
+const BrowseQuery = z.object({
+  path: z.string().max(1024).default("/"),
+  view: z.enum(["true", "false"]).default("false"),
+});
+
 const Logs = z.object({
   tail: z.coerce.number().int().min(1).max(5000).default(200),
   since: z.coerce.number().int().min(1).max(31_536_000).optional(),
@@ -204,6 +211,14 @@ export class DockerController {
   @Get("volumes")
   volumes() {
     return this.queries.execute(new ListVolumesQuery());
+  }
+
+  /** Lists a directory (or, with `view=true`, reads a file) inside a volume. Admin only: data can be sensitive. */
+  @AdminOnly()
+  @Get("volumes/:name/browse")
+  browseVolume(@Param("name") name: string, @Query() query: unknown) {
+    const q = parse(BrowseQuery, query);
+    return this.queries.execute(new BrowseVolumeQuery(name, q.path, q.view === "true"));
   }
 
   @Post("volumes")

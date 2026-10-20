@@ -227,7 +227,12 @@
     "new": "New volume",
     "removeTitle": "Remove volume {{name}}?",
     "removeBody": "All data stored in this volume will be lost. This cannot be undone.",
-    "mountpoint": "Mountpoint"
+    "mountpoint": "Mountpoint",
+    "browse": "Browse files",
+    "browseHint": "Read-only. Nautix mounts the volume in a short-lived helper container with no network.",
+    "up": "Back",
+    "notReadable": "This file cannot be read as text.",
+    "truncated": "Showing the first 1 MB."
   },
   "networks": {
     "title": "Networks",

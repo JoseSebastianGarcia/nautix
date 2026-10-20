@@ -413,3 +413,15 @@ export const BuildRequest = z.object({
   pull: z.boolean().default(false),
 });
 export type BuildRequest = z.infer<typeof BuildRequest>;
+
+export interface VolumeEntry {
+  name: string;
+  kind: "dir" | "file" | "link" | "other";
+  size: number;
+  modified: string;
+  mode: string;
+}
+
+export type VolumeBrowseResult =
+  | { kind: "directory"; path: string; entries: VolumeEntry[] }
+  | { kind: "file"; path: string; content: string; truncated: boolean };

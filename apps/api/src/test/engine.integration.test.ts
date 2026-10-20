@@ -385,6 +385,33 @@ describe("against a real Docker daemon", () => {
     }
   });
 
+  it("browses a real volume without leaving helpers behind", async () => {
+    docker("volume", "create", `${PREFIX}vol`);
+    docker(
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "-v",
+      `${PREFIX}vol:/d`,
+      IMAGE,
+      "sh",
+      "-c",
+      "mkdir -p /d/sub && echo 'in the volume' > /d/note.txt && echo x > '/d/sub/with space.txt'",
+    );
+    const root = await call("GET", `/volumes/${PREFIX}vol/browse?path=/`);
+    expect(
+      root.json.entries.map((e: { name: string; kind: string }) => `${e.kind}:${e.name}`),
+    ).toEqual(["dir:sub", "file:note.txt"]);
+    const sub = await call("GET", `/volumes/${PREFIX}vol/browse?path=/sub`);
+    expect(sub.json.entries[0].name).toBe("with space.txt");
+    const file = await call("GET", `/volumes/${PREFIX}vol/browse?path=/note.txt&view=true`);
+    expect(file.json.content).toBe("in the volume\n");
+    expect((await call("GET", `/volumes/${PREFIX}vol/browse?path=/missing`)).res.status).toBe(404);
+    expect(docker("ps", "-a", "--filter", "label=nautix.helper=volume-browse", "-q")).toBe("");
+    docker("volume", "rm", `${PREFIX}vol`);
+  });
+
   it("removes what it created", async () => {
     const list = (await call("GET", "/containers")).json as Ctr[];
     for (const c of list.filter((c) => c.name.startsWith(PREFIX)))
