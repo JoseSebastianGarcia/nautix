@@ -1,5 +1,5 @@
 import type { Template } from "@nautix/contracts";
-import { Network as NetworkIcon, Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, Network as NetworkIcon, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
@@ -71,26 +71,40 @@ export function Palette({
                   <span className="block truncate text-[11px] text-dim">{tpl.description}</span>
                 </span>
               </button>
-              {tpl.custom && isAdmin && (
+              {isAdmin && (
                 <span className="absolute right-2 top-2 flex gap-1 opacity-0 focus-within:opacity-100 group-hover:opacity-100">
-                  <button
-                    type="button"
-                    title={t("topology.editTemplate")}
-                    aria-label={`${t("topology.editTemplate")}: ${tpl.name}`}
-                    className="rounded p-1 text-dim hover:text-accent"
-                    onClick={() => setEditing(tpl)}
-                  >
-                    <Pencil size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    title={t("topology.deleteTemplate")}
-                    aria-label={`${t("topology.deleteTemplate")}: ${tpl.name}`}
-                    className="rounded p-1 text-dim hover:text-danger"
-                    onClick={() => removeTemplate.mutate(tpl.id)}
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  {tpl.custom ? (
+                    <>
+                      <button
+                        type="button"
+                        title={t("topology.editTemplate")}
+                        aria-label={`${t("topology.editTemplate")}: ${tpl.name}`}
+                        className="rounded p-1 text-dim hover:text-accent"
+                        onClick={() => setEditing(tpl)}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        title={t("topology.deleteTemplate")}
+                        aria-label={`${t("topology.deleteTemplate")}: ${tpl.name}`}
+                        className="rounded p-1 text-dim hover:text-danger"
+                        onClick={() => removeTemplate.mutate(tpl.id)}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      title={t("topology.customizeTemplate")}
+                      aria-label={`${t("topology.customizeTemplate")}: ${tpl.name}`}
+                      className="rounded p-1 text-dim hover:text-accent"
+                      onClick={() => setEditing({ copyOf: tpl })}
+                    >
+                      <Copy size={13} />
+                    </button>
+                  )}
                 </span>
               )}
             </div>

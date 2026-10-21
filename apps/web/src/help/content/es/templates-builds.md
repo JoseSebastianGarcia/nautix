@@ -8,11 +8,13 @@ Algunas categorías que conviene conocer:
 
 - **Identidad**: Keycloak, Pocket ID y Casdoor.
 - **Almacenamiento**: RustFS (compatible con S3), Azurite (Azure Blob) y fake-gcs-server (Google Cloud Storage).
-- **Proxies**: además de Traefik, Nginx, Caddy y HAProxy, **Caddy HTTPS (un sitio)** pone un certificado real delante de un servicio: indicá tu dominio y el destino en su comando (`--from vault.example.com --to vaultwarden:80`). Necesita un dominio público apuntando a la máquina y los puertos 80 y 443 abiertos a internet, así que sirve para un VPS, no para una notebook.
+- **Proxies**: además de Traefik, Nginx, Caddy y HAProxy, **Caddy HTTPS (un sitio)** pone HTTPS delante de un servicio: su comando es `--from localhost --to vaultwarden:80`. En tu máquina `localhost` recibe un certificado local (el navegador avisa una vez). En un VPS reemplazá `localhost` por tu dominio: necesita un dominio público apuntando a la máquina y los puertos 80 y 443 abiertos a internet, y entonces recibe un certificado real.
 - **Secretos**: Vaultwarden (gestor de contraseñas para equipos, compatible con Bitwarden), OpenBao, HashiCorp Vault y Lowkey Vault (Azure Key Vault). OpenBao y Vault tienen una variante con almacenamiento que puede guardar sus datos en un volumen para que sobrevivan a la recreación del contenedor.
 - **Mis imágenes**: lo que construiste o descargaste. **Cualquier imagen** despliega una imagen por nombre.
 
 Las plantillas que necesitan una contraseña o una dirección la piden en el diálogo de despliegue. Revisá los valores de entorno antes de desplegar.
+
+**Tus propias plantillas**: **Nuevo template** guarda puertos, variables, volúmenes y comando en *Mis imágenes*. Los templates incluidos no se pueden cambiar, pero al pasar el mouse por uno aparece un ícono de copia (**Personalizar template**) que abre el editor con sus valores y guarda tu propia versión; el original queda como está. Tus templates se pueden editar o quitar cuando quieras.
 
 ## Builds
 

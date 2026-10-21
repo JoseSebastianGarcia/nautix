@@ -88,17 +88,18 @@ export const TEMPLATES: readonly Template[] = [
     category: "proxy",
     image: "caddy:2-alpine",
     description:
-      "HTTPS with a real certificate in front of one service. Put your domain and the target in the command",
+      "HTTPS in front of one service. Uses localhost with a local certificate; for a VPS put your domain in the command",
     icon: "caddy",
     color: "#1F88C0",
-    // Needs a public domain pointing at this machine and ports 80 and 443 reachable from the internet: Let's
-    // Encrypt checks the domain through port 80 and serves on 443. Publish both to all interfaces when deploying.
+    // `localhost` gets a certificate from Caddy's own local CA (the browser warns until that CA is trusted).
+    // With a public domain pointing at this machine and ports 80 and 443 reachable from the internet, Let's
+    // Encrypt gives a real certificate: replace localhost by the domain and publish both ports to all interfaces.
     // Certificates are kept in /data, so recreating the container does not ask for new ones.
     ports: [
       { containerPort: 80, label: "http (certificate check)", hostPort: 80 },
       { containerPort: 443, label: "https", hostPort: 443 },
     ],
-    command: ["caddy", "reverse-proxy", "--from", "vault.example.com", "--to", "vaultwarden:80"],
+    command: ["caddy", "reverse-proxy", "--from", "localhost", "--to", "vaultwarden:80"],
     volumes: ["/data"],
   },
   {
@@ -470,14 +471,16 @@ export const TEMPLATES: readonly Template[] = [
     category: "secrets",
     image: "vaultwarden/server:1.37.4",
     description:
-      "Password and secrets manager for teams (Bitwarden-compatible). Needs HTTPS outside localhost: put Caddy HTTPS in front",
+      "Password and secrets manager for teams (Bitwarden-compatible). The web vault refuses plain HTTP, even on localhost: put Caddy HTTPS in front",
     icon: "vaultwarden",
     color: "#175DDC",
     ports: [{ containerPort: 80, label: "web", hostPort: 8222 }],
     // Everything lives in /data (SQLite database, RSA keys, attachments, config): back up that volume.
+    // The web vault only talks to https:// addresses (no exception for localhost), so deploy "Caddy HTTPS" in the
+    // same network and open https://localhost. DOMAIN must match the address users type, with https.
     // Registration is open so the first account can be created; set SIGNUPS_ALLOWED=false afterwards
-    // (invitations from an organization keep working). DOMAIN must match the address users type.
-    env: { DOMAIN: "http://localhost:8222", SIGNUPS_ALLOWED: "true" },
+    // (invitations from an organization keep working).
+    env: { DOMAIN: "https://localhost", SIGNUPS_ALLOWED: "true" },
     volumes: ["/data"],
   },
   {

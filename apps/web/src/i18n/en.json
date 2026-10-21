@@ -180,7 +180,10 @@
     "createOnly": "Create only, do not start (docker create)",
     "fixedIp": "Fixed IP (optional)",
     "fixedIpHint": "Inside {{subnet}}. Leave empty and Docker picks one; it can change if the container is recreated.",
-    "fixedIpAuto": "Automatic"
+    "fixedIpAuto": "Automatic",
+    "customizeTemplate": "Customize template",
+    "copyOf": "{{name}} (copy)",
+    "copyHint": "Built-in templates cannot be changed. This saves your own version under \"My images\" with the values below; the original stays as it is."
   },
   "containers": {
     "title": "Containers",

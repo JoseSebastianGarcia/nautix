@@ -8,11 +8,13 @@ Some categories worth knowing:
 
 - **Identity**: Keycloak, Pocket ID and Casdoor.
 - **Storage**: RustFS (S3-compatible), Azurite (Azure Blob) and fake-gcs-server (Google Cloud Storage).
-- **Proxies**: besides Traefik, Nginx, Caddy and HAProxy, **Caddy HTTPS (one site)** puts a real certificate in front of one service: set your domain and the target in its command (`--from vault.example.com --to vaultwarden:80`). It needs a public domain pointing at the machine and ports 80 and 443 open to the internet, so it fits a VPS, not a laptop.
+- **Proxies**: besides Traefik, Nginx, Caddy and HAProxy, **Caddy HTTPS (one site)** puts HTTPS in front of one service: its command is `--from localhost --to vaultwarden:80`. On your own machine `localhost` gets a local certificate (the browser warns once). On a VPS replace `localhost` by your domain: it needs a public domain pointing at the machine and ports 80 and 443 open to the internet, and then gets a real certificate.
 - **Secrets**: Vaultwarden (password manager for teams, Bitwarden-compatible), OpenBao, HashiCorp Vault and Lowkey Vault (Azure Key Vault). OpenBao and Vault have a variant with storage that can keep their data in a volume so it survives recreating the container.
 - **My images**: anything you built or pulled. **Any image** deploys an image by name.
 
 Templates that need a password or an address ask for it in the deploy dialog. Check the environment values before deploying.
+
+**Your own templates**: **New template** saves ports, variables, volumes and command under *My images*. Built-in templates cannot be changed, but hovering one shows a copy icon (**Customize template**) that opens the editor with its values and saves your own version; the original stays. Your templates can be edited or removed at any time.
 
 ## Builds
 

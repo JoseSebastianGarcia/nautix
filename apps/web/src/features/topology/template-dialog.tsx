@@ -10,6 +10,8 @@ import { Button, Dialog, Field, Input } from "../../components/ui.js";
 import { joinCommand, splitCommand } from "./deploy.js";
 
 interface PortDraft {
+  /** Kept from the template this was copied from, so "web" does not turn into "80". */
+  label: string;
   protocol: "tcp" | "udp";
   containerPort: string;
   hostPort: string;
@@ -17,8 +19,11 @@ interface PortDraft {
 
 const validPort = (v: string): boolean => /^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 65535;
 
-/** `null` = closed, `"new"` = blank form, a template = edit it. */
-export type TemplateTarget = Template | "new" | null;
+/** `null` = closed, `"new"` = blank form, a saved template = edit it, `copyOf` = start from a built-in one. */
+export type TemplateTarget = Template | "new" | { copyOf: Template } | null;
+
+const isCopy = (target: TemplateTarget): target is { copyOf: Template } =>
+  target !== null && target !== "new" && "copyOf" in target;
 
 export function TemplateDialog({
   target,
@@ -32,28 +37,54 @@ export function TemplateDialog({
     <Dialog
       open={target !== null}
       onClose={onClose}
-      title={target === "new" ? t("topology.newTemplate") : t("topology.editTemplate")}
+      title={
+        target === "new"
+          ? t("topology.newTemplate")
+          : isCopy(target)
+            ? t("topology.customizeTemplate")
+            : t("topology.editTemplate")
+      }
     >
-      {target && (
-        <TemplateForm
-          key={target === "new" ? "new" : target.id}
-          template={target === "new" ? null : target}
-          onClose={onClose}
-        />
-      )}
+      {target &&
+        (isCopy(target) ? (
+          <TemplateForm
+            key={`copy-${target.copyOf.id}`}
+            template={target.copyOf}
+            copy
+            onClose={onClose}
+          />
+        ) : (
+          <TemplateForm
+            key={target === "new" ? "new" : target.id}
+            template={target === "new" ? null : target}
+            onClose={onClose}
+          />
+        ))}
     </Dialog>
   );
 }
 
-function TemplateForm({ template, onClose }: { template: Template | null; onClose: () => void }) {
+function TemplateForm({
+  template,
+  copy = false,
+  onClose,
+}: {
+  template: Template | null;
+  /** The template is a built-in one: it is never replaced, the form saves a copy of its own. */
+  copy?: boolean;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
-  const [name, setName] = useState(template?.name ?? "");
+  const [name, setName] = useState(
+    template ? (copy ? t("topology.copyOf", { name: template.name }) : template.name) : "",
+  );
   const [description, setDescription] = useState(
     template && template.description !== template.image ? template.description : "",
   );
   const [image, setImage] = useState(template?.image ?? "");
   const [ports, setPorts] = useState<PortDraft[]>(() =>
     (template?.ports ?? []).map((p) => ({
+      label: p.label,
       protocol: p.protocol ?? "tcp",
       containerPort: String(p.containerPort),
       hostPort: p.hostPort ? String(p.hostPort) : "",
@@ -80,7 +111,7 @@ function TemplateForm({ template, onClose }: { template: Template | null; onClos
         description: description.trim(),
         ports: ports.map((p) => ({
           containerPort: Number(p.containerPort),
-          label: "",
+          label: p.label,
           protocol: p.protocol,
           ...(p.hostPort ? { hostPort: Number(p.hostPort) } : {}),
         })),
@@ -90,7 +121,8 @@ function TemplateForm({ template, onClose }: { template: Template | null; onClos
       };
       const saved = await api.saveCustomTemplate(input);
       // Renaming changes the id (it derives from the name): drop the old entry.
-      if (template && saved.id !== template.id) await api.deleteCustomTemplate(template.id);
+      if (template && !copy && saved.id !== template.id)
+        await api.deleteCustomTemplate(template.id);
       return saved;
     },
     [keys.catalog],
@@ -106,7 +138,9 @@ function TemplateForm({ template, onClose }: { template: Template | null; onClos
         save.mutate(undefined, { onSuccess: onClose });
       }}
     >
-      <p className="text-xs text-dim">{t("topology.templateIntro")}</p>
+      <p className="text-xs text-dim">
+        {copy ? t("topology.copyHint") : t("topology.templateIntro")}
+      </p>
       <Field label={t("topology.templateName")}>
         <Input
           value={name}
@@ -177,7 +211,9 @@ function TemplateForm({ template, onClose }: { template: Template | null; onClos
         ))}
         {!portsValid && <p className="text-xs text-danger">{t("topology.invalidPort")}</p>}
         <Button
-          onClick={() => setPorts([...ports, { protocol: "tcp", containerPort: "", hostPort: "" }])}
+          onClick={() =>
+            setPorts([...ports, { label: "", protocol: "tcp", containerPort: "", hostPort: "" }])
+          }
         >
           <Plus size={14} /> {t("topology.addPort")}
         </Button>
