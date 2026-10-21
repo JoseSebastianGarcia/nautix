@@ -1,6 +1,8 @@
 import { ApplyZone, PlanZoneRequest, ResourceName, type ZoneApplyResult } from "@nautix/contracts";
-import { Body, Controller, Get, HttpCode, Inject, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Req } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
+import type { Request } from "express";
+import { setAuditNote, zoneDetail, zoneReadDetail } from "../../../shared/audit-note.js";
 import { parse } from "../../../shared/zod-body.js";
 import { AdminOnly } from "../../auth/presentation/admin-only.decorator.js";
 import { ApplyZoneCommand } from "../application/commands/apply-zone.command.js";
@@ -25,15 +27,18 @@ export class ZoneController {
     return this.queries.execute(new ListZonesQuery());
   }
 
+  /** The document holds environment values in clear text, so reading it is recorded. */
   @Get(":name/spec")
-  describe(@Param("name") name: string) {
+  describe(@Req() req: Request, @Param("name") name: string) {
+    setAuditNote(req, { detail: zoneReadDetail(name), read: true });
     return this.queries.execute(new DescribeZoneQuery(parse(ResourceName, name)));
   }
 
   /** A POST only because it carries the document; it changes nothing. */
   @Post(":name/plan")
   @HttpCode(200)
-  plan(@Param("name") name: string, @Body() body: unknown) {
+  plan(@Req() req: Request, @Param("name") name: string, @Body() body: unknown) {
+    setAuditNote(req, { detail: "", skip: true });
     return this.queries.execute(
       new PlanZoneQuery(parse(ResourceName, name), parse(PlanZoneRequest, body).spec),
     );
@@ -41,10 +46,17 @@ export class ZoneController {
 
   @Post(":name/apply")
   @HttpCode(200)
-  apply(@Param("name") name: string, @Body() body: unknown): Promise<ZoneApplyResult> {
+  async apply(
+    @Req() req: Request,
+    @Param("name") name: string,
+    @Body() body: unknown,
+  ): Promise<ZoneApplyResult> {
     const b = parse(ApplyZone, body);
-    return this.commands.execute(
+    const result = await this.commands.execute<ApplyZoneCommand, ZoneApplyResult>(
       new ApplyZoneCommand(parse(ResourceName, name), b.spec, b.planHash, b.allowRemovals),
     );
+    // Said after the run: a failed action is an answer, not an error, so the note holds what was done.
+    setAuditNote(req, { detail: zoneDetail(name, b.allowRemovals, result.results) });
+    return result;
   }
 }

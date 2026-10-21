@@ -17,6 +17,6 @@ export type NewAuditEntry = Omit<AuditEntry, "id" | "at">;
 /** Append-only trail of who changed what. Never holds request bodies or secrets. */
 export abstract class AuditLog {
   abstract record(entry: NewAuditEntry): void;
-  /** Newest first. */
-  abstract list(limit: number, before?: number): AuditEntry[];
+  /** Newest first; `q` keeps the entries whose action or detail contains that text. */
+  abstract list(limit: number, before?: number, q?: string): AuditEntry[];
 }

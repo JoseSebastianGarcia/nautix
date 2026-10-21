@@ -23,12 +23,16 @@ export class SqliteAuditLog extends AuditLog {
         .run(KEEP);
   }
 
-  list(limit: number, before?: number): AuditEntry[] {
+  list(limit: number, before?: number, q?: string): AuditEntry[] {
+    // LIKE with the wildcards of the search text escaped, so "50%" looks for those characters.
+    const like = q ? `%${q.replace(/[\\%_]/g, "\\$&")}%` : null;
     return this.db
       .prepare(
         `SELECT id, at, actor, kind, action, status, detail FROM audit_log
-         WHERE (? IS NULL OR id < ?) ORDER BY id DESC LIMIT ?`,
+         WHERE (? IS NULL OR id < ?)
+           AND (? IS NULL OR action LIKE ? ESCAPE '\\' OR detail LIKE ? ESCAPE '\\')
+         ORDER BY id DESC LIMIT ?`,
       )
-      .all(before ?? null, before ?? null, limit) as AuditEntry[];
+      .all(before ?? null, before ?? null, like, like, like, limit) as AuditEntry[];
   }
 }

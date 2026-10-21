@@ -35,3 +35,11 @@ export const jsonPath = (parts: (string | number)[]): string =>
 
 export const percent = (part: number, whole: number): number =>
   whole > 0 ? Math.min(100, Math.round((part / whole) * 1000) / 10) : 0;
+
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Whether an audit detail ("env container=api set=A", "binding create consumer=api ...") is about this container. */
+export const touchesContainer = (detail: string, name: string): boolean =>
+  new RegExp(`(?:^|\\s)(?:container|consumer|provider)=${escapeRegExp(name)}(?:\\s|$)`).test(
+    detail,
+  );

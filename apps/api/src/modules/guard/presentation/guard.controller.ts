@@ -20,6 +20,7 @@ import {
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import type { Request } from "express";
 import { z } from "zod";
+import { guardRulesDetail, setAuditNote } from "../../../shared/audit-note.js";
 import { UnauthorizedError } from "../../../shared/domain-error.js";
 import { parse } from "../../../shared/zod-body.js";
 import { Public } from "../../auth/presentation/public.decorator.js";
@@ -55,6 +56,7 @@ export class GuardController {
   @Put("rules")
   async save(@Body() body: unknown, @Req() req: Request) {
     const b = parse(SaveGuardRules, body);
+    setAuditNote(req, { detail: guardRulesDetail(b.rules) });
     return this.commands.execute<SaveGuardRulesCommand, { trialUntil: string | null }>(
       new SaveGuardRulesCommand(
         b.rules,
@@ -66,20 +68,23 @@ export class GuardController {
 
   @Post("confirm")
   @HttpCode(204)
-  async confirm() {
+  async confirm(@Req() req: Request) {
+    setAuditNote(req, { detail: "guard confirm trial rules" });
     await this.commands.execute(new ConfirmGuardCommand());
   }
 
   /** Removes every rule. */
   @Delete("rules")
   @HttpCode(204)
-  async disable() {
+  async disable(@Req() req: Request) {
+    setAuditNote(req, { detail: "guard disable all rules" });
     await this.commands.execute(new DisableGuardCommand());
   }
 
   /** A new helper token (shown once); the previous one stops working. */
   @Post("token")
-  async token() {
+  async token(@Req() req: Request) {
+    setAuditNote(req, { detail: "guard create helper token" });
     return {
       token: await this.commands.execute<CreateGuardTokenCommand, string>(
         new CreateGuardTokenCommand(),

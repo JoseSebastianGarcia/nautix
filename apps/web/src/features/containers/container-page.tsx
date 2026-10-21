@@ -8,13 +8,23 @@ import { ActionsPanel } from "./actions-panel.js";
 import {
   ChangesPanel,
   FilesPanel,
+  HistoryPanel,
   InspectPanel,
   LogsPanel,
   ProcessesPanel,
   StatsPanel,
 } from "./panels.js";
 
-const TABS = ["overview", "logs", "stats", "processes", "changes", "files", "inspect"] as const;
+const TABS = [
+  "overview",
+  "logs",
+  "stats",
+  "processes",
+  "changes",
+  "files",
+  "inspect",
+  "history",
+] as const;
 type Tab = (typeof TABS)[number];
 
 export function ContainerPage() {
@@ -29,7 +39,7 @@ export function ContainerPage() {
   if (!c) return <p className="p-6 text-danger">{t("errors.notFound")}</p>;
 
   // The filesystem tabs expose data, so they are admin-only (the server enforces it too).
-  const visible = TABS.filter((x) => isAdmin || x !== "files");
+  const visible = TABS.filter((x) => isAdmin || (x !== "files" && x !== "history"));
 
   return (
     <div className="flex flex-col gap-4 p-6">
@@ -83,6 +93,7 @@ export function ContainerPage() {
       {tab === "changes" && <ChangesPanel container={c} />}
       {tab === "files" && isAdmin && <FilesPanel container={c} />}
       {tab === "inspect" && <InspectPanel container={c} />}
+      {tab === "history" && isAdmin && <HistoryPanel container={c} />}
     </div>
   );
 }

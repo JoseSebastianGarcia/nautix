@@ -83,7 +83,9 @@ if ((await call("GET", "/bindings")).length === 0)
   });
 
 const themes = ["dark", "light"];
+const only = process.env.ONLY?.split(",");
 const shoot = async (name, prepare) => {
+  if (only && !only.includes(name)) return;
   for (const theme of themes) {
     const page = await context.newPage();
     await page.addInitScript(
@@ -167,6 +169,18 @@ await shoot("apply-failure", async (page) => {
   await page.getByText("rolled back").first().waitFor();
   // Take the trigger variable out of the list again: the failure message stays.
   await page.getByRole("button", { name: /Delete NAUTIX_FAKE_FAIL/ }).click();
+});
+
+await shoot("audit", async (page) => {
+  const id = (await call("GET", "/containers")).find((c) => c.name === "orders-api")?.id;
+  await call("PUT", `/containers/${id}/env`, {
+    set: { LOG_LEVEL: "debug", API_KEY: "never-shown" },
+    unset: ["OLD_FLAG"],
+  });
+  await call("GET", `/containers/${id}/inspect`);
+  await page.goto(`/containers/${id}`);
+  await settle(page);
+  await page.getByRole("tab", { name: "History" }).click();
 });
 
 await browser.close();

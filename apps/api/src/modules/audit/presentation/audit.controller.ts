@@ -7,6 +7,7 @@ import { AuditLog } from "../application/ports/audit-log.js";
 const Page = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(100),
   before: z.coerce.number().int().positive().optional(),
+  q: z.string().trim().min(1).max(100).optional(),
 });
 
 @AdminOnly()
@@ -17,6 +18,6 @@ export class AuditController {
   @Get()
   list(@Query() query: unknown) {
     const q = parse(Page, query);
-    return this.audit.list(q.limit, q.before);
+    return this.audit.list(q.limit, q.before, q.q);
   }
 }

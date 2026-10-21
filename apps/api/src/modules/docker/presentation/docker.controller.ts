@@ -33,6 +33,7 @@ import type { Request } from "express";
 import { Observable } from "rxjs";
 import { stringify } from "yaml";
 import { z } from "zod";
+import { envDetail, exposureDetail, setAuditNote } from "../../../shared/audit-note.js";
 import { requireAdmin } from "../../../shared/principal.js";
 import { parse } from "../../../shared/zod-body.js";
 import { AdminOnly } from "../../auth/presentation/admin-only.decorator.js";
@@ -206,23 +207,29 @@ export class DockerController {
   /** Which host address each published port binds to (local only, one address, or open). */
   @Put("containers/:id/exposure")
   @HttpCode(204)
-  async exposure(@Param("id") id: string, @Body() body: unknown) {
-    await this.commands.execute(
-      new ChangeExposureCommand(
-        id,
-        parse(ChangeExposure, body).ports,
-        parse(ChangeExposure, body).gate,
-      ),
-    );
+  async exposure(@Req() req: Request, @Param("id") id: string, @Body() body: unknown) {
+    const b = parse(ChangeExposure, body);
+    setAuditNote(req, { detail: exposureDetail(await this.nameOf(id), b.ports) });
+    await this.commands.execute(new ChangeExposureCommand(id, b.ports, b.gate));
   }
 
   /** Edits environment variables: the container is recreated and must pass the health gate (else rolled back). */
   @Put("containers/:id/env")
-  async env(@Param("id") id: string, @Body() body: unknown) {
+  async env(@Req() req: Request, @Param("id") id: string, @Body() body: unknown) {
     const b = parse(SetEnv, body);
+    // Names only: the audit trail never holds a value.
+    setAuditNote(req, { detail: envDetail(await this.nameOf(id), Object.keys(b.set), b.unset) });
     return this.commands.execute<SetContainerEnvCommand, { changed: string[] }>(
       new SetContainerEnvCommand(id, b.set, b.unset, b.gate),
     );
+  }
+
+  /** The container's name for the audit trail; the id it was addressed by when it is not found. */
+  private async nameOf(id: string): Promise<string> {
+    const containers = await this.queries.execute<ListContainersQuery, Container[]>(
+      new ListContainersQuery(),
+    );
+    return containers.find((c) => c.id === id || c.name === id)?.name ?? id;
   }
 
   @Post("networks/:id/disconnect")

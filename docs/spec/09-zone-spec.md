@@ -70,7 +70,7 @@ The stored desired spec is compared with reality (`planZone(stored, describeZone
 
 ## Secrets
 
-Environment values of the services are in the document in clear text, as they are in the containers. The document is only available to admins, is never written to logs or the audit trail, and the editor says so. A reference syntax pointing to a vault is the next step, not part of this version.
+Environment values of the services are in the document in clear text, as they are in the containers. The document is only available to admins, is never written to logs, and the audit trail records only that it was read (`read zone=…`) and, for an apply, which actions ran (names of services and fields, not values), and the editor says so. A reference syntax pointing to a vault is the next step, not part of this version.
 
 ## UI
 

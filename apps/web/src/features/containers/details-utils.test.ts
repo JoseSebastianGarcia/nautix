@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { filterLines, jsonPath, percent, pushSample, sparklinePoints } from "./details-utils.js";
+import {
+  filterLines,
+  jsonPath,
+  percent,
+  pushSample,
+  sparklinePoints,
+  touchesContainer,
+} from "./details-utils.js";
 
 describe("details utils", () => {
   it("scales a series into an SVG polyline", () => {
@@ -30,5 +37,21 @@ describe("details utils", () => {
     expect(percent(50, 200)).toBe(25);
     expect(percent(5, 0)).toBe(0);
     expect(percent(500, 200)).toBe(100);
+  });
+});
+
+describe("touchesContainer", () => {
+  it("matches the container by exact name in the detail of an audit entry", () => {
+    expect(touchesContainer("env container=api set=A unset=-", "api")).toBe(true);
+    expect(touchesContainer("read env container=api", "api")).toBe(true);
+    expect(touchesContainer("binding create consumer=web provider=api name=Api", "api")).toBe(true);
+    expect(touchesContainer("env container=api2 set=A unset=-", "api")).toBe(false);
+    expect(touchesContainer("env container=my-api set=A unset=-", "api")).toBe(false);
+    expect(touchesContainer("zone apply zone=api done=1", "api")).toBe(false);
+  });
+
+  it("treats dots in names literally", () => {
+    expect(touchesContainer("env container=a.b set=- unset=-", "a.b")).toBe(true);
+    expect(touchesContainer("env container=axb set=- unset=-", "a.b")).toBe(false);
   });
 });

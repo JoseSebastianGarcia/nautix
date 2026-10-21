@@ -9,6 +9,7 @@ export const TOPIC_IDS = [
   "zone-spec",
   "dns",
   "guards",
+  "audit",
   "templates-builds",
   "swarm",
   "troubleshooting",

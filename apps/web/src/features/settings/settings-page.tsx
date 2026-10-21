@@ -9,6 +9,8 @@ import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Select } from "../../components/select.js";
 import { useToasts } from "../../components/toast-store.js";
 import { Button, ConfirmDialog, Dialog, Field, Input } from "../../components/ui.js";
+import { AuditTable } from "../audit/audit-table.js";
+import { useDebounced } from "../audit/use-debounced.js";
 import { ResetPasswordDialog } from "../auth/password-dialogs.js";
 import { PageHeader, Table, Td } from "../resources/table.js";
 
@@ -580,47 +582,38 @@ function BackupSection() {
 
 function AuditSection() {
   const { t } = useTranslation();
+  const [search, setSearch] = useState("");
+  const q = useDebounced(search.trim());
   const {
     data: rows = [],
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ["audit"],
-    queryFn: () => api.audit(),
+    queryKey: ["audit", q],
+    queryFn: () => api.audit(undefined, q || undefined),
   });
   return (
     <section>
       <PageHeader
         title={t("settings.audit")}
         actions={
-          <Button onClick={() => void refetch()} disabled={isFetching}>
-            {t("common.refresh")}
-          </Button>
+          <>
+            <Input
+              type="search"
+              aria-label={t("settings.auditSearch")}
+              placeholder={t("settings.auditSearch")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64"
+            />
+            <Button onClick={() => void refetch()} disabled={isFetching}>
+              {t("common.refresh")}
+            </Button>
+          </>
         }
       />
-      <Table
-        head={[
-          t("settings.auditTime"),
-          t("settings.auditActor"),
-          t("settings.auditAction"),
-          t("settings.auditStatus"),
-        ]}
-        empty={rows.length === 0}
-      >
-        {rows.map((r) => (
-          <tr key={r.id}>
-            <Td mono>{new Date(r.at).toLocaleString()}</Td>
-            <Td mono>
-              {r.actor} <span className="text-dim">({r.kind})</span>
-            </Td>
-            <Td mono>
-              {r.action}
-              {r.detail && <span className="text-dim"> {r.detail}</span>}
-            </Td>
-            <Td mono>{r.status || "—"}</Td>
-          </tr>
-        ))}
-      </Table>
+      <p className="mb-2 text-xs text-dim">{t("settings.auditNote")}</p>
+      <AuditTable rows={rows} />
     </section>
   );
 }

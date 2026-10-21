@@ -137,8 +137,11 @@ export const api = {
   saveRegistry: (b: SaveRegistry) => request<RegistryInfo>("PUT", "/registries", b),
   removeRegistry: (server: string) =>
     request<void>("DELETE", `/registries/${encodeURIComponent(server)}`),
-  audit: (before?: number) =>
-    request<AuditRow[]>("GET", `/settings/audit?limit=100${before ? `&before=${before}` : ""}`),
+  audit: (before?: number, q?: string) =>
+    request<AuditRow[]>(
+      "GET",
+      `/settings/audit?limit=100${before ? `&before=${before}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`,
+    ),
   restoreBackup: async (file: File) => {
     const res = await fetch("/api/v1/settings/restore", {
       method: "POST",

@@ -16,6 +16,7 @@ import {
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { envReadDetail, setAuditNote } from "../../../shared/audit-note.js";
 import { ValidationError } from "../../../shared/domain-error.js";
 import { getPrincipal } from "../../../shared/principal.js";
 import { parse } from "../../../shared/zod-body.js";
@@ -74,8 +75,13 @@ export class ContainerDetailsController {
 
   private async inspect(kind: InspectKind, id: string, req: Request): Promise<unknown> {
     const raw = await this.queries.execute<InspectQuery, unknown>(new InspectQuery(kind, id));
+    if (kind !== "container") return raw;
     // Environment values may hold secrets: read-only users see names only.
-    return kind === "container" && getPrincipal(req).role !== "admin" ? redactInspect(raw) : raw;
+    if (getPrincipal(req).role !== "admin") return redactInspect(raw);
+    // An admin got the values: leave a trace of whose container it was (not of the values).
+    const name = (raw as { Name?: string } | null)?.Name?.replace(/^\//, "") ?? id;
+    setAuditNote(req, { detail: envReadDetail(name), read: true });
+    return raw;
   }
 
   @Get("containers/:id/inspect")

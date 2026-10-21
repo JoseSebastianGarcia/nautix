@@ -793,6 +793,7 @@ describe("image tools and system commands", () => {
     const rows = (await call("GET", "/settings/audit?limit=50")).json as {
       actor: string;
       action: string;
+      detail: string;
       status: number;
     }[];
     expect(rows[0]).toMatchObject({
@@ -802,7 +803,10 @@ describe("image tools and system commands", () => {
     });
     expect(rows.some((r) => r.action.startsWith("POST /api/v1/auth/login"))).toBe(true);
     expect(JSON.stringify(rows)).not.toContain("p4ssw0rd-x");
-    expect(rows.every((r) => !r.action.startsWith("GET"))).toBe(true);
+    // Reads are not recorded, except the few flagged as sensitive (they say so in their detail).
+    expect(
+      rows.filter((r) => r.action.startsWith("GET")).every((r) => r.detail.startsWith("read ")),
+    ).toBe(true);
     await call("DELETE", "/registries/ghcr.io");
   });
 
@@ -1989,5 +1993,58 @@ describe("gateways and proxies of every supported type", () => {
     const dup = await call("POST", "/gateways/standalone/apply");
     expect(dup.res.status).toBe(422);
     expect(dup.json.hintKey).toBe("errors.gatewayDuplicateRoute");
+  });
+
+  it("names what changed in the audit trail, never a value, and records who read the environment", async () => {
+    type Row = { actor: string; action: string; detail: string; status: number };
+    const trail = async (q = "") =>
+      (await call("GET", `/settings/audit?limit=500${q}`)).json as Row[];
+    const containers = (await call("GET", "/containers")).json as { id: string; name: string }[];
+    const target = containers.find((c) => c.name === "standalone");
+    expect(target).toBeDefined();
+    const secret = "s3cr3t-value-that-must-not-be-logged";
+
+    const env = await call("PUT", `/containers/${target?.id}/env`, {
+      set: { AUDIT_API_KEY: secret },
+      unset: ["AUDIT_OLD"],
+    });
+    expect(env.res.status).toBe(200);
+
+    // Two reads by the same person inside the quiet period leave one entry.
+    await call("GET", `/containers/${target?.id}/inspect`);
+    await call("GET", `/containers/${target?.id}/inspect`);
+    await call("GET", "/zones/zshop/spec");
+
+    const rows = await trail();
+    expect(rows.find((r) => r.detail.startsWith("env container=standalone"))).toMatchObject({
+      actor: "admin",
+      status: 200,
+      detail: "env container=standalone set=AUDIT_API_KEY unset=AUDIT_OLD",
+    });
+    expect(rows.filter((r) => r.detail === "read env container=standalone")).toHaveLength(1);
+    expect(rows.some((r) => r.detail === "read zone=zshop")).toBe(true);
+    expect(JSON.stringify(rows)).not.toContain(secret);
+
+    // The other changes say what they touched.
+    const details = rows.map((r) => r.detail);
+    expect(details.some((d) => d.startsWith("binding create consumer=bind-api provider="))).toBe(
+      true,
+    );
+    expect(details.some((d) => d.startsWith("binding delete consumer=bind-api"))).toBe(true);
+    expect(details.some((d) => d.startsWith("zone apply zone=zshop done="))).toBe(true);
+    expect(details.some((d) => d.startsWith("exposure container=exp-web 80/tcp="))).toBe(true);
+    expect(details.some((d) => d.startsWith("guard rules count="))).toBe(true);
+    expect(details).toContain("guard disable all rules");
+    // A plan changes nothing and does not fill the trail.
+    expect(rows.some((r) => r.action.endsWith("/plan"))).toBe(false);
+
+    // Filter by text: the history of one container.
+    const mine = await trail("&q=container%3Dstandalone");
+    expect(mine.length).toBeGreaterThanOrEqual(2);
+    expect(mine.every((r) => r.detail.includes("container=standalone"))).toBe(true);
+    // Wildcards in the search are plain characters.
+    expect(
+      (await trail("&q=%25")).every((r) => r.action.includes("%") || r.detail.includes("%")),
+    ).toBe(true);
   });
 });

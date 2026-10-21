@@ -438,7 +438,9 @@
     "resetPassword": "Resetear contraseña",
     "resetPasswordTitle": "Contraseña nueva para {{name}}",
     "resetPasswordWarning": "El usuario se desconecta de todos lados y debe usar la contraseña nueva. Avisale por un canal privado.",
-    "passwordReset": "Se cambió la contraseña de {{name}}"
+    "passwordReset": "Se cambió la contraseña de {{name}}",
+    "auditSearch": "Buscar en el registro",
+    "auditNote": "Los cambios indican qué se tocó (contenedor, nombres de variables, puertos, vínculos, reglas) pero nunca un valor. La lectura de los ajustes de un contenedor o de un documento de zona se registra una vez cada diez minutos por persona."
   },
   "compose": {
     "title": "Proyectos Compose",
@@ -545,7 +547,8 @@
       "processes": "Procesos",
       "changes": "Cambios",
       "files": "Archivos",
-      "inspect": "Inspeccionar"
+      "inspect": "Inspeccionar",
+      "history": "Historial"
     },
     "copyPath": "Copiar ruta",
     "root": "raíz",
@@ -609,7 +612,8 @@
     "fixIpWarning": "Nautix reconecta el contenedor a esta red para aplicarlo: las conexiones por esta red se cortan un momento.",
     "fixIpAuto": "Volver a automática",
     "fixIpSet": "Fijar",
-    "fixIpDone": "Dirección actualizada"
+    "fixIpDone": "Dirección actualizada",
+    "historyNote": "Cambios en el entorno, los puertos y los vínculos de este contenedor, y quién leyó sus ajustes. Solo nombres de variables, nunca valores."
   },
   "system": {
     "title": "Sistema",

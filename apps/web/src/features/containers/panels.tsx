@@ -5,8 +5,15 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
 import { Button, Field, Input, ShowCommand } from "../../components/ui.js";
+import { AuditTable } from "../audit/audit-table.js";
 import { formatBytes } from "../resources/format.js";
-import { filterLines, percent, pushSample, sparklinePoints } from "./details-utils.js";
+import {
+  filterLines,
+  percent,
+  pushSample,
+  sparklinePoints,
+  touchesContainer,
+} from "./details-utils.js";
 import { JsonTree } from "./json-tree.js";
 
 export function Card({ title, children }: { title: string; children: ReactNode }) {
@@ -342,3 +349,23 @@ export function FilesPanel({ container }: { container: Container }) {
 }
 
 export const SIGNALS = KILL_SIGNALS;
+
+/** Who changed this container's environment, ports or bindings, and who read its settings (admins only). */
+export function HistoryPanel({ container }: { container: Container }) {
+  const { t } = useTranslation();
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["audit", `=${container.name}`],
+    queryFn: () => api.audit(undefined, `=${container.name}`),
+  });
+  const rows = data.filter((r) => touchesContainer(r.detail, container.name));
+  return (
+    <section className="flex flex-col gap-3">
+      <p className="text-xs text-dim">{t("details.historyNote")}</p>
+      {isLoading ? (
+        <p className="text-sm text-dim">{t("common.loading")}</p>
+      ) : (
+        <AuditTable rows={rows} />
+      )}
+    </section>
+  );
+}

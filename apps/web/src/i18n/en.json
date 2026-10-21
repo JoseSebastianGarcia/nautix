@@ -438,7 +438,9 @@
     "resetPassword": "Reset password",
     "resetPasswordTitle": "New password for {{name}}",
     "resetPasswordWarning": "The user is signed out everywhere and must use the new password. Tell them through a private channel.",
-    "passwordReset": "Password of {{name}} changed"
+    "passwordReset": "Password of {{name}} changed",
+    "auditSearch": "Search the log",
+    "auditNote": "Changes name what was touched (container, variable names, ports, bindings, rules) but never a value. Reading a container's settings or a zone document is recorded once every ten minutes per person."
   },
   "compose": {
     "title": "Compose projects",
@@ -545,7 +547,8 @@
       "processes": "Processes",
       "changes": "Changes",
       "files": "Files",
-      "inspect": "Inspect"
+      "inspect": "Inspect",
+      "history": "History"
     },
     "copyPath": "Copy path",
     "root": "root",
@@ -609,7 +612,8 @@
     "fixIpWarning": "Nautix reconnects the container to this network to apply it: connections through this network drop for a moment.",
     "fixIpAuto": "Back to automatic",
     "fixIpSet": "Fix it",
-    "fixIpDone": "Address updated"
+    "fixIpDone": "Address updated",
+    "historyNote": "Changes to this container's environment, ports and bindings, and who read its settings. Variable names only, never values."
   },
   "system": {
     "title": "System",

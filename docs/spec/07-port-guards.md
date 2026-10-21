@@ -136,7 +136,7 @@ Resources → **Guards** tab (next to Gateways and DNS): helper status (connecte
 ## Cross-cutting
 
 - Every string through i18n (en + es); colors from tokens; all dialogs keyboard accessible.
-- Every change is audited (`guard.rule.create|update|delete`, `exposure.change`) with the previous value.
+- Every change is audited with what it touched (`guard rules count=… container:port/proto<-sources`, `exposure container=… port=kind`), never with a secret; see ADR-046. Holding the previous value was not built: the trail says what changed, not what it was.
 - `GET /api/v1/security/exposure` returns the exposure inventory used by the System view, so it can also be consumed by backups and the audit export.
 - ADR per level when built. Level 3 is the only one that adds a privileged component; that decision gets its own ADR before any code.
 
