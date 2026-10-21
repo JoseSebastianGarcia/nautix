@@ -2,8 +2,8 @@ import {
   type Binding,
   type BindingStyle,
   bindingKind,
-  defaultBindingName,
   type Container,
+  defaultBindingName,
   type Network,
 } from "@nautix/contracts";
 import { Inject, Injectable } from "@nestjs/common";
