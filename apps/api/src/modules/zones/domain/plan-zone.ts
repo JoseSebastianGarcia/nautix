@@ -7,7 +7,7 @@ import {
   type ZonePlan,
   type ZoneSpec,
 } from "@nautix/contracts";
-import { describeZone, type ZoneFacts } from "./describe-zone.js";
+import { describeZone, isNamedVolume, type ZoneFacts } from "./describe-zone.js";
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 
@@ -23,9 +23,12 @@ const diffService = (
   const replace: string[] = [];
   if (want.image !== have.image) update.push("image");
   if (!same(sortKeys(want.env), sortKeys(have.env))) update.push("env");
-  if (!same(want.command ?? null, have.command ?? null)) update.push("command");
+  if (!same(want.command ?? null, have.command ?? null))
+    // Taking a command away means going back to the image's own, which only a fresh container does.
+    (want.command ? update : replace).push("command");
   if (want.restart !== have.restart) update.push("restart");
-  if (!same([...want.volumes].sort(), [...have.volumes].sort())) replace.push("volumes");
+  if (!same(want.volumes.filter(isNamedVolume).sort(), have.volumes.filter(isNamedVolume).sort()))
+    replace.push("volumes");
 
   const haveByKey = new Map(have.ports.map((p) => [`${p.container}/${p.protocol}`, p]));
   const wantKeys = want.ports.map((p) => `${p.container}/${p.protocol}`).sort();
@@ -85,7 +88,7 @@ export const planZone = (desired: ZoneSpec, facts: ZoneFacts): ZonePlan => {
       replaces.push({ kind: "replace-service", service: name, fields: [...replace, ...update] });
       replaced.add(name);
       changedEnv.add(name);
-      if (facts.containers.find((c) => c.name === name)?.volumes.some((v) => !v.includes(":")))
+      if (facts.containers.find((c) => c.name === name)?.volumes.some((v) => !isNamedVolume(v)))
         warnings.push({ key: "anonymousVolumeLost", params: { service: name } });
     } else if (update.length > 0) {
       updates.push({ kind: "update-service", service: name, fields: update });

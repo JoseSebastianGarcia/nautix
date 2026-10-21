@@ -17,6 +17,7 @@ import { SwarmModule } from "./modules/swarm/swarm.module.js";
 import { TerminalModule } from "./modules/terminal/terminal.module.js";
 import type { TlsCertificates } from "./modules/tls/application/ports/tls-certificates.js";
 import { TlsModule } from "./modules/tls/tls.module.js";
+import { ZonesModule } from "./modules/zones/zones.module.js";
 import type { AppConfig } from "./shared/config.js";
 
 @Module({})
@@ -39,6 +40,7 @@ export class AppModule {
         DnsModule.register(config),
         GuardModule.register(config),
         BindingsModule.register(config),
+        ZonesModule.register(config),
         BackupModule.register(config, restarter),
       ],
       controllers: [HealthController],

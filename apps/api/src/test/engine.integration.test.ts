@@ -464,6 +464,99 @@ describe("against a real Docker daemon", () => {
     docker("rm", "-f", "-v", db, app);
   });
 
+  it("builds a zone from a document alone, then changes only what the document changes", async () => {
+    const image = "postgres:16-alpine";
+    try {
+      docker("image", "inspect", image);
+    } catch {
+      return; // image not available offline: nothing to verify
+    }
+    const doc = (mode: string) => `
+version: 1
+zone:
+  name: ${PREFIX}zone
+services:
+  ${PREFIX}zdb:
+    image: ${image}
+    env:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: "z;pw 1"
+      POSTGRES_DB: orders
+    volumes: ["${PREFIX}zone-data:/var/lib/postgresql/data"]
+  ${PREFIX}zapp:
+    image: ${image}
+    command: ["sleep", "600"]
+    env: { MODE: ${mode} }
+    bindings:
+      - { to: ${PREFIX}zdb, name: Orders, style: url }
+`;
+    const plan = async (text: string) =>
+      (await call("POST", `/zones/${PREFIX}zone/plan`, { spec: text })).json as {
+        plan: { hash: string; actions: { kind: string; service?: string }[] };
+      };
+    const apply = (text: string, hash: string) =>
+      call("POST", `/zones/${PREFIX}zone/apply`, {
+        spec: text,
+        planHash: hash,
+        allowRemovals: false,
+      });
+    const idOf = (name: string) => docker("inspect", "-f", "{{.Id}}", name);
+
+    const first = await plan(doc("one"));
+    expect(first.plan.actions.map((a) => a.kind)).toEqual([
+      "create-network",
+      "create-service",
+      "create-service",
+      "add-binding",
+    ]);
+    const built = await apply(doc("one"), first.plan.hash);
+    expect(built.res.status, JSON.stringify(built.json)).toBe(200);
+    expect(built.json.ok, JSON.stringify(built.json.results)).toBe(true);
+
+    for (let i = 0; i < 40; i++) {
+      try {
+        docker(
+          "exec",
+          `${PREFIX}zdb`,
+          "pg_isready",
+          "-h",
+          "127.0.0.1",
+          "-U",
+          "app",
+          "-d",
+          "orders",
+        );
+        break;
+      } catch {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+    // the app reaches the database with the settings the binding wrote
+    expect(docker("exec", `${PREFIX}zapp`, "sh", "-c", 'psql "$ORDERS_URL" -tAc "select 7"')).toBe(
+      "7",
+    );
+    // reality read back from the engine matches the document: nothing left to do
+    const settled = await plan(doc("one"));
+    const reality = (await call("GET", `/zones/${PREFIX}zone/spec`)).json.current;
+    expect(settled.plan.actions, `${JSON.stringify(settled.plan.actions)}\n${reality}`).toEqual([]);
+
+    // a change to one service recreates that one service and nothing else
+    const dbBefore = idOf(`${PREFIX}zdb`);
+    const appBefore = idOf(`${PREFIX}zapp`);
+    const second = await plan(doc("two"));
+    expect(second.plan.actions).toEqual([
+      { kind: "update-service", service: `${PREFIX}zapp`, fields: ["env"] },
+    ]);
+    expect((await apply(doc("two"), second.plan.hash)).json.ok).toBe(true);
+    expect(idOf(`${PREFIX}zdb`)).toBe(dbBefore);
+    expect(idOf(`${PREFIX}zapp`)).not.toBe(appBefore);
+    expect(docker("exec", `${PREFIX}zapp`, "printenv", "MODE")).toBe("two");
+    expect(docker("exec", `${PREFIX}zapp`, "sh", "-c", 'psql "$ORDERS_URL" -tAc "select 8"')).toBe(
+      "8",
+    );
+    expect((await plan(doc("two"))).plan.actions).toEqual([]);
+  });
+
   it("opens a real tunnel between two networks and only that port crosses", async () => {
     await call("POST", "/networks", { name: `${PREFIX}b`, internal: true });
     const nets = (await call("GET", "/networks")).json as Net[];

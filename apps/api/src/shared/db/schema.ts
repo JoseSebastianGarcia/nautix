@@ -82,4 +82,13 @@ export const MIGRATIONS: readonly Migration[] = [
       db.exec("CREATE TABLE IF NOT EXISTS bindings (id TEXT PRIMARY KEY, json TEXT NOT NULL)");
     },
   },
+  {
+    version: 5,
+    name: "zone_specs",
+    up(db: Db) {
+      db.exec(
+        "CREATE TABLE IF NOT EXISTS zone_specs (zone TEXT PRIMARY KEY, yaml TEXT NOT NULL, applied_at INTEGER NOT NULL)",
+      );
+    },
+  },
 ];

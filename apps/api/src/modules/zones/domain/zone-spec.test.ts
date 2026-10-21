@@ -216,6 +216,21 @@ describe("planZone", () => {
     expect(moved.actions).toEqual([{ kind: "update-service", service: "api", fields: ["ports"] }]);
   });
 
+  it("sets a command in place but needs a new container to go back to the image's own", () => {
+    const withCommand = DOC.replace(
+      "    env: { MODE: prod }",
+      "    env: { MODE: prod }\n    command: [run, --fast]",
+    );
+    expect(planZone(spec(withCommand), matching()).actions).toEqual([
+      { kind: "update-service", service: "api", fields: ["command"] },
+    ]);
+    const facts = matching();
+    const api = facts.containers[1];
+    if (api) api.command = ["run", "--fast"];
+    const plan = planZone(spec(), facts);
+    expect(plan.actions[0]).toMatchObject({ kind: "replace-service", fields: ["command"] });
+  });
+
   it("replaces a service whose volumes or set of ports change, and starts its bindings over", () => {
     const s = spec(DOC.replace("container: 8080, host: 8080", "container: 9000, host: 8080"));
     const plan = planZone(s, matching());
@@ -223,6 +238,24 @@ describe("planZone", () => {
       { kind: "replace-service", service: "api", fields: ["ports"] },
       { kind: "add-binding", consumer: "api", provider: "db", name: "Orders", style: "dotnet" },
     ]);
+  });
+
+  it("ignores anonymous volumes: they belong to the container, often to its image", () => {
+    const facts = matching();
+    const db = facts.containers[0];
+    if (db) db.volumes = [...db.volumes, "/var/lib/other"];
+    expect(planZone(spec(), facts).actions).toEqual([]);
+    expect(describeZone("shop", facts).services.db?.volumes).toEqual([
+      "db-data:/var/lib/postgresql/data",
+    ]);
+    // ...and a bare path in the document is not compared either
+    const withBare = spec(
+      DOC.replace(
+        'volumes: ["db-data:/var/lib/postgresql/data"]',
+        'volumes: ["db-data:/var/lib/postgresql/data", "/scratch"]',
+      ),
+    );
+    expect(planZone(withBare, matching()).actions).toEqual([]);
   });
 
   it("warns when replacing loses an anonymous volume", () => {

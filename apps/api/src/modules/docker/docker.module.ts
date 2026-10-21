@@ -43,6 +43,7 @@ import { BrowseVolumeHandler } from "./application/queries/browse-volume.handler
 import { ExportComposeHandler } from "./application/queries/export-compose.handler.js";
 import { ExportContainerHandler } from "./application/queries/export-container.handler.js";
 import { GetArchiveHandler } from "./application/queries/get-archive.handler.js";
+import { GetContainerDetailsHandler } from "./application/queries/get-container-details.handler.js";
 import { GetContainerDiffHandler } from "./application/queries/get-container-diff.handler.js";
 import { GetContainerLogsHandler } from "./application/queries/get-container-logs.handler.js";
 import { GetContainerStatsHandler } from "./application/queries/get-container-stats.handler.js";
@@ -115,6 +116,7 @@ const HANDLERS = [
   ChangeExposureHandler,
   SetContainerEnvHandler,
   RecreateContainerHandler,
+  GetContainerDetailsHandler,
   ApplyDnsHandler,
   LookupDnsHandler,
   BrowseVolumeHandler,

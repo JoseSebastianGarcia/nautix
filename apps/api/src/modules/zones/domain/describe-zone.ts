@@ -33,6 +33,9 @@ export interface ZoneFacts {
 /** Docker names anonymous volumes with 64 hex characters. */
 const ANONYMOUS = /^[0-9a-f]{64}$/;
 
+/** `name:/path` or `/host:/path`: something the document can name; a bare `/path` is anonymous. */
+export const isNamedVolume = (v: string): boolean => v.includes(":");
+
 /** A mount as a `-v` string: an anonymous volume is just its path, as it was written. */
 export const volumeString = (m: {
   type: string;
@@ -77,7 +80,8 @@ export const describeZone = (name: string, facts: ZoneFacts): ZoneSpec => {
       image: c.image,
       env: Object.fromEntries(Object.entries(c.env).filter(([k]) => !derived.has(k))),
       ports: portsOf(c),
-      volumes: [...c.volumes].sort(),
+      // Anonymous volumes belong to the container (often to its image's VOLUME): not managed here.
+      volumes: c.volumes.filter(isNamedVolume).sort(),
       ...(c.command ? { command: c.command } : {}),
       restart: (RESTART.has(c.restartPolicy) ? c.restartPolicy : "no") as ServiceSpec["restart"],
       bindings: mine

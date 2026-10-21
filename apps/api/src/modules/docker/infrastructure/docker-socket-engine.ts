@@ -374,6 +374,7 @@ export class DockerSocketEngine extends DockerEngine {
     // From here on the container is addressed by its id: its name moves to the new one.
     const oldId = old.Id;
     const name = old.Name.replace(/^\//, "");
+    if (change.image) await this.pullImageIfMissing(change.image);
     const plan = planRecreate(old, change);
     const wasRunning = old.State.Running;
     const parked = `${name}-nautix-old-${Date.now().toString(36)}`;

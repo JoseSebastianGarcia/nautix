@@ -345,7 +345,11 @@
     "applyUnhealthy": "The new container did not start properly, so the previous one was put back",
     "bindingNeedsNetwork": "The service is only on the default network: put it on a network you created first",
     "bindingSelf": "A container cannot be bound to itself",
-    "bindingExists": "This app already has a binding with that name"
+    "bindingExists": "This app already has a binding with that name",
+    "zoneInvalid": "The document has errors",
+    "zoneNameMismatch": "This document is for another zone",
+    "zonePlanHasErrors": "The plan has errors: fix them first",
+    "zoneChanged": "The zone changed since the plan was shown: review the new plan"
   },
   "terminal": {
     "title": "Terminal",

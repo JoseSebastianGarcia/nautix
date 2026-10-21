@@ -1,5 +1,10 @@
 /** What a recreate changes; everything else is carried over from the old container. */
 export interface ContainerChange {
+  /** Another image (pulled first when it is missing). */
+  image?: string;
+  /** A command to run instead of the one it has. */
+  command?: string[];
+  restart?: "no" | "unless-stopped" | "always" | "on-failure";
   ports?: PortRebind[];
   /** Variable → value to set, or null to remove it. */
   env?: Record<string, string | null>;
@@ -22,6 +27,8 @@ export interface PortRebind {
   containerPort: number;
   protocol: "tcp" | "udp";
   hostIp: string;
+  /** A different host port; left out, the one it already has is kept. */
+  hostPort?: number;
 }
 
 /** The parts of `GET /containers/{id}/json` that recreating a container needs. */
@@ -83,7 +90,10 @@ export const planRecreate = (old: InspectedContainer, change: ContainerChange): 
     if (!configured || configured.length === 0)
       throw new Error(`port ${k} is not published by this container`);
     const live = old.NetworkSettings.Ports?.[k]?.[0]?.HostPort;
-    const hostPort = configured[0]?.HostPort || live || "";
+    const hostPort =
+      rebind.hostPort !== undefined
+        ? String(rebind.hostPort)
+        : configured[0]?.HostPort || live || "";
     portBindings[k] = [{ HostIp: rebind.hostIp, HostPort: hostPort }];
   }
 
@@ -105,6 +115,8 @@ export const planRecreate = (old: InspectedContainer, change: ContainerChange): 
     if (!targets.has(v.destination)) binds.push(`${v.name}:${v.destination}${v.rw ? "" : ":ro"}`);
 
   const config: Record<string, unknown> & {
+    Image?: string;
+    Cmd?: string[] | null;
     Hostname?: string;
     Env?: string[] | null;
     NetworkDisabled?: boolean;
@@ -113,6 +125,8 @@ export const planRecreate = (old: InspectedContainer, change: ContainerChange): 
   };
   if (config.Hostname === old.Id.slice(0, 12)) delete config.Hostname;
   if (change.env) config.Env = applyEnv(config.Env ?? [], change.env);
+  if (change.image) config.Image = change.image;
+  if (change.command) config.Cmd = change.command;
 
   // An endpoint with an empty NetworkID is a placeholder (no such network on this engine): not attached.
   const networks = Object.entries(old.NetworkSettings.Networks).filter(
@@ -151,6 +165,7 @@ export const planRecreate = (old: InspectedContainer, change: ContainerChange): 
     PortBindings: portBindings,
     Binds: binds,
     ...(promoted ? { NetworkMode: promoted } : {}),
+    ...(change.restart ? { RestartPolicy: { Name: change.restart } } : {}),
   };
 
   return {

@@ -1162,6 +1162,199 @@ describe("image tools and system commands", () => {
     expect((await call("DELETE", `/bindings/${created.json.id}`)).res.status).toBe(404);
   });
 
+  it("manages a zone from one document: describe, plan, apply, drift and removals", async () => {
+    const doc = (extra = "") => `
+version: 1
+zone:
+  name: zshop
+services:
+  z-db:
+    image: postgres:16-alpine
+    env:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${extra ? "other" : "pw"}
+      POSTGRES_DB: orders
+  z-api:
+    image: myorg/api:1
+    env: { MODE: ${extra ? "staging" : "prod"} }
+    ports:
+      - { container: 8080, host: 18081 }
+    bindings:
+      - { to: z-db, name: Orders }
+${extra}`;
+    type Plan = {
+      plan: {
+        actions: { kind: string; service?: string; fields?: string[] }[];
+        hash: string;
+        errors: { key: string }[];
+        warnings: { key: string }[];
+      } | null;
+      problems: { path: string; message: string }[];
+    };
+    const plan = async (text: string) =>
+      (await call("POST", "/zones/zshop/plan", { spec: text })).json as Plan;
+    const apply = (text: string, planHash: string, allowRemovals = false) =>
+      call("POST", "/zones/zshop/apply", { spec: text, planHash, allowRemovals });
+    const envOf = async (name: string) => {
+      const id = ((await call("GET", "/containers")).json as { id: string; name: string }[]).find(
+        (c) => c.name === name,
+      )?.id;
+      const raw = (await call("GET", `/containers/${id}/inspect`)).json as {
+        Config: { Env: string[] };
+      };
+      return Object.fromEntries(
+        raw.Config.Env.map((e) => [e.slice(0, e.indexOf("=")), e.slice(e.indexOf("=") + 1)]),
+      );
+    };
+
+    // nothing exists yet
+    const empty = (await call("GET", "/zones/zshop/spec")).json as {
+      current: string;
+      stored: string | null;
+    };
+    expect(empty.stored).toBeNull();
+    expect(empty.current).toContain("name: zshop");
+
+    // plan from scratch: network, both services, then the binding
+    const first = await plan(doc());
+    expect(first.problems).toEqual([]);
+    expect(first.plan?.actions.map((a) => a.kind)).toEqual([
+      "create-network",
+      "create-service",
+      "create-service",
+      "add-binding",
+    ]);
+    // a stale or made-up hash is refused and nothing runs
+    expect((await apply(doc(), "0000")).res.status).toBe(409);
+    expect(
+      ((await call("GET", "/networks")).json as { name: string }[]).some((n) => n.name === "zshop"),
+    ).toBe(false);
+
+    const run = await apply(doc(), first.plan?.hash ?? "");
+    expect(run.res.status).toBe(200);
+    expect(run.json.ok).toBe(true);
+    expect(run.json.results.map((r: { status: string }) => r.status)).toEqual([
+      "done",
+      "done",
+      "done",
+      "done",
+    ]);
+    expect((await envOf("z-api")).ConnectionStrings__Orders).toContain("Password=pw");
+    expect(
+      ((await call("GET", "/bindings")).json as { consumer: string }[]).some(
+        (b) => b.consumer === "z-api",
+      ),
+    ).toBe(true);
+
+    // it is now exactly what the document says
+    expect((await plan(doc())).plan?.actions).toEqual([]);
+    const listed = (
+      (await call("GET", "/zones")).json as { name: string; hasSpec: boolean; drift: number }[]
+    ).find((z) => z.name === "zshop");
+    expect(listed).toMatchObject({ hasSpec: true, drift: 0 });
+    // describing reality gives back an equivalent document
+    const described = (await call("GET", "/zones/zshop/spec")).json as {
+      current: string;
+      stored: string;
+    };
+    expect((await plan(described.current)).plan?.actions).toEqual([]);
+
+    // a change to the service another one reads from also refreshes the reader
+    const changed = await plan(doc("# edited"));
+    expect(changed.plan?.actions.map((a) => `${a.kind}:${a.service ?? ""}`)).toEqual([
+      "update-service:z-db",
+      "update-service:z-api",
+      "reapply-binding:",
+    ]);
+    expect((await apply(doc("# edited"), changed.plan?.hash ?? "")).json.ok).toBe(true);
+    expect((await envOf("z-api")).MODE).toBe("staging");
+    expect((await envOf("z-api")).ConnectionStrings__Orders).toContain("Password=other");
+    expect((await plan(doc("# edited"))).plan?.actions).toEqual([]);
+
+    // someone changes reality by hand: the zone reports drift and the plan shows how to undo it
+    expect(
+      (await call("PUT", "/containers/z-api/env", { set: { MODE: "by-hand" } })).res.status,
+    ).toBe(200);
+    const drifted = ((await call("GET", "/zones")).json as { name: string; drift: number }[]).find(
+      (z) => z.name === "zshop",
+    );
+    expect(drifted?.drift).toBe(1);
+    expect((await plan(doc("# edited"))).plan?.actions).toEqual([
+      { kind: "update-service", service: "z-api", fields: ["env"] },
+    ]);
+
+    // a failing action stops the run, leaves the rest alone and does not become the desired spec
+    const poisoned = doc("# edited").replace(
+      "MODE: staging",
+      "MODE: staging, NAUTIX_FAKE_FAIL_X: '1'",
+    );
+    const bad = await plan(poisoned);
+    const failed = await apply(poisoned, bad.plan?.hash ?? "");
+    expect(failed.json.ok).toBe(false);
+    expect(failed.json.results[0].status).toBe("failed");
+    expect(failed.json.results[0].detail).toContain("not accepted");
+    expect(
+      ((await call("GET", "/zones/zshop/spec")).json as { stored: string }).stored,
+    ).not.toContain("NAUTIX_FAKE_FAIL_X");
+
+    // removals need to be allowed explicitly
+    const slim = `
+version: 1
+zone:
+  name: zshop
+services:
+  z-db:
+    image: postgres:16-alpine
+    env:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: other
+      POSTGRES_DB: orders
+`;
+    const removing = await plan(slim);
+    expect(removing.plan?.actions.map((a) => a.kind)).toEqual(["remove-service"]);
+    expect(removing.plan?.warnings.map((w) => w.key)).toContain("removesService");
+    const kept = await apply(slim, removing.plan?.hash ?? "");
+    expect(kept.json.results.map((r: { status: string }) => r.status)).toEqual(["skipped"]);
+    expect(
+      ((await call("GET", "/containers")).json as { name: string }[]).some(
+        (c) => c.name === "z-api",
+      ),
+    ).toBe(true);
+    const again = await plan(slim);
+    expect(again.plan?.actions.map((a) => a.kind)).toEqual(["remove-service"]);
+    expect((await apply(slim, again.plan?.hash ?? "", true)).json.ok).toBe(true);
+    // removing the app also removed its binding record
+    expect(
+      ((await call("GET", "/bindings")).json as { consumer: string }[]).some(
+        (b) => b.consumer === "z-api",
+      ),
+    ).toBe(false);
+    expect(
+      ((await call("GET", "/containers")).json as { name: string }[]).some(
+        (c) => c.name === "z-api",
+      ),
+    ).toBe(false);
+    expect((await plan(slim)).plan?.actions).toEqual([]);
+
+    // invalid documents, another zone's document and names that belong to other containers
+    const broken = await plan(
+      "version: 1\nzone: { name: zshop }\nservices:\n  a: { image: x, typo: 1 }",
+    );
+    expect(broken.plan).toBeNull();
+    expect(broken.problems[0]?.path).toBe("services.a");
+    expect((await apply("a: [", "x")).res.status).toBe(422);
+    expect((await plan(slim.replace("name: zshop", "name: other"))).problems[0]?.path).toBe(
+      "zone.name",
+    );
+    expect((await apply(slim.replace("name: zshop", "name: other"), "x")).res.status).toBe(422);
+    await call("POST", "/containers", { name: "z-taken", image: "nginx", networkId: null });
+    const clash = await plan(slim.replace("z-db:", "z-taken:"));
+    expect(clash.plan?.errors.map((e) => e.key)).toEqual(["nameTakenOutside"]);
+    expect(
+      (await apply(slim.replace("z-db:", "z-taken:"), clash.plan?.hash ?? "")).res.status,
+    ).toBe(422);
+  });
+
   it("shows who can reach each published port and changes it", async () => {
     await call("POST", "/containers", {
       name: "exp-web",

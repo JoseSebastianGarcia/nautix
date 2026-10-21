@@ -173,3 +173,39 @@ describe("planRecreate", () => {
     expect(plan.extraNetworks.map((n) => n.name)).toContain("data");
   });
 });
+
+describe("planRecreate: image, command, restart policy and host port", () => {
+  it("changes the image, the command and the restart policy and keeps the rest", () => {
+    const old = base();
+    old.Config.Image = "app:1";
+    old.Config.Cmd = ["old"];
+    const plan = planRecreate(old, {
+      image: "app:2",
+      command: ["run", "--fast"],
+      restart: "always",
+    });
+    expect(plan.createBody).toMatchObject({
+      Image: "app:2",
+      Cmd: ["run", "--fast"],
+      Env: ["A=1"],
+    });
+    expect((plan.createBody.HostConfig as { RestartPolicy: unknown }).RestartPolicy).toEqual({
+      Name: "always",
+    });
+  });
+
+  it("moves a published port to another host port when asked, keeps it otherwise", () => {
+    const moved = planRecreate(base(), {
+      ports: [{ containerPort: 80, protocol: "tcp", hostIp: "127.0.0.1", hostPort: 9090 }],
+    });
+    expect((moved.createBody.HostConfig as { PortBindings: unknown }).PortBindings).toEqual({
+      "80/tcp": [{ HostIp: "127.0.0.1", HostPort: "9090" }],
+    });
+    const kept = planRecreate(base(), {
+      ports: [{ containerPort: 80, protocol: "tcp", hostIp: "0.0.0.0" }],
+    });
+    expect((kept.createBody.HostConfig as { PortBindings: unknown }).PortBindings).toEqual({
+      "80/tcp": [{ HostIp: "0.0.0.0", HostPort: "32768" }],
+    });
+  });
+});

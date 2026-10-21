@@ -354,11 +354,19 @@ export class FakeDockerEngine extends DockerEngine {
         "the new container was not accepted: it exited (code 1)",
         "errors.applyUnhealthy",
       );
+    if (change.image) c.image = change.image;
+    if (change.restart) this.restart.set(id, change.restart);
     c.ports = c.ports.map((p) => {
       const rebind = change.ports?.find(
         (x) => x.containerPort === p.privatePort && x.protocol === p.type,
       );
-      return rebind ? { ...p, ip: rebind.hostIp } : p;
+      return rebind
+        ? {
+            ...p,
+            ip: rebind.hostIp,
+            ...(rebind.hostPort !== undefined ? { publicPort: rebind.hostPort } : {}),
+          }
+        : p;
     });
     if (change.env) {
       const env = { ...(this.env.get(id) ?? {}) };

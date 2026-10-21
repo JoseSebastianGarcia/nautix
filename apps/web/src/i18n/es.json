@@ -345,7 +345,11 @@
     "applyUnhealthy": "El contenedor nuevo no arrancó bien, así que se restauró el anterior",
     "bindingNeedsNetwork": "El servicio está solo en la red por defecto: primero ponelo en una red que hayas creado",
     "bindingSelf": "Un contenedor no puede vincularse consigo mismo",
-    "bindingExists": "Esta app ya tiene un vínculo con ese nombre"
+    "bindingExists": "Esta app ya tiene un vínculo con ese nombre",
+    "zoneInvalid": "El documento tiene errores",
+    "zoneNameMismatch": "Este documento es de otra zona",
+    "zonePlanHasErrors": "El plan tiene errores: corregilos primero",
+    "zoneChanged": "La zona cambió desde que se mostró el plan: revisá el nuevo plan"
   },
   "terminal": {
     "title": "Terminal",
