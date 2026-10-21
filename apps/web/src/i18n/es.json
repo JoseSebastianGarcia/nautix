@@ -668,7 +668,11 @@
       "proxy": "proxy"
     },
     "noUpstreamPath": "{{name}} reenvía solo a un host y puerto: no acepta destinos como http://servicio:80/base (con ruta). Kong sí los acepta.",
-    "supported": "Compatibles: Kong, Nginx, Caddy, Traefik y HAProxy."
+    "supported": "Compatibles: Kong, Nginx, Caddy, Traefik y HAProxy.",
+    "allow": "Orígenes permitidos",
+    "addMine": "Agregar mi dirección ({{address}})",
+    "lockout": "Tu dirección ({{address}}) no está en esta lista: no podrías usar esta ruta desde acá.",
+    "allowNote": "Vacío = cualquiera que llegue al gateway. Se escriben direcciones o redes como 10.0.0.0/24. Detrás de otro proxy o del reenvío de puertos de Docker, el gateway puede ver la dirección de ese proxy en lugar de la del cliente."
   },
   "builds": {
     "title": "Builds",

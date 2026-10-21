@@ -7,6 +7,7 @@ import { buildHaproxyConfig } from "./gateway-strategies/haproxy.strategy.js";
 import { strategyFor, supportedKinds } from "./gateway-strategies/index.js";
 import { buildNginxConfig } from "./gateway-strategies/nginx.strategy.js";
 import { buildTraefikConfig } from "./gateway-strategies/traefik.strategy.js";
+import { buildKongConfig } from "./kong-config.js";
 
 const r = (over: Record<string, unknown> = {}) =>
   GatewayRoute.parse({
@@ -149,5 +150,65 @@ describe("strategy registry", () => {
   it("has exactly one strategy per supported kind, each reporting its own kind", () => {
     for (const kind of supportedKinds()) expect(strategyFor(kind).kind).toBe(kind);
     expect(supportedKinds()).toEqual(["kong", "nginx", "caddy", "traefik", "haproxy"]);
+  });
+});
+
+describe("allow lists (who can use a route)", () => {
+  const guarded = r({ allow: ["10.0.0.0/24", "192.168.1.5"] });
+  const open = r();
+
+  it("nginx denies everyone else inside the location", () => {
+    const conf = buildNginxConfig([guarded]);
+    expect(conf).toMatch(
+      /location \^~ \/hola \{\s+allow 10\.0\.0\.0\/24;\s+allow 192\.168\.1\.5;\s+deny all;/,
+    );
+    expect(buildNginxConfig([open])).not.toContain("deny all");
+  });
+
+  it("caddy answers 403 to sources outside the list", () => {
+    const f = buildCaddyfile([guarded]);
+    expect(f).toContain("@blocked not remote_ip 10.0.0.0/24 192.168.1.5");
+    expect(f).toContain('respond @blocked "Forbidden" 403');
+    expect(buildCaddyfile([open])).not.toContain("remote_ip");
+  });
+
+  it("traefik puts an ipAllowList middleware before the prefix strip", () => {
+    const doc = parse(buildTraefikConfig([guarded])) as {
+      http: {
+        routers: Record<string, { middlewares?: string[] }>;
+        middlewares: Record<string, unknown>;
+      };
+    };
+    expect(doc.http.routers.hola?.middlewares).toEqual(["hola-allow", "hola-strip"]);
+    expect(doc.http.middlewares["hola-allow"]).toEqual({
+      ipAllowList: { sourceRange: ["10.0.0.0/24", "192.168.1.5"] },
+    });
+    const none = parse(buildTraefikConfig([open])) as {
+      http: { middlewares: Record<string, unknown> };
+    };
+    expect(none.http.middlewares["hola-allow"]).toBeUndefined();
+  });
+
+  it("haproxy denies with 403 when the route matched and the source is not listed", () => {
+    const cfg = buildHaproxyConfig([r({ allow: ["10.0.0.0/24"], host: "api.mi.lan" })]);
+    expect(cfg).toContain("acl src_hola src 10.0.0.0/24");
+    expect(cfg).toContain("http-request deny deny_status 403 if host_hola path_hola !src_hola");
+    expect(cfg.indexOf("acl src_hola")).toBeLessThan(cfg.indexOf("use_backend be_hola"));
+    expect(buildHaproxyConfig([open])).not.toContain("deny_status 403");
+  });
+
+  it("kong adds the ip-restriction plugin to the route", () => {
+    const doc = parse(buildKongConfig([guarded])) as {
+      services: { routes: { plugins?: { name: string; config: { allow: string[] } }[] }[] }[];
+    };
+    expect(doc.services[0]?.routes[0]?.plugins).toEqual([
+      { name: "ip-restriction", config: { allow: ["10.0.0.0/24", "192.168.1.5"] } },
+    ]);
+  });
+
+  it("rejects an invalid entry", () => {
+    expect(() => r({ allow: ["10.0.0.0/33"] })).toThrow();
+    expect(() => r({ allow: ["not-an-ip"] })).toThrow();
+    expect(r({ allow: ["fd00::/8", "::1"] }).allow).toHaveLength(2);
   });
 });

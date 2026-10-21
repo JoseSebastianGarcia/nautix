@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isCidr } from "./ip.js";
 
 /** Helper image that talks to the gateway's admin API from inside its network. */
 export const GATEWAY_HELPER_IMAGE = "curlimages/curl:8.22.0";
@@ -42,6 +43,8 @@ export const GatewayRoute = z
     upstream: Upstream,
     /** Remove the matched path prefix before forwarding (/hola/x → /x). */
     stripPath: z.boolean().default(true),
+    /** Source networks allowed to use this route (CIDR or single address). Empty = no filter. */
+    allow: z.array(z.string().trim().refine(isCidr, "invalid address or CIDR")).max(64).default([]),
   })
   .refine((r) => r.path !== undefined || r.host !== undefined, {
     message: "a route needs a path or a host",

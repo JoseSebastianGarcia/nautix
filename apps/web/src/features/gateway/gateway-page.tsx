@@ -1,4 +1,4 @@
-import { type Container, GATEWAY_INFO, GatewayRoute } from "@nautix/contracts";
+import { type Container, cidrContains, GATEWAY_INFO, GatewayRoute } from "@nautix/contracts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -10,6 +10,7 @@ import { Button, Input, ShowCommand } from "../../components/ui.js";
 import { PageHeader } from "../resources/table.js";
 import { LogoBadge } from "../topology/logo-badge.js";
 import {
+  allowList,
   blankRoute,
   candidatesFor,
   type DraftRoute,
@@ -69,6 +70,12 @@ function Editor({ gateway, containers }: { gateway: Container; containers: Conta
   });
   const [rows, setRows] = useState<DraftRoute[] | null>(null);
   const [output, setOutput] = useState<{ ok: boolean; text: string } | null>(null);
+  const me = useQuery({
+    queryKey: ["client-address"],
+    queryFn: api.clientAddress,
+    staleTime: 60_000,
+  });
+  const myAddress = me.data?.address ?? "";
 
   useEffect(() => {
     if (saved.data && rows === null) setRows(saved.data.map(toDraft));
@@ -130,6 +137,7 @@ function Editor({ gateway, containers }: { gateway: Container; containers: Conta
               <th className="px-3 py-2 font-medium">{t("gateway.path")}</th>
               <th className="px-3 py-2 font-medium">{t("gateway.host")}</th>
               <th className="px-3 py-2 font-medium">{t("gateway.destination")}</th>
+              <th className="px-3 py-2 font-medium">{t("gateway.allow")}</th>
               <th className="px-3 py-2 font-medium">{t("gateway.strip")}</th>
               <th className="px-3 py-2" />
             </tr>
@@ -200,6 +208,34 @@ function Editor({ gateway, containers }: { gateway: Container; containers: Conta
                     </div>
                   </td>
                   <td className="px-3 py-2">
+                    <div className="flex w-56 flex-col gap-1">
+                      <Input
+                        aria-label={`${t("gateway.allow")} ${i + 1}`}
+                        value={r.allow}
+                        onChange={(e) => update(i, { allow: e.target.value })}
+                        placeholder="10.0.0.0/24, 192.168.1.5"
+                      />
+                      {myAddress !== "" && (
+                        <button
+                          type="button"
+                          className="w-fit text-xs text-accent hover:underline"
+                          onClick={() =>
+                            update(i, { allow: [...allowList(r.allow), myAddress].join(", ") })
+                          }
+                        >
+                          {t("gateway.addMine", { address: myAddress })}
+                        </button>
+                      )}
+                      {allowList(r.allow).length > 0 &&
+                        myAddress !== "" &&
+                        !allowList(r.allow).some((c) => cidrContains(c, myAddress)) && (
+                          <span className="text-xs text-amber">
+                            {t("gateway.lockout", { address: myAddress })}
+                          </span>
+                        )}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
                     <input
                       type="checkbox"
                       aria-label={`${t("gateway.strip")} ${i + 1}`}
@@ -247,6 +283,7 @@ function Editor({ gateway, containers }: { gateway: Container; containers: Conta
         </Button>
       </div>
       <p className="text-xs text-dim">{t("gateway.restartNote")}</p>
+      <p className="text-xs text-dim">{t("gateway.allowNote")}</p>
 
       {output && (
         <section className="rounded-xl border border-line bg-bg1 p-3" aria-live="polite">

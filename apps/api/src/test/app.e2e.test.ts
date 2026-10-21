@@ -868,6 +868,32 @@ describe("image tools and system commands", () => {
     expect((await post({ tag: "bad tag!", dockerfile: "FROM a" })).status).toBe(422);
   });
 
+  it("stores allow lists on gateway routes and rejects bad entries", async () => {
+    await call("POST", "/containers", {
+      name: "gw-allow",
+      image: "nginx:1.27-alpine",
+      networkId: null,
+    });
+    const put = (allow: unknown) =>
+      call("PUT", "/gateways/gw-allow/routes", {
+        routes: [{ name: "api", path: "/api", upstream: "http://svc:8080", allow }],
+      });
+    expect((await put(["10.0.0.0/24", "192.168.1.5", "fd00::/8"])).res.status).toBe(204);
+    expect(
+      ((await call("GET", "/gateways/gw-allow/routes")).json as { allow: string[] }[])[0]?.allow,
+    ).toEqual(["10.0.0.0/24", "192.168.1.5", "fd00::/8"]);
+    expect((await put(["10.0.0.0/33"])).res.status).toBe(422);
+    expect((await put(["not-an-ip"])).res.status).toBe(422);
+    // routes saved before allow lists existed still load, with an empty list
+    expect((await put(undefined)).res.status).toBe(204);
+    expect(
+      ((await call("GET", "/gateways/gw-allow/routes")).json as { allow: string[] }[])[0]?.allow,
+    ).toEqual([]);
+    expect(
+      typeof ((await call("GET", "/gateways/client-address")).json as { address: string }).address,
+    ).toBe("string");
+  });
+
   it("shows who can reach each published port and changes it", async () => {
     await call("POST", "/containers", {
       name: "exp-web",
@@ -1413,7 +1439,7 @@ describe("gateway (Kong) routes", () => {
     expect(gateways.map((g) => g.name)).toContain("kong");
 
     expect((await call("PUT", "/gateways/kong/routes", { routes: [route] })).res.status).toBe(204);
-    expect((await call("GET", "/gateways/kong/routes")).json).toEqual([route]);
+    expect((await call("GET", "/gateways/kong/routes")).json).toEqual([{ ...route, allow: [] }]);
 
     const applied = await call("POST", "/gateways/kong/apply");
     expect(applied.res.status).toBe(200);

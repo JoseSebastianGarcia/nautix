@@ -35,3 +35,36 @@ export const isCidr = (value: string): boolean => {
   if (!/^\d{1,3}$/.test(prefix)) return false;
   return Number(prefix) <= (ipFamily(address) === 6 ? 128 : 32);
 };
+
+const toBits = (address: string): bigint | null => {
+  if (!isIpAddress(address)) return null;
+  if (ipFamily(address) === 4)
+    return address.split(".").reduce((n, part) => (n << 8n) | BigInt(part), 0n);
+  // IPv6: expand "::", and a dotted IPv4 tail counts as two groups.
+  const [head = "", tail = ""] = address.split("::");
+  const groups = (text: string): string[] =>
+    text === ""
+      ? []
+      : text.split(":").flatMap((g) => {
+          if (!g.includes(".")) return [g];
+          const v4 = toBits(g) ?? 0n;
+          return [((v4 >> 16n) & 0xffffn).toString(16), (v4 & 0xffffn).toString(16)];
+        });
+  const left = groups(head);
+  const right = address.includes("::") ? groups(tail) : [];
+  const middle = address.includes("::") ? Array(8 - left.length - right.length).fill("0") : [];
+  return [...left, ...middle, ...right].reduce((n, g) => (n << 16n) | BigInt(`0x${g}`), 0n);
+};
+
+/** True when `address` lies inside `cidr` (a bare address matches only itself). Families never mix. */
+export const cidrContains = (cidr: string, address: string): boolean => {
+  const [base = "", prefix] = cidr.split("/");
+  if (!isCidr(cidr) || !isIpAddress(address) || ipFamily(base) !== ipFamily(address)) return false;
+  const size = ipFamily(base) === 6 ? 128n : 32n;
+  const bits = prefix === undefined ? size : BigInt(prefix);
+  const a = toBits(base);
+  const b = toBits(address);
+  if (a === null || b === null) return false;
+  const shift = size - bits;
+  return a >> shift === b >> shift;
+};

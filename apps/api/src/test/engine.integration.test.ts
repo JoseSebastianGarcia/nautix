@@ -95,7 +95,7 @@ afterAll(async () => {
   if (dataDir) rmSync(dataDir, { recursive: true, force: true });
 });
 
-type Net = { id: string; name: string };
+type Net = { id: string; name: string; subnet?: string | null };
 type Ctr = {
   id: string;
   name: string;
@@ -626,6 +626,116 @@ describe("against a real Docker daemon", () => {
       `wget -qO- -T 3 http://${PREFIX}ha/other 2>&1 || true`,
     );
     expect(miss).not.toContain("pong");
+
+    // Allow lists: the caller's own network is let in, any other network gets a 403.
+    expect(
+      (
+        await call("PUT", `/gateways/${PREFIX}ha/routes`, {
+          routes: [
+            {
+              name: "pong",
+              path: "/pong",
+              upstream: `http://${PREFIX}svc:8080`,
+              stripPath: true,
+              allow: [b?.subnet ?? "172.16.0.0/12"],
+            },
+            {
+              name: "secret",
+              path: "/secret",
+              upstream: `http://${PREFIX}svc:8080`,
+              stripPath: true,
+              allow: ["10.255.255.0/24"],
+            },
+          ],
+        })
+      ).res.status,
+    ).toBe(204);
+    const reapplied = await call("POST", `/gateways/${PREFIX}ha/apply`);
+    expect(reapplied.json.ok, reapplied.json.output).toBe(true);
+    const fetchVia = (path: string) =>
+      docker(
+        "exec",
+        `${PREFIX}svc`,
+        "sh",
+        "-c",
+        `wget -S -qO- -T 3 http://${PREFIX}ha${path} 2>&1 || true`,
+      );
+    let allowed = "";
+    for (let i = 0; i < 10 && !allowed.includes("pong"); i++) {
+      allowed = fetchVia("/pong");
+      if (!allowed.includes("pong")) await new Promise((r) => setTimeout(r, 500));
+    }
+    expect(allowed).toContain("pong");
+    const denied = fetchVia("/secret");
+    expect(denied).toContain("403");
+    expect(denied).not.toContain("pong");
+  });
+
+  it.each([
+    ["nginx", "nginx:1.27-alpine"],
+    ["caddy", "caddy:2-alpine"],
+  ])("enforces route allow lists on a real %s", async (id, image) => {
+    try {
+      docker("image", "inspect", image);
+    } catch {
+      return; // image not available offline: nothing to verify
+    }
+    const nets = (await call("GET", "/networks")).json as Net[];
+    const b = nets.find((n) => n.name === `${PREFIX}b`);
+    const template = (await call("GET", "/catalog")).json.find((t: { id: string }) => t.id === id);
+    const gw = `${PREFIX}gw-${id}`;
+    const created = await call("POST", "/containers", {
+      name: gw,
+      image: template.image,
+      networkId: b?.id,
+      restartPolicy: "no",
+      volumes: template.volumes,
+      command: template.command,
+    });
+    expect(created.res.status, JSON.stringify(created.json)).toBe(201);
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(
+      (
+        await call("PUT", `/gateways/${gw}/routes`, {
+          routes: [
+            {
+              name: "pong",
+              path: "/pong",
+              upstream: `http://${PREFIX}svc:8080`,
+              stripPath: true,
+              allow: [b?.subnet ?? "172.16.0.0/12"],
+            },
+            {
+              name: "secret",
+              path: "/secret",
+              upstream: `http://${PREFIX}svc:8080`,
+              stripPath: true,
+              allow: ["10.255.255.0/24"],
+            },
+          ],
+        })
+      ).res.status,
+    ).toBe(204);
+    const applied = await call("POST", `/gateways/${gw}/apply`);
+    expect(applied.json.ok, applied.json.output).toBe(true);
+    const fetchVia = (path: string) =>
+      docker(
+        "exec",
+        `${PREFIX}svc`,
+        "sh",
+        "-c",
+        `wget -S -qO- -T 3 http://${gw}${path} 2>&1 || true`,
+      );
+    let allowed = "";
+    for (let i = 0; i < 10 && !allowed.includes("pong"); i++) {
+      allowed = fetchVia("/pong");
+      if (!allowed.includes("pong")) await new Promise((r) => setTimeout(r, 500));
+    }
+    expect(allowed).toContain("pong");
+    const denied = fetchVia("/secret");
+    expect(denied).toContain("403");
+    expect(denied).not.toContain("pong");
+    docker("rm", "-f", gw);
   });
 
   it("serves custom DNS records from a real dnsmasq, and keeps them after the container restarts", async () => {

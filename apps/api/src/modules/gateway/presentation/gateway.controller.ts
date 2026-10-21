@@ -6,8 +6,9 @@ import {
   ResourceName,
   SaveGatewayRoutes,
 } from "@nautix/contracts";
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Req } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
+import type { Request } from "express";
 import { parse } from "../../../shared/zod-body.js";
 import { ApplyGatewayCommand } from "../../docker/application/commands/apply-gateway.command.js";
 import { ListContainersQuery } from "../../docker/application/queries/list-containers.query.js";
@@ -37,6 +38,12 @@ export class GatewayController {
         state: c.state,
         networks: c.networks,
       }));
+  }
+
+  /** The address this request came from, so an allow list can start with the caller's own. */
+  @Get("client-address")
+  clientAddress(@Req() req: Request) {
+    return { address: (req.ip ?? "").replace(/^::ffff:/, "") };
   }
 
   @Get(":name/routes")

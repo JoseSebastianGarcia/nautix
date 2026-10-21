@@ -16,12 +16,18 @@ export const buildTraefikConfig = (routes: GatewayRoute[]): string => {
         .filter(Boolean)
         .join(" && ") || "PathPrefix(`/`)";
     const strip = r.stripPath && path !== undefined && path !== "";
+    const chain = [
+      ...(r.allow.length > 0 ? [`${r.name}-allow`] : []),
+      ...(strip ? [`${r.name}-strip`] : []),
+    ];
     routers[r.name] = {
       rule,
       entryPoints: ["web"],
       service: r.name,
-      ...(strip ? { middlewares: [`${r.name}-strip`] } : {}),
+      ...(chain.length > 0 ? { middlewares: chain } : {}),
     };
+    if (r.allow.length > 0)
+      middlewares[`${r.name}-allow`] = { ipAllowList: { sourceRange: r.allow } };
     if (strip) middlewares[`${r.name}-strip`] = { stripPrefix: { prefixes: [path] } };
     services[r.name] = { loadBalancer: { servers: [{ url: `${scheme}://${host}` }] } };
   }

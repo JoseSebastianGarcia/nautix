@@ -17,6 +17,9 @@ export const buildKongConfig = (routes: GatewayRoute[]): string => {
           ...(r.path !== undefined ? { paths: [r.path] } : {}),
           ...(r.host !== undefined ? { hosts: [r.host] } : {}),
           strip_path: r.stripPath,
+          ...(r.allow.length > 0
+            ? { plugins: [{ name: "ip-restriction", config: { allow: r.allow } }] }
+            : {}),
         },
       ],
     })),

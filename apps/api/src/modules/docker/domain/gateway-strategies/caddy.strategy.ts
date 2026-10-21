@@ -9,9 +9,19 @@ export const buildCaddyfile = (routes: GatewayRoute[]): string => {
     const path = r.path ?? "/";
     const matcher = path === "/" ? "" : ` ${path.replace(/\/$/, "")}*`;
     const directive = r.stripPath && path !== "/" ? "handle_path" : "handle";
-    return [`\t${directive}${matcher} {`, `\t\treverse_proxy ${scheme}://${host}`, "\t}"].join(
-      "\n",
-    );
+    const guard =
+      r.allow.length > 0
+        ? [
+            `\t\t@blocked not remote_ip ${r.allow.join(" ")}`,
+            '\t\trespond @blocked "Forbidden" 403',
+          ]
+        : [];
+    return [
+      `\t${directive}${matcher} {`,
+      ...guard,
+      `\t\treverse_proxy ${scheme}://${host}`,
+      "\t}",
+    ].join("\n");
   };
   const byHost = groupByHost(routes);
   const sites: string[] = [];

@@ -24,6 +24,12 @@ export const buildHaproxyConfig = (routes: GatewayRoute[]): string => {
       rules.push(`    acl path_${id} path_beg ${path}`);
       conditions.push(`path_${id}`);
     }
+    if (r.allow.length > 0) {
+      rules.push(`    acl src_${id} src ${r.allow.join(" ")}`);
+      rules.push(
+        `    http-request deny deny_status 403 if ${[...conditions, `!src_${id}`].join(" ")}`,
+      );
+    }
     rules.push(`    use_backend be_${id}${conditions.length ? ` if ${conditions.join(" ")}` : ""}`);
     const strip =
       r.stripPath && path !== "/"

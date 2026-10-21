@@ -219,6 +219,7 @@ export const api = {
     opts: { acknowledgeRisks?: boolean; removeVolumes?: boolean } = {},
   ) => request<ComposeRunResult>("POST", `/compose/projects/${name}/${action}`, opts),
 
+  clientAddress: () => request<{ address: string }>("GET", "/gateways/client-address"),
   gatewayRoutes: (name: string) => request<GatewayRoute[]>("GET", `/gateways/${name}/routes`),
   saveGatewayRoutes: (name: string, routes: GatewayRoute[]) =>
     request<void>("PUT", `/gateways/${name}/routes`, { routes }),

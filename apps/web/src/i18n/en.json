@@ -668,7 +668,11 @@
       "proxy": "proxy"
     },
     "noUpstreamPath": "{{name}} forwards to a host and port only: destinations like http://service:80/base (with a path) are not accepted. Kong does accept them.",
-    "supported": "Supported: Kong, Nginx, Caddy, Traefik and HAProxy."
+    "supported": "Supported: Kong, Nginx, Caddy, Traefik and HAProxy.",
+    "allow": "Allowed sources",
+    "addMine": "Add my address ({{address}})",
+    "lockout": "Your address ({{address}}) is not in this list: you would not be able to use this route from here.",
+    "allowNote": "Empty = anyone who can reach the gateway. Entries are addresses or networks such as 10.0.0.0/24. Behind another proxy or Docker's port forwarding, the gateway may see that proxy's address instead of the client's."
   },
   "builds": {
     "title": "Builds",

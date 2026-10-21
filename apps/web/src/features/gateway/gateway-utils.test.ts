@@ -103,16 +103,31 @@ describe("gateway utils", () => {
       host: "",
       upstream: " http://a:1 ",
       stripPath: true,
+      allow: "10.0.0.0/24, 192.168.1.5\n::1",
     };
     expect(fromDraft(draft)).toEqual({
       name: "hola",
       path: "/hola",
       upstream: "http://a:1",
       stripPath: true,
+      allow: ["10.0.0.0/24", "192.168.1.5", "::1"],
     });
-    expect(toDraft({ name: "r", host: "a.lan", upstream: "http://a:1", stripPath: false })).toEqual(
-      { name: "r", path: "", host: "a.lan", upstream: "http://a:1", stripPath: false },
-    );
+    expect(
+      toDraft({
+        name: "r",
+        host: "a.lan",
+        upstream: "http://a:1",
+        stripPath: false,
+        allow: ["10.0.0.0/8"],
+      }),
+    ).toEqual({
+      name: "r",
+      path: "",
+      host: "a.lan",
+      upstream: "http://a:1",
+      stripPath: false,
+      allow: "10.0.0.0/8",
+    });
   });
 
   it("makes unique names for new rows", () => {

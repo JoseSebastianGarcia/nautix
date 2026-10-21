@@ -12,6 +12,9 @@ export const buildNginxConfig = (routes: GatewayRoute[]): string => {
     const strip = r.stripPath && path !== "/";
     const lines = [
       `    location ${path === "/" ? "/" : `^~ ${path}`} {`,
+      ...(r.allow.length > 0
+        ? [...r.allow.map((a) => `        allow ${a};`), "        deny all;"]
+        : []),
       `        set $nautix_upstream ${scheme}://${host};`,
       ...(strip
         ? [`        rewrite ^${escapeRegex(path.replace(/\/$/, ""))}(?:/(.*))?$ /$1 break;`]

@@ -60,12 +60,21 @@ export interface DraftRoute {
   host: string;
   upstream: string;
   stripPath: boolean;
+  /** Allowed source networks, separated by commas, spaces or new lines. */
+  allow: string;
 }
 
 export const blankRoute = (existing: DraftRoute[]): DraftRoute => {
   let n = existing.length + 1;
   while (existing.some((r) => r.name === `ruta-${n}`)) n++;
-  return { name: `ruta-${n}`, path: `/ruta-${n}`, host: "", upstream: "", stripPath: true };
+  return {
+    name: `ruta-${n}`,
+    path: `/ruta-${n}`,
+    host: "",
+    upstream: "",
+    stripPath: true,
+    allow: "",
+  };
 };
 
 export const toDraft = (r: GatewayRoute): DraftRoute => ({
@@ -74,7 +83,11 @@ export const toDraft = (r: GatewayRoute): DraftRoute => ({
   host: r.host ?? "",
   upstream: r.upstream,
   stripPath: r.stripPath,
+  allow: r.allow.join(", "),
 });
+
+/** "10.0.0.0/24, 192.168.1.5" → ["10.0.0.0/24", "192.168.1.5"] */
+export const allowList = (text: string): string[] => text.split(/[\s,]+/).filter(Boolean);
 
 /** Draft rows → API routes (empty path/host are omitted). */
 export const fromDraft = (d: DraftRoute): unknown => ({
@@ -83,4 +96,5 @@ export const fromDraft = (d: DraftRoute): unknown => ({
   ...(d.host.trim() ? { host: d.host.trim() } : {}),
   upstream: d.upstream.trim(),
   stripPath: d.stripPath,
+  allow: allowList(d.allow),
 });
