@@ -19,7 +19,7 @@ export const isResourcePath = (pathname: string): boolean =>
 
 /** Whether a main-menu entry is the current one (the "Resources" entry covers its four sections). */
 export const isActivePath = (itemTo: string, pathname: string): boolean => {
-  if (itemTo === "/") return pathname === "/";
+  if (itemTo === "/") return pathname === "/" || under(pathname, "/zones");
   if (itemTo === "/containers") return isResourcePath(pathname);
   return under(pathname, itemTo);
 };

@@ -65,6 +65,10 @@ import type {
   Volume,
   VolumeBrowseResult,
   WaitResult,
+  ZoneApplyResult,
+  ZoneDescription,
+  ZonePlanResult,
+  ZoneSummary,
 } from "@nautix/contracts";
 
 export class ApiError extends Error {
@@ -165,6 +169,12 @@ export const api = {
   setEnv: (id: string, change: SetEnvInput) =>
     request<{ changed: string[] }>("PUT", `/containers/${id}/env`, change),
   exposure: () => request<ExposureEntry[]>("GET", "/exposure"),
+  zones: () => request<ZoneSummary[]>("GET", "/zones"),
+  zoneSpec: (name: string) => request<ZoneDescription>("GET", `/zones/${name}/spec`),
+  planZone: (name: string, spec: string) =>
+    request<ZonePlanResult>("POST", `/zones/${name}/plan`, { spec }),
+  applyZone: (name: string, b: { spec: string; planHash: string; allowRemovals: boolean }) =>
+    request<ZoneApplyResult>("POST", `/zones/${name}/apply`, b),
   bindings: () => request<Binding[]>("GET", "/bindings"),
   planBinding: (b: CreateBindingInput) => request<BindingPlan>("POST", "/bindings/plan", b),
   createBinding: (b: CreateBindingInput) => request<Binding>("POST", "/bindings", b),

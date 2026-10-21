@@ -161,3 +161,25 @@ export type ApplyZone = z.infer<typeof ApplyZone>;
 
 export const PlanZoneRequest = z.object({ spec: z.string().min(1).max(500_000) });
 export type PlanZoneRequest = z.infer<typeof PlanZoneRequest>;
+
+export interface ZoneSummary {
+  name: string;
+  /** A document was applied to this zone before. */
+  hasSpec: boolean;
+  /** How many actions it would take to bring reality back to that document (0 = no drift). */
+  drift: number;
+}
+
+export interface ZoneDescription {
+  /** What is running, as a document. */
+  current: string;
+  /** The document last applied to this zone, if any. */
+  stored: string | null;
+  appliedAt: number | null;
+}
+
+export interface ZonePlanResult {
+  /** Null when the document is not valid. */
+  plan: ZonePlan | null;
+  problems: { path: string; message: string }[];
+}

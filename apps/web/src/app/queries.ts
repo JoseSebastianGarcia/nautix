@@ -12,6 +12,7 @@ export const keys = {
   catalog: ["catalog"],
   composeProjects: ["compose-projects"],
   bindings: ["bindings"],
+  zones: ["zones"],
 } as const;
 
 /** Live updates come from the SSE stream; polling is only a slow safety net. */

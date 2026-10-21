@@ -1,3 +1,4 @@
+import type { ZoneDescription } from "@nautix/contracts";
 import { Inject } from "@nestjs/common";
 import { type IQueryHandler, QueryHandler } from "@nestjs/cqrs";
 import { describeZone } from "../../domain/describe-zone.js";
@@ -5,14 +6,6 @@ import { stringifyZoneSpec } from "../../domain/zone-yaml.js";
 import { ZoneStore } from "../ports/zone-store.js";
 import { ZoneReader } from "../zone-reader.js";
 import { DescribeZoneQuery } from "./describe-zone.query.js";
-
-export interface ZoneDescription {
-  /** What is running, as a document. */
-  current: string;
-  /** The document last applied to this zone, if any. */
-  stored: string | null;
-  appliedAt: number | null;
-}
 
 @QueryHandler(DescribeZoneQuery)
 export class DescribeZoneHandler implements IQueryHandler<DescribeZoneQuery, ZoneDescription> {

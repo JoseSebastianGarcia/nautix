@@ -1178,5 +1178,49 @@
     "removed": "Desvinculado",
     "removeTitle": "¿Quitar este vínculo?",
     "removeBody": "{{app}} pierde {{variables}} y se recrea. La red a la que se unió se mantiene."
+  },
+  "zones": {
+    "title": "Zona {{name}} como documento",
+    "back": "Volver a la topología",
+    "intro": "La zona completa como un solo documento YAML. Editalo y el plan de la derecha muestra exactamente qué cambiaría; no se ejecuta nada hasta que apretás Aplicar, y todo cambio que recrea un contenedor se deshace solo si el nuevo no arranca.",
+    "secrets": "Los valores de entorno se ven acá en texto claro, igual que en los contenedores. Solo los administradores ven esta página.",
+    "editor": "Documento de la zona",
+    "loadRunning": "Cargar lo que corre",
+    "loadApplied": "Cargar lo último aplicado",
+    "plan": "Plan",
+    "inSync": "La zona ya coincide con el documento. No hay nada que hacer.",
+    "allowRemovals": "Quitar también los servicios que no están en el documento",
+    "apply": "Aplicar plan",
+    "applying": "Aplicando…",
+    "applied": "Zona aplicada",
+    "applyFailed": "La zona no se aplicó por completo",
+    "result": "Resultado",
+    "open": "Editar como documento",
+    "drift": "desvío: {{count}}",
+    "driftHint": "Lo que corre ya no coincide con el último documento aplicado",
+    "fields": {
+      "image": "imagen",
+      "env": "entorno",
+      "command": "comando",
+      "restart": "política de reinicio",
+      "ports": "puertos",
+      "volumes": "volúmenes"
+    },
+    "action": {
+      "create-network": "Crear la red {{name}}",
+      "create-service": "Crear {{service}}",
+      "update-service": "Actualizar {{service}} ({{fields}}): se recrea y se deshace si falla",
+      "replace-service": "Reemplazar {{service}} ({{fields}}): se elimina y se crea de nuevo",
+      "remove-service": "Eliminar {{service}}",
+      "add-binding": "Vincular {{consumer}} con {{provider}} ({{name}})",
+      "remove-binding": "Desvincular {{consumer}} de {{provider}} ({{name}})",
+      "reapply-binding": "Actualizar los datos que {{consumer}} toma de {{provider}} ({{name}})"
+    },
+    "notes": {
+      "networkInternalIgnored": "La red {{zone}} ya existe con otro aislamiento; no se cambia.",
+      "anonymousVolumeLost": "{{service}} tiene volúmenes sin nombre: reemplazarlo pierde sus datos.",
+      "removesService": "{{service}} está corriendo pero no está en el documento.",
+      "nameTakenOutside": "El nombre {{service}} pertenece a un contenedor fuera de esta zona."
+    }
   }
 }

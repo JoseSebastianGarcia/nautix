@@ -364,6 +364,11 @@ function NetworkInspector({
           </li>
         ))}
       </ul>
+      {!n.system && (
+        <Link to={`/zones/${encodeURIComponent(n.name)}`} className="w-fit">
+          <Button>{t("zones.open")}</Button>
+        </Link>
+      )}
       <Button onClick={() => onExport({ networkId: n.id, label: n.name })}>
         <FileDown size={14} /> {t("topology.exportButton")}
       </Button>

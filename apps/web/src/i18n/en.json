@@ -1178,5 +1178,49 @@
     "removed": "Unbound",
     "removeTitle": "Remove this binding?",
     "removeBody": "{{app}} loses {{variables}} and is recreated. The network it joined stays."
+  },
+  "zones": {
+    "title": "Zone {{name}} as a document",
+    "back": "Back to the topology",
+    "intro": "The whole zone as one YAML document. Edit it and the plan on the right shows exactly what would change; nothing runs until you press Apply, and every change that recreates a container is rolled back by itself if the new one does not come up.",
+    "secrets": "Environment values appear here in clear text, as they are in the containers. Only admins can see this page.",
+    "editor": "Zone document",
+    "loadRunning": "Load what is running",
+    "loadApplied": "Load last applied",
+    "plan": "Plan",
+    "inSync": "The zone already matches the document. Nothing to do.",
+    "allowRemovals": "Also remove services that are not in the document",
+    "apply": "Apply plan",
+    "applying": "Applying…",
+    "applied": "Zone applied",
+    "applyFailed": "The zone was not fully applied",
+    "result": "Result",
+    "open": "Edit as document",
+    "drift": "drift: {{count}}",
+    "driftHint": "What is running no longer matches the last applied document",
+    "fields": {
+      "image": "image",
+      "env": "environment",
+      "command": "command",
+      "restart": "restart policy",
+      "ports": "ports",
+      "volumes": "volumes"
+    },
+    "action": {
+      "create-network": "Create network {{name}}",
+      "create-service": "Create {{service}}",
+      "update-service": "Update {{service}} ({{fields}}): it is recreated and rolled back if it fails",
+      "replace-service": "Replace {{service}} ({{fields}}): remove it and create it again",
+      "remove-service": "Remove {{service}}",
+      "add-binding": "Bind {{consumer}} to {{provider}} ({{name}})",
+      "remove-binding": "Unbind {{consumer}} from {{provider}} ({{name}})",
+      "reapply-binding": "Update the settings {{consumer}} takes from {{provider}} ({{name}})"
+    },
+    "notes": {
+      "networkInternalIgnored": "The network {{zone}} already exists with a different isolation setting; it is not changed.",
+      "anonymousVolumeLost": "{{service}} has volumes without a name: replacing it loses their data.",
+      "removesService": "{{service}} is running but is not in the document.",
+      "nameTakenOutside": "The name {{service}} belongs to a container outside this zone."
+    }
   }
 }

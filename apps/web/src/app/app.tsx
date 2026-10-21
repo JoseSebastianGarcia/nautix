@@ -16,6 +16,7 @@ import { VolumesPage } from "../features/resources/volumes-page.js";
 import { SettingsPage } from "../features/settings/settings-page.js";
 import { SwarmPage } from "../features/swarm/swarm-page.js";
 import { SystemPage } from "../features/system/system-page.js";
+import { ZonePage } from "../features/zones/zone-page.js";
 import { useSession } from "./queries.js";
 import { Shell } from "./shell.js";
 
@@ -68,6 +69,7 @@ export function App() {
             <Route path="builds" element={<BuildsPage />} />
             <Route path="dns" element={<DnsPage />} />
             <Route path="guard" element={<GuardPage />} />
+            <Route path="zones/:name" element={<ZonePage />} />
             <Route path="swarm" element={<SwarmPage />} />
             <Route path="compose" element={<ComposeProjectsPage />} />
             <Route

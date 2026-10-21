@@ -5,6 +5,7 @@ import {
   type Network,
   type Template,
   tunnelFromContainer,
+  type ZoneSummary,
 } from "@nautix/contracts";
 import {
   applyNodeChanges,
@@ -67,6 +68,7 @@ const NO_CONTAINERS: Container[] = [];
 const NO_NETWORKS: Network[] = [];
 const NO_TEMPLATES: Template[] = [];
 const NO_BINDINGS: Binding[] = [];
+const NO_ZONES: ZoneSummary[] = [];
 const EMPTY_LAYOUT: Layout = { zones: {}, nodes: {} };
 
 interface PendingMove {
@@ -115,6 +117,16 @@ function Canvas() {
   const [resetting, setResetting] = useState(false);
   const [tunnelTarget, setTunnelTarget] = useState<TunnelTarget | null>(null);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  const { data: zoneList = NO_ZONES } = useQuery({
+    queryKey: keys.zones,
+    queryFn: api.zones,
+    enabled: isAdmin,
+    refetchInterval: 20_000,
+  });
+  const drift = useMemo(
+    () => Object.fromEntries(zoneList.map((z) => [z.name, z.drift])),
+    [zoneList],
+  );
   const [bindTarget, setBindTarget] = useState<BindTarget | null>(null);
   const { data: bindings = NO_BINDINGS } = useQuery({
     queryKey: keys.bindings,
@@ -124,16 +136,16 @@ function Canvas() {
   // Re-sync from engine data whenever it changes (drag offsets are intentionally discarded).
   const fitted = useRef(false);
   useEffect(() => {
-    setNodes(toNodes(topology, services, isAdmin, isAdmin, isAdmin));
+    setNodes(toNodes(topology, services, isAdmin, isAdmin, isAdmin, drift));
     if (!fitted.current && containers.length > 0) {
       fitted.current = true;
       requestAnimationFrame(() => void flow.fitView({ padding: 0.1, maxZoom: 1 }));
     }
-  }, [topology, services, containers.length, flow, isAdmin]);
+  }, [topology, services, containers.length, flow, isAdmin, drift]);
 
   const relayout = useCallback(
-    () => setNodes(toNodes(topology, services, isAdmin, isAdmin, isAdmin)),
-    [topology, services, isAdmin],
+    () => setNodes(toNodes(topology, services, isAdmin, isAdmin, isAdmin, drift)),
+    [topology, services, isAdmin, drift],
   );
 
   const move = useApiMutation(

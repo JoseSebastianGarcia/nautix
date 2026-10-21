@@ -13,13 +13,21 @@ export const toNodes = (
   draggableZones: boolean,
   canTunnel = false,
   canBind = false,
+  drift: Record<string, number> = {},
 ): FlowNode[] => {
   const byId = new Map(containers.map((c) => [c.id, c]));
   const zones: ZoneFlowNode[] = topology.zones.map((z) => ({
     id: `z:${z.id}`,
     type: "zone",
     position: { x: z.x, y: z.y },
-    data: { network: z.network, count: z.containerIds.length, w: z.w, h: z.h, canTunnel },
+    data: {
+      network: z.network,
+      count: z.containerIds.length,
+      w: z.w,
+      h: z.h,
+      canTunnel,
+      drift: z.network ? (drift[z.network.name] ?? 0) : 0,
+    },
     draggable: draggableZones,
     zIndex: -1,
     width: z.w,

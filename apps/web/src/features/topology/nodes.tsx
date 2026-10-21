@@ -15,6 +15,8 @@ export type ZoneNodeData = {
   w: number;
   h: number;
   canTunnel?: boolean;
+  /** Actions needed to bring the zone back to its applied document (0 or missing = in sync). */
+  drift?: number;
 } & Record<string, unknown>;
 
 export type ContainerFlowNode = Node<ContainerNodeData, "container">;
@@ -132,6 +134,14 @@ export function ZoneNode({ data, selected }: NodeProps<ZoneFlowNode>) {
           style={{ color: external ? "var(--nx-cyan)" : "var(--nx-accent)" }}
         >
           {external ? t("topology.external") : `${t("topology.networkZone")} · ${n.name}`}
+          {(data.drift ?? 0) > 0 && (
+            <span
+              className="ml-2 rounded bg-amber/20 px-1.5 py-0.5 text-[10px] normal-case text-amber"
+              title={t("zones.driftHint")}
+            >
+              {t("zones.drift", { count: data.drift })}
+            </span>
+          )}
         </span>
         <span className="flex shrink-0 items-center gap-1 whitespace-nowrap text-dim">
           {external ? (
