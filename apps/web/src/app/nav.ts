@@ -1,4 +1,4 @@
-/** Containers, images, volumes, networks, builds, gateways, DNS and swarm live under one "Resources" entry with its own tabs. */
+/** Containers, images, volumes, networks, builds, gateways, DNS, guards and swarm live under one "Resources" entry with its own tabs. */
 export const RESOURCE_TABS = [
   { to: "/containers", key: "nav.containers" },
   { to: "/images", key: "nav.images" },
@@ -7,6 +7,7 @@ export const RESOURCE_TABS = [
   { to: "/builds", key: "nav.builds" },
   { to: "/gateway", key: "nav.gateway" },
   { to: "/dns", key: "nav.dns" },
+  { to: "/guard", key: "nav.guard" },
   { to: "/swarm", key: "nav.swarm" },
 ] as const;
 

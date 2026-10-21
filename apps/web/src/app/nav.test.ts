@@ -12,6 +12,7 @@ describe("navigation", () => {
       "/builds",
       "/gateway",
       "/dns",
+      "/guard",
     ]) {
       expect(isActivePath("/containers", p)).toBe(true);
       expect(isResourcePath(p)).toBe(true);

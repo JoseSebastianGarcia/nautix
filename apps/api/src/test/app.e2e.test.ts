@@ -894,6 +894,115 @@ describe("image tools and system commands", () => {
     ).toBe("string");
   });
 
+  it("guards ports from the host firewall: rules, helper token, trial, confirmation and lock-out checks", async () => {
+    await call("POST", "/containers", {
+      name: "guard-db",
+      image: "postgres:16-alpine",
+      networkId: null,
+      ports: [{ containerPort: 5432, hostPort: 15432 }],
+    });
+    const rule = (over: Record<string, unknown> = {}) => ({
+      container: "guard-db",
+      port: 5432,
+      protocol: "tcp",
+      allow: ["10.0.0.0/24"],
+      ...over,
+    });
+    const save = (rules: unknown[], acknowledgeLockout = false) =>
+      call("PUT", "/guard/rules", { rules, acknowledgeLockout });
+    type Status = {
+      helper: { connected: boolean; backend: string | null; ok: boolean | null };
+      tokenSet: boolean;
+      rules: unknown[];
+      trial: { deadline: string; rules: unknown[] } | null;
+      unresolved: unknown[];
+    };
+    const status = async () => (await call("GET", "/guard")).json as Status;
+
+    expect(await status()).toMatchObject({ tokenSet: false, rules: [], trial: null });
+
+    // validation and lock-out protection
+    expect((await save([rule({ allow: ["10.0.0.0/33"] })])).res.status).toBe(422);
+    expect((await save([rule({ port: 9999 })])).res.status).toBe(422);
+    expect((await save([rule({ container: "nope" })])).res.status).toBe(404);
+    expect((await save([rule(), rule()])).res.status).toBe(422);
+    const lockout = await save([rule()]);
+    expect(lockout.res.status).toBe(409);
+    expect(lockout.json.hintKey).toBe("errors.guardLockout");
+    const self = await save([
+      rule({ container: "nautix", port: 3737, allow: ["127.0.0.1", "::1"] }),
+    ]);
+    expect(self.res.status).toBe(409);
+    expect(self.json.hintKey).toBe("errors.guardLockoutSelf");
+
+    // without a helper the rules are simply stored
+    const stored = await save([rule()], true);
+    expect(stored.res.status).toBe(200);
+    expect(stored.json.trialUntil).toBeNull();
+    expect((await status()).rules).toHaveLength(1);
+
+    // the helper's routes need its own token
+    const planUrl = `${base}/api/v1/guard/helper/plan`;
+    expect((await fetch(planUrl)).status).toBe(401);
+    expect((await fetch(planUrl, { headers: { authorization: "Bearer ngd_wrong" } })).status).toBe(
+      401,
+    );
+    const { token } = (await call("POST", "/guard/token")).json as { token: string };
+    expect(token).toMatch(/^ngd_/);
+    expect((await status()).tokenSet).toBe(true);
+    const helper = { authorization: `Bearer ${token}` };
+    const plan = await (await fetch(planUrl, { headers: helper })).json();
+    expect(plan).toMatchObject({
+      rules: [{ hostPort: 15432, protocol: "tcp", allow: ["10.0.0.0/24"] }],
+      fallback: null,
+      validUntil: null,
+    });
+    expect((await status()).helper.connected).toBe(true);
+    const reported = await fetch(`${base}/api/v1/guard/helper/report`, {
+      method: "POST",
+      headers: { ...helper, "content-type": "application/json" },
+      body: JSON.stringify({ revision: plan.revision, backend: "iptables", ok: true }),
+    });
+    expect(reported.status).toBe(204);
+    expect((await status()).helper).toMatchObject({ backend: "iptables", ok: true });
+
+    // a new token replaces the old one
+    const { token: second } = (await call("POST", "/guard/token")).json as { token: string };
+    expect((await fetch(planUrl, { headers: helper })).status).toBe(401);
+    expect((await fetch(planUrl, { headers: { authorization: `Bearer ${second}` } })).status).toBe(
+      200,
+    );
+
+    // with a helper connected a change goes on trial, with the old rules as fallback
+    const trial = await save([rule({ allow: ["192.168.0.0/16"] })], true);
+    expect(trial.json.trialUntil).toEqual(expect.any(String));
+    const during = await (
+      await fetch(planUrl, { headers: { authorization: `Bearer ${second}` } })
+    ).json();
+    expect(during.rules[0].allow).toEqual(["192.168.0.0/16"]);
+    expect(during.fallback[0].allow).toEqual(["10.0.0.0/24"]);
+    expect(during.validUntil).toBe(trial.json.trialUntil);
+    expect((await status()).trial?.rules).toHaveLength(1);
+
+    expect((await call("POST", "/guard/confirm")).res.status).toBe(204);
+    expect((await call("POST", "/guard/confirm")).res.status).toBe(409);
+    const after = await status();
+    expect(after.trial).toBeNull();
+    expect((after.rules[0] as { allow: string[] }).allow).toEqual(["192.168.0.0/16"]);
+
+    // the preview shows the exact commands, for either backend
+    const ipt = (await call("GET", "/guard/preview?backend=iptables")).json;
+    expect(
+      ipt.apply.some((s: { stdin?: string }) => s.stdin?.includes("--ctorigdstport 15432")),
+    ).toBe(true);
+    const nft = (await call("GET", "/guard/preview?backend=nftables")).json;
+    expect(nft.apply[0].file.content).toContain("ct original proto-dst 15432");
+    expect((await call("GET", "/guard/preview?backend=pf")).res.status).toBe(422);
+
+    expect((await call("DELETE", "/guard/rules")).res.status).toBe(204);
+    expect(await status()).toMatchObject({ rules: [], trial: null });
+  });
+
   it("shows who can reach each published port and changes it", async () => {
     await call("POST", "/containers", {
       name: "exp-web",

@@ -5,6 +5,7 @@ export * from "./docker.js";
 export * from "./exposure.js";
 export * from "./fixed-ip.js";
 export * from "./gateway.js";
+export * from "./guard.js";
 export * from "./ip.js";
 export * from "./swarm.js";
 export * from "./tls.js";

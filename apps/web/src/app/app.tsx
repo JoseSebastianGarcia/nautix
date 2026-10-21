@@ -8,6 +8,7 @@ import { ComposeProjectsPage } from "../features/compose/compose-projects-page.j
 import { ContainerPage } from "../features/containers/container-page.js";
 import { DnsPage } from "../features/dns/dns-page.js";
 import { GatewayPage } from "../features/gateway/gateway-page.js";
+import { GuardPage } from "../features/guard/guard-page.js";
 import { ContainersPage } from "../features/resources/containers-page.js";
 import { ImagesPage } from "../features/resources/images-page.js";
 import { NetworksPage } from "../features/resources/networks-page.js";
@@ -66,6 +67,7 @@ export function App() {
             <Route path="networks" element={<NetworksPage />} />
             <Route path="builds" element={<BuildsPage />} />
             <Route path="dns" element={<DnsPage />} />
+            <Route path="guard" element={<GuardPage />} />
             <Route path="swarm" element={<SwarmPage />} />
             <Route path="compose" element={<ComposeProjectsPage />} />
             <Route

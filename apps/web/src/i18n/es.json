@@ -16,7 +16,8 @@
     "resources": "Recursos",
     "builds": "Builds",
     "swarm": "Swarm",
-    "dns": "DNS"
+    "dns": "DNS",
+    "guard": "Guardas"
   },
   "common": {
     "cancel": "Cancelar",
@@ -337,7 +338,10 @@
     "dnsNoAddress": "El contenedor DNS no tiene dirección de red",
     "dnsTargetMissing": "Un registro apunta a un contenedor que no existe",
     "dnsTargetNoIp": "Un registro apunta a un contenedor sin dirección IP (¿está en ejecución?)",
-    "portNotPublished": "Ese puerto no está publicado por el contenedor"
+    "portNotPublished": "Ese puerto no está publicado por el contenedor",
+    "guardLockout": "Estas reglas cortarían tu propio acceso: tu dirección no está en la lista permitida",
+    "guardLockoutSelf": "Una de estas reglas protege al propio Nautix",
+    "guardNoTrial": "No hay ningún cambio esperando confirmación"
   },
   "terminal": {
     "title": "Terminal",
@@ -1084,5 +1088,37 @@
     "container": "Contenedor",
     "port": "Puerto",
     "openCount": "Puertos abiertos: {{count}}. Cualquiera en las redes de esta máquina puede llegar a ellos."
+  },
+  "guard": {
+    "title": "Guardas de puertos",
+    "intro": "Decidí qué redes pueden llegar a un puerto publicado, aplicado por el firewall del host (iptables o nftables) para cualquier protocolo, no solo HTTP. Las reglas se aplican con un pequeño ayudante con privilegios; Nautix sigue sin privilegios.",
+    "helper": "Ayudante de firewall",
+    "connected": "conectado",
+    "notConnected": "no conectado",
+    "helperBody": "El ayudante es un contenedor aparte que corre en el host con acceso de red a su firewall. No guarda datos ni abre puertos: le pide las reglas a Nautix y las aplica.",
+    "createToken": "Crear token del ayudante",
+    "tokenOnce": "Este token se muestra solo ahora. Ejecutá el comando de abajo en el host; crear otro token reemplaza a este.",
+    "helperNote": "Si Nautix usa HTTPS, el comando ya acepta su certificado para esta conexión local. Interruptor de emergencia en el host: docker exec nautix-guard node dist/guard-helper.js --panic",
+    "port": "Puerto publicado",
+    "pickPort": "Elegí un puerto…",
+    "allow": "Orígenes permitidos",
+    "allowHint": "Direcciones o redes como 10.0.0.0/24. El resto se descarta.",
+    "rule": "Regla",
+    "unresolved": "contenedor detenido o puerto no publicado: no se aplica nada",
+    "apply": "Aplicar reglas",
+    "disable": "Desactivar todas las guardas",
+    "disableBody": "Se quitan todas las reglas y los puertos publicados vuelven a ser alcanzables por quien podía llegar antes.",
+    "keep": "Conservar estas reglas",
+    "trial": "Las reglas nuevas están a prueba. Si no las conservás en {{seconds}} s se deshacen solas.",
+    "onTrial": "Reglas aplicadas a prueba: conservalas en 60 segundos",
+    "saved": "Reglas guardadas",
+    "kept": "Reglas conservadas",
+    "disabled": "Todas las guardas desactivadas",
+    "helperError": "El ayudante no pudo aplicar las reglas: {{error}}",
+    "lockoutTitle": "Estas reglas pueden cortar tu propio acceso",
+    "lockoutBody": "Tu dirección no está en la lista permitida de al menos una regla, o una regla protege al propio Nautix. Tenés 60 segundos para conservarlas; si perdés el acceso se deshacen solas. ¿Aplicar igual?",
+    "note": "Las reglas valen para el tráfico que Docker reenvía a puertos publicados (cadena DOCKER-USER). Con Docker Desktop o Docker sin root el ayudante no llega al firewall del host.",
+    "preview": "Ver los comandos del firewall",
+    "backend": "Firewall"
   }
 }

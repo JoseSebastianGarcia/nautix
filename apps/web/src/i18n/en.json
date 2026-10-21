@@ -16,7 +16,8 @@
     "resources": "Resources",
     "builds": "Builds",
     "swarm": "Swarm",
-    "dns": "DNS"
+    "dns": "DNS",
+    "guard": "Guards"
   },
   "common": {
     "cancel": "Cancel",
@@ -337,7 +338,10 @@
     "dnsNoAddress": "The DNS container has no network address",
     "dnsTargetMissing": "A record points at a container that does not exist",
     "dnsTargetNoIp": "A record points at a container that has no IP address (is it running?)",
-    "portNotPublished": "That port is not published by the container"
+    "portNotPublished": "That port is not published by the container",
+    "guardLockout": "These rules would cut your own access: your address is not in the allowed list",
+    "guardLockoutSelf": "One of these rules guards Nautix itself",
+    "guardNoTrial": "There is no change waiting for confirmation"
   },
   "terminal": {
     "title": "Terminal",
@@ -1084,5 +1088,37 @@
     "container": "Container",
     "port": "Port",
     "openCount": "Open ports: {{count}}. Anyone on any network this machine is on can reach them."
+  },
+  "guard": {
+    "title": "Port guards",
+    "intro": "Decide which networks may reach a published port, enforced by the host's firewall (iptables or nftables) for any protocol, not only HTTP. Rules take effect through a small privileged helper; Nautix itself stays unprivileged.",
+    "helper": "Firewall helper",
+    "connected": "connected",
+    "notConnected": "not connected",
+    "helperBody": "The helper is a separate container that runs on the host with network access to its firewall. It holds no data and opens no port: it asks Nautix for the rules and applies them.",
+    "createToken": "Create helper token",
+    "tokenOnce": "This token is shown only now. Run the command below on the host; creating another token replaces this one.",
+    "helperNote": "If Nautix serves HTTPS the command already accepts its certificate for this loopback connection. Emergency switch on the host: docker exec nautix-guard node dist/guard-helper.js --panic",
+    "port": "Published port",
+    "pickPort": "Choose a port…",
+    "allow": "Allowed sources",
+    "allowHint": "Addresses or networks such as 10.0.0.0/24. Everyone else is dropped.",
+    "rule": "Rule",
+    "unresolved": "container stopped or port not published: nothing is enforced",
+    "apply": "Apply rules",
+    "disable": "Disable all guards",
+    "disableBody": "Every rule is removed and all published ports are reachable again by whoever could reach them before.",
+    "keep": "Keep these rules",
+    "trial": "New rules are on trial. If you do not keep them in {{seconds}} s they are rolled back automatically.",
+    "onTrial": "Rules applied on trial: keep them within 60 seconds",
+    "saved": "Rules saved",
+    "kept": "Rules kept",
+    "disabled": "All guards disabled",
+    "helperError": "The helper could not apply the rules: {{error}}",
+    "lockoutTitle": "These rules may cut your own access",
+    "lockoutBody": "Your address is not in the allowed list of at least one rule, or a rule guards Nautix itself. You have 60 seconds to keep the rules; if you lose access they roll back by themselves. Apply anyway?",
+    "note": "Rules apply to traffic that Docker forwards to published ports (DOCKER-USER chain). With Docker Desktop or rootless Docker the helper cannot reach the host firewall.",
+    "preview": "Show the firewall commands",
+    "backend": "Firewall"
   }
 }

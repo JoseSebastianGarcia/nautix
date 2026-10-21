@@ -22,6 +22,11 @@ ENV NODE_ENV=production \
 # The compose editor shells out to `docker compose` (argument arrays, no shell).
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=docker-cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
+# Port guards: the optional firewall helper is this same image run as root on the host network
+# (`node dist/guard-helper.js`), so it needs the firewall tools. Nautix itself never uses them.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends iptables nftables \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/api
 COPY --from=build /out/api /app/api
 COPY --from=build /out/web /app/web

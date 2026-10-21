@@ -9,6 +9,7 @@ import { ComposeModule } from "./modules/compose/compose.module.js";
 import { DnsModule } from "./modules/dns/dns.module.js";
 import { DockerModule } from "./modules/docker/docker.module.js";
 import { GatewayModule } from "./modules/gateway/gateway.module.js";
+import { GuardModule } from "./modules/guard/guard.module.js";
 import { LayoutModule } from "./modules/layout/layout.module.js";
 import { PluginsModule } from "./modules/plugins/plugins.module.js";
 import { SwarmModule } from "./modules/swarm/swarm.module.js";
@@ -35,6 +36,7 @@ export class AppModule {
         SwarmModule.register(config),
         PluginsModule.register(config),
         DnsModule.register(config),
+        GuardModule.register(config),
         BackupModule.register(config, restarter),
       ],
       controllers: [HealthController],

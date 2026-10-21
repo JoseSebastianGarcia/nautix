@@ -27,6 +27,9 @@ import type {
   FsChange,
   GatewayApplyResult,
   GatewayRoute,
+  GuardPreview,
+  GuardRule,
+  GuardStatus,
   Image,
   ImageHistoryEntry,
   ImageSearchResult,
@@ -150,6 +153,14 @@ export const api = {
   setExposure: (id: string, ports: ChangeExposure["ports"]) =>
     request<void>("PUT", `/containers/${id}/exposure`, { ports }),
   exposure: () => request<ExposureEntry[]>("GET", "/exposure"),
+  guardStatus: () => request<GuardStatus>("GET", "/guard"),
+  saveGuardRules: (rules: GuardRule[], acknowledgeLockout: boolean) =>
+    request<{ trialUntil: string | null }>("PUT", "/guard/rules", { rules, acknowledgeLockout }),
+  confirmGuard: () => request<void>("POST", "/guard/confirm"),
+  disableGuard: () => request<void>("DELETE", "/guard/rules"),
+  createGuardToken: () => request<{ token: string }>("POST", "/guard/token"),
+  guardPreview: (backend: string) =>
+    request<GuardPreview>("GET", `/guard/preview?backend=${backend}`),
   dnsServers: () => request<DnsServer[]>("GET", "/dns"),
   dnsRecords: (name: string) => request<DnsEntry[]>("GET", `/dns/${name}/records`),
   saveDnsRecords: (name: string, records: DnsEntry[]) =>
