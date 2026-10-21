@@ -86,7 +86,10 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      onClose={onClose}
+      // A dialog inside this one (a confirmation over a browser) must not close this one when it closes.
+      onClose={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       aria-label={title}
       className="m-auto max-h-[92vh] w-[min(32rem,92vw)] overflow-y-auto rounded-2xl border border-line bg-bg1 p-0 text-fg backdrop:bg-black/60"
     >

@@ -4,6 +4,7 @@ import { type Block, parseMarkdown, plainText } from "./markdown.js";
 export const TOPIC_IDS = [
   "getting-started",
   "topology",
+  "volumes",
   "bindings",
   "safe-apply",
   "zone-spec",

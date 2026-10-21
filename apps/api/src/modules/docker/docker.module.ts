@@ -35,11 +35,13 @@ import { SetFixedIpHandler } from "./application/commands/set-fixed-ip.handler.j
 import { TagImageHandler } from "./application/commands/tag-image.handler.js";
 import { TestRegistryAuthHandler } from "./application/commands/test-registry-auth.handler.js";
 import { UpdateContainerHandler } from "./application/commands/update-container.handler.js";
+import { UploadToVolumeHandler } from "./application/commands/upload-to-volume.handler.js";
 import { WaitContainerHandler } from "./application/commands/wait-container.handler.js";
 import { DockerEngine } from "./application/ports/docker-engine.js";
 import { RegistryStore } from "./application/ports/registry-store.js";
 import { SelfIdentity } from "./application/ports/self-identity.js";
 import { BrowseVolumeHandler } from "./application/queries/browse-volume.handler.js";
+import { DownloadVolumeHandler } from "./application/queries/download-volume.handler.js";
 import { ExportComposeHandler } from "./application/queries/export-compose.handler.js";
 import { ExportContainerHandler } from "./application/queries/export-container.handler.js";
 import { GetArchiveHandler } from "./application/queries/get-archive.handler.js";
@@ -66,6 +68,7 @@ import { SearchImagesHandler } from "./application/queries/search-images.handler
 import { WatchDetailedEventsHandler } from "./application/queries/watch-detailed-events.handler.js";
 import { WatchEventsHandler } from "./application/queries/watch-events.handler.js";
 import { SelfGuard } from "./application/self-guard.js";
+import { VolumeHelper } from "./application/volume-helper.js";
 import { AesGcmCipher } from "./infrastructure/aes-gcm-cipher.js";
 import { DockerSocketEngine } from "./infrastructure/docker-socket-engine.js";
 import { FakeDockerEngine } from "./infrastructure/fake-docker-engine.js";
@@ -120,6 +123,8 @@ const HANDLERS = [
   ApplyDnsHandler,
   LookupDnsHandler,
   BrowseVolumeHandler,
+  DownloadVolumeHandler,
+  UploadToVolumeHandler,
   SaveRegistryHandler,
   RemoveRegistryHandler,
   ListRegistriesHandler,
@@ -177,6 +182,7 @@ export class DockerModule {
             ),
         },
         SelfGuard,
+        VolumeHelper,
         ...HANDLERS,
       ],
     };

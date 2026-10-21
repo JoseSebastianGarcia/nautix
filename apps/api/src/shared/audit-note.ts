@@ -89,3 +89,9 @@ export const guardRulesDetail = (rules: readonly GuardRule[]): string =>
       .map((r) => `${r.container}:${r.port}/${r.protocol}<-${r.allow.join(",")}`)
       .join(" ")}`,
   );
+
+export const volumeDownloadDetail = (volume: string, path: string): string =>
+  clip(`volume download volume=${volume} path=${path}`);
+
+export const volumeUploadDetail = (volume: string, path: string): string =>
+  clip(`volume upload volume=${volume} into=${path}`);

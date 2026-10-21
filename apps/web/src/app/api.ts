@@ -312,6 +312,22 @@ export const api = {
       throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey);
     }
   },
+  /** Extracts a tar into a directory of a volume; files with the same name are replaced. */
+  uploadToVolume: async (name: string, path: string, tar: Blob) => {
+    const res = await fetch(
+      `/api/v1/volumes/${encodeURIComponent(name)}/archive?path=${encodeURIComponent(path)}`,
+      {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: { "x-nautix-csrf": "1", "content-type": "application/x-tar" },
+        body: tar,
+      },
+    );
+    if (!res.ok) {
+      const problem = (await res.json().catch(() => ({}))) as { code?: string; hintKey?: string };
+      throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey);
+    }
+  },
   removeContainer: (id: string, force: boolean) =>
     request<void>("DELETE", `/containers/${id}?force=${force}`),
   logs: (id: string, tail = 300, sinceSeconds?: number) =>

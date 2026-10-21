@@ -247,10 +247,21 @@
     "removeBody": "All data stored in this volume will be lost. This cannot be undone.",
     "mountpoint": "Mountpoint",
     "browse": "Browse files",
-    "browseHint": "Read-only. Nautix mounts the volume in a short-lived helper container with no network.",
+    "browseHint": "Nautix mounts the volume in a short-lived helper container with no network. Downloads and uploads are recorded in the audit log.",
     "up": "Back",
     "notReadable": "This file cannot be read as text.",
-    "truncated": "Showing the first 1 MB."
+    "truncated": "Showing the first 1 MB.",
+    "download": "Download",
+    "downloadFolder": "Download this folder",
+    "upload": "Upload files",
+    "uploadTitle": "Upload {{count}} file(s) into {{path}}",
+    "uploadReplaces": "Files with the same name in this folder are replaced.",
+    "uploadOwner": "The files are created owned by root. If the app that uses this volume runs as another user, it may not be able to read or change them.",
+    "uploadInUse": "A container uses this volume. Changing files under a running app, a database above all, can corrupt its data: stop it first.",
+    "upload_tooLarge": "Too much at once: the limit is 256 MB per upload.",
+    "upload_nameTooLong": "A file name is longer than 100 bytes and cannot be uploaded.",
+    "uploadConfirm": "Upload",
+    "uploaded": "Files uploaded"
   },
   "networks": {
     "title": "Networks",
@@ -352,7 +363,8 @@
     "zoneInvalid": "The document has errors",
     "zoneNameMismatch": "This document is for another zone",
     "zonePlanHasErrors": "The plan has errors: fix them first",
-    "zoneChanged": "The zone changed since the plan was shown: review the new plan"
+    "zoneChanged": "The zone changed since the plan was shown: review the new plan",
+    "selfVolume": "This volume holds Nautix's own data (its database and encryption key), so files cannot be uploaded into it from here"
   },
   "terminal": {
     "title": "Terminal",

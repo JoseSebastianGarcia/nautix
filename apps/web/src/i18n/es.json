@@ -247,10 +247,21 @@
     "removeBody": "Se perderán todos los datos de este volumen. No se puede deshacer.",
     "mountpoint": "Punto de montaje",
     "browse": "Explorar archivos",
-    "browseHint": "Solo lectura. Nautix monta el volumen en un contenedor auxiliar efímero y sin red.",
+    "browseHint": "Nautix monta el volumen en un contenedor auxiliar efímero y sin red. Las descargas y las subidas quedan en el registro de auditoría.",
     "up": "Volver",
     "notReadable": "Este archivo no se puede leer como texto.",
-    "truncated": "Se muestra el primer 1 MB."
+    "truncated": "Se muestra el primer 1 MB.",
+    "download": "Descargar",
+    "downloadFolder": "Descargar esta carpeta",
+    "upload": "Subir archivos",
+    "uploadTitle": "Subir {{count}} archivo(s) a {{path}}",
+    "uploadReplaces": "Los archivos con el mismo nombre en esta carpeta se reemplazan.",
+    "uploadOwner": "Los archivos se crean con root como dueño. Si la app que usa este volumen corre con otro usuario, puede que no pueda leerlos ni modificarlos.",
+    "uploadInUse": "Hay un contenedor que usa este volumen. Cambiar archivos bajo una app en marcha, sobre todo una base de datos, puede corromper sus datos: detenela antes.",
+    "upload_tooLarge": "Demasiado de una vez: el límite es 256 MB por subida.",
+    "upload_nameTooLong": "Un nombre de archivo supera los 100 bytes y no se puede subir.",
+    "uploadConfirm": "Subir",
+    "uploaded": "Archivos subidos"
   },
   "networks": {
     "title": "Redes",
@@ -352,7 +363,8 @@
     "zoneInvalid": "El documento tiene errores",
     "zoneNameMismatch": "Este documento es de otra zona",
     "zonePlanHasErrors": "El plan tiene errores: corregilos primero",
-    "zoneChanged": "La zona cambió desde que se mostró el plan: revisá el nuevo plan"
+    "zoneChanged": "La zona cambió desde que se mostró el plan: revisá el nuevo plan",
+    "selfVolume": "Este volumen guarda los datos propios de Nautix (su base de datos y su clave de cifrado), así que no se pueden subir archivos desde acá"
   },
   "terminal": {
     "title": "Terminal",

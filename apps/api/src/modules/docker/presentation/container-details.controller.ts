@@ -34,33 +34,10 @@ import { GetContainerStatsQuery } from "../application/queries/get-container-sta
 import { GetContainerTopQuery } from "../application/queries/get-container-top.query.js";
 import { InspectQuery } from "../application/queries/inspect.query.js";
 import { redactInspect } from "../domain/inspect-redaction.js";
+import { ArchivePath, limitBytes, MAX_UPLOAD_BYTES } from "./archive-io.js";
 
-const MAX_UPLOAD_BYTES = 256 * 1024 * 1024;
-const ArchivePath = z.object({
-  path: z
-    .string()
-    .min(1)
-    .max(4096)
-    .startsWith("/")
-    .refine((p) => !p.includes("\0")),
-});
 const WaitQuery = z.object({ timeout: z.coerce.number().int().min(1).max(300).default(30) });
 const ImageRef = z.object({ ref: z.string().min(1).max(512) });
-
-/** Caps an upload so a client can't stream unbounded data into a container. */
-const limitBytes = (source: Readable, max: number): Readable => {
-  let seen = 0;
-  const out = new PassThrough();
-  source.on("data", (chunk: Buffer) => {
-    seen += chunk.length;
-    if (seen > max) {
-      source.unpipe(out);
-      out.destroy(new ValidationError("upload too large", "errors.uploadTooLarge"));
-    }
-  });
-  source.on("error", (e) => out.destroy(e));
-  return source.pipe(out);
-};
 
 /**
  * Per-container detail commands (docker inspect/stats/top/diff/rename/update/wait/commit/export/cp).

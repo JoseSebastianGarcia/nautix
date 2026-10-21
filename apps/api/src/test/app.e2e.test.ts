@@ -1531,6 +1531,46 @@ services:
     await call("DELETE", "/volumes/browse-me");
   });
 
+  it("downloads a volume path as a tar and uploads one into it, through helpers that are removed", async () => {
+    await call("POST", "/volumes", { name: "xfer" });
+    const down = await fetch(`${base}/api/v1/volumes/xfer/archive?path=/hello.txt`, {
+      headers: { cookie },
+    });
+    expect(down.status).toBe(200);
+    expect(down.headers.get("content-type")).toBe("application/x-tar");
+    expect(down.headers.get("content-disposition")).toBe(
+      'attachment; filename="xfer-hello.txt.tar"',
+    );
+    expect(await down.text()).toContain("FAKE-TAR");
+
+    const up = (path: string) =>
+      fetch(`${base}/api/v1/volumes/xfer/archive?path=${encodeURIComponent(path)}`, {
+        method: "PUT",
+        headers: { cookie, "x-nautix-csrf": "1", "content-type": "application/x-tar" },
+        body: new Uint8Array(Buffer.from("tar-bytes")),
+      });
+    expect((await up("/data")).status).toBe(204);
+    expect((await up("/a/../b")).status).toBe(422);
+    expect((await up("relative")).status).toBe(422);
+    const missing = await fetch(`${base}/api/v1/volumes/nope/archive?path=/`, {
+      headers: { cookie },
+    });
+    expect(missing.status).toBe(404);
+
+    const left = (
+      (await call("GET", "/containers")).json as { labels: Record<string, string> }[]
+    ).filter((c) => c.labels["nautix.helper"]);
+    expect(left).toHaveLength(0);
+    const details = (
+      (await call("GET", "/settings/audit?limit=100&q=xfer")).json as {
+        detail: string;
+      }[]
+    ).map((r) => r.detail);
+    expect(details).toContain("volume download volume=xfer path=/hello.txt");
+    expect(details).toContain("volume upload volume=xfer into=/data");
+    await call("DELETE", "/volumes/xfer");
+  });
+
   it("installs plugins only with the privileges the user accepted", async () => {
     const asks = (await call("GET", "/plugins/privileges?remote=vieux/sshfs")).json as {
       name: string;

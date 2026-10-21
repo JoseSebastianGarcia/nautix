@@ -835,6 +835,72 @@ services:
     docker("volume", "rm", `${PREFIX}vol`);
   });
 
+  it("uploads into and downloads from a real volume without leaving helpers behind", async () => {
+    const volume = `${PREFIX}xfer`;
+    docker("volume", "create", volume);
+    const archive = (path: string) =>
+      `${base}/api/v1/volumes/${volume}/archive?path=${encodeURIComponent(path)}`;
+    const put = (path: string, files: { path: string; content: string }[]) =>
+      fetch(archive(path), {
+        method: "PUT",
+        headers: { cookie, "x-nautix-csrf": "1", "content-type": "application/x-tar" },
+        body: new Uint8Array(buildTar(files)),
+      });
+    const view = async (path: string) =>
+      (await call("GET", `/volumes/${volume}/browse?path=${encodeURIComponent(path)}&view=true`))
+        .json.content;
+
+    expect(
+      (
+        await put("/", [
+          { path: "hello.txt", content: "uploaded\n" },
+          { path: "sub/deep.txt", content: "deep\n" },
+        ])
+      ).status,
+    ).toBe(204);
+    const root = await call("GET", `/volumes/${volume}/browse?path=/`);
+    expect(
+      root.json.entries.map((e: { name: string; kind: string }) => `${e.kind}:${e.name}`),
+    ).toEqual(["dir:sub", "file:hello.txt"]);
+    expect(await view("/hello.txt")).toBe("uploaded\n");
+    expect(await view("/sub/deep.txt")).toBe("deep\n");
+
+    // The same name is replaced, not duplicated.
+    expect((await put("/", [{ path: "hello.txt", content: "replaced\n" }])).status).toBe(204);
+    expect(await view("/hello.txt")).toBe("replaced\n");
+
+    // A folder comes back as a tar with its content.
+    const folder = await fetch(archive("/sub"), { headers: { cookie } });
+    expect(folder.status).toBe(200);
+    const listing = execFileSync("tar", ["-tf", "-"], {
+      input: Buffer.from(await folder.arrayBuffer()),
+      encoding: "utf8",
+    });
+    expect(listing).toContain("sub/deep.txt");
+
+    // A directory that does not exist is refused instead of being invented.
+    expect((await put("/nodir", [{ path: "x.txt", content: "x" }])).status).toBeGreaterThanOrEqual(
+      400,
+    );
+    expect(
+      docker(
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "-v",
+        `${volume}:/d`,
+        IMAGE,
+        "stat",
+        "-c",
+        "%u",
+        "/d/hello.txt",
+      ),
+    ).toBe("0");
+    expect(docker("ps", "-a", "--filter", "label=nautix.helper=volume-browse", "-q")).toBe("");
+    docker("volume", "rm", volume);
+  });
+
   it("applies routes to a real HAProxy and serves traffic through it", async () => {
     try {
       docker("image", "inspect", "haproxy:3.0-alpine");

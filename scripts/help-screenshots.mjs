@@ -183,4 +183,11 @@ await shoot("audit", async (page) => {
   await page.getByRole("tab", { name: "History" }).click();
 });
 
+await shoot("volumes", async (page) => {
+  await call("POST", "/volumes", { name: "app-data" }).catch(() => {});
+  await page.goto("/volumes");
+  await settle(page);
+  await page.getByLabel("Browse files app-data").click();
+});
+
 await browser.close();

@@ -41,3 +41,9 @@ export const parseLs = (output: string): VolumeEntry[] => {
   const rank = (e: VolumeEntry): number => (e.kind === "dir" ? 0 : 1);
   return entries.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
 };
+
+/** Names of the named volumes in the `Mounts` of an inspected container. */
+export const volumeNamesIn = (inspected: unknown): string[] => {
+  const mounts = (inspected as { Mounts?: { Type?: string; Name?: string }[] } | null)?.Mounts;
+  return (mounts ?? []).flatMap((m) => (m.Type === "volume" && m.Name ? [m.Name] : []));
+};

@@ -1,3 +1,4 @@
+import type { Readable } from "node:stream";
 import {
   ChangeExposure,
   ConnectNetwork,
@@ -26,14 +27,21 @@ import {
   Put,
   Query,
   Req,
+  Res,
   Sse,
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import { Observable } from "rxjs";
 import { stringify } from "yaml";
 import { z } from "zod";
-import { envDetail, exposureDetail, setAuditNote } from "../../../shared/audit-note.js";
+import {
+  envDetail,
+  exposureDetail,
+  setAuditNote,
+  volumeDownloadDetail,
+  volumeUploadDetail,
+} from "../../../shared/audit-note.js";
 import { requireAdmin } from "../../../shared/principal.js";
 import { parse } from "../../../shared/zod-body.js";
 import { AdminOnly } from "../../auth/presentation/admin-only.decorator.js";
@@ -52,8 +60,10 @@ import { RemoveNetworkCommand } from "../application/commands/remove-network.com
 import { RemoveVolumeCommand } from "../application/commands/remove-volume.command.js";
 import { SetContainerEnvCommand } from "../application/commands/set-container-env.command.js";
 import { SetFixedIpCommand } from "../application/commands/set-fixed-ip.command.js";
+import { UploadToVolumeCommand } from "../application/commands/upload-to-volume.command.js";
 import type { EngineEventKind } from "../application/ports/docker-engine.js";
 import { BrowseVolumeQuery } from "../application/queries/browse-volume.query.js";
+import { DownloadVolumeQuery } from "../application/queries/download-volume.query.js";
 import { ExportComposeQuery } from "../application/queries/export-compose.query.js";
 import { GetContainerLogsQuery } from "../application/queries/get-container-logs.query.js";
 import { GetEngineInfoQuery } from "../application/queries/get-engine-info.query.js";
@@ -63,6 +73,7 @@ import { ListNetworksQuery } from "../application/queries/list-networks.query.js
 import { ListVolumesQuery } from "../application/queries/list-volumes.query.js";
 import { WatchEventsQuery } from "../application/queries/watch-events.query.js";
 import type { ComposeDocument } from "../domain/compose-export.js";
+import { ArchivePath, limitBytes, MAX_UPLOAD_BYTES } from "./archive-io.js";
 
 const Force = z.object({
   force: z.enum(["true", "false"]).default("false"),
@@ -274,6 +285,38 @@ export class DockerController {
   browseVolume(@Param("name") name: string, @Query() query: unknown) {
     const q = parse(BrowseQuery, query);
     return this.queries.execute(new BrowseVolumeQuery(name, q.path, q.view === "true"));
+  }
+
+  /** A file or folder of a volume as a tar. Admin only, and recorded: volumes hold the data of the apps. */
+  @AdminOnly()
+  @Get("volumes/:name/archive")
+  async downloadVolume(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param("name") name: string,
+    @Query() query: unknown,
+  ) {
+    const { path } = parse(ArchivePath, query);
+    setAuditNote(req, { detail: volumeDownloadDetail(name, path), read: true });
+    const tar = await this.queries.execute<DownloadVolumeQuery, Readable>(
+      new DownloadVolumeQuery(name, path),
+    );
+    const leaf = path.split("/").filter(Boolean).pop() ?? "volume";
+    res.setHeader("Content-Type", "application/x-tar");
+    res.setHeader("Content-Disposition", `attachment; filename="${name}-${leaf}.tar"`);
+    tar.pipe(res);
+  }
+
+  /** Body is a raw tar stream extracted into the directory `path` of the volume; existing files are replaced. */
+  @AdminOnly()
+  @Put("volumes/:name/archive")
+  @HttpCode(204)
+  async uploadToVolume(@Req() req: Request, @Param("name") name: string, @Query() query: unknown) {
+    const { path } = parse(ArchivePath, query);
+    setAuditNote(req, { detail: volumeUploadDetail(name, path) });
+    await this.commands.execute(
+      new UploadToVolumeCommand(name, path, limitBytes(req, MAX_UPLOAD_BYTES)),
+    );
   }
 
   @Post("volumes")

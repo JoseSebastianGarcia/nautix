@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanVolumePath, mountedPath, parseLs } from "./volume-browse.js";
+import { cleanVolumePath, mountedPath, parseLs, volumeNamesIn } from "./volume-browse.js";
 
 describe("volume paths", () => {
   it("normalises and stays inside the volume", () => {
@@ -32,5 +32,21 @@ describe("parseLs", () => {
     ]);
     expect(entries.find((e) => e.name === "notes.txt")?.size).toBe(12);
     expect(parseLs("")).toEqual([]);
+  });
+});
+
+describe("volumeNamesIn", () => {
+  it("takes the named volumes from the mounts of an inspected container", () => {
+    expect(
+      volumeNamesIn({
+        Mounts: [
+          { Type: "volume", Name: "nautix-data" },
+          { Type: "bind", Source: "/var/run/docker.sock" },
+          { Type: "volume", Name: "cache" },
+        ],
+      }),
+    ).toEqual(["nautix-data", "cache"]);
+    expect(volumeNamesIn({})).toEqual([]);
+    expect(volumeNamesIn(null)).toEqual([]);
   });
 });

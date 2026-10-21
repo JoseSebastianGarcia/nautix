@@ -19,7 +19,7 @@ export function VolumesPage() {
   const [inspecting, setInspecting] = useState<{ key: string; name: string; id: string } | null>(
     null,
   );
-  const [browsing, setBrowsing] = useState<string | null>(null);
+  const [browsing, setBrowsing] = useState<Volume | null>(null);
   const [name, setName] = useState("");
   const create = useApiMutation((n: string) => api.createVolume(n), [keys.volumes]);
   const remove = useApiMutation((n: string) => api.removeVolume(n), [keys.volumes]);
@@ -63,7 +63,7 @@ export function VolumesPage() {
                   write
                   aria-label={`${t("volumes.browse")} ${v.name}`}
                   title={t("volumes.browse")}
-                  onClick={() => setBrowsing(v.name)}
+                  onClick={() => setBrowsing(v)}
                 >
                   <FolderOpen size={14} />
                 </Button>
