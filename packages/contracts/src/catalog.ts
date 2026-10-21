@@ -446,6 +446,22 @@ export const TEMPLATES: readonly Template[] = [
     // Uses a self-signed certificate on 8443; keeps data in memory. For testing only.
   },
   {
+    id: "vaultwarden",
+    name: "Vaultwarden",
+    category: "secrets",
+    image: "vaultwarden/server:1.37.4",
+    description:
+      "Password and secrets manager for teams (Bitwarden-compatible). Bitwarden apps need HTTPS outside localhost",
+    icon: "vaultwarden",
+    color: "#175DDC",
+    ports: [{ containerPort: 80, label: "web", hostPort: 8222 }],
+    // Everything lives in /data (SQLite database, RSA keys, attachments, config): back up that volume.
+    // Registration is open so the first account can be created; set SIGNUPS_ALLOWED=false afterwards
+    // (invitations from an organization keep working). DOMAIN must match the address users type.
+    env: { DOMAIN: "http://localhost:8222", SIGNUPS_ALLOWED: "true" },
+    volumes: ["/data"],
+  },
+  {
     id: "kafka",
     name: "Kafka",
     category: "broker",

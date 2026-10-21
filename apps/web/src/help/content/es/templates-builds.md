@@ -8,7 +8,7 @@ Algunas categorías que conviene conocer:
 
 - **Identidad**: Keycloak, Pocket ID y Casdoor.
 - **Almacenamiento**: RustFS (compatible con S3), Azurite (Azure Blob) y fake-gcs-server (Google Cloud Storage).
-- **Secretos**: OpenBao, HashiCorp Vault y Lowkey Vault (Azure Key Vault). OpenBao y Vault tienen una variante con almacenamiento que puede guardar sus datos en un volumen para que sobrevivan a la recreación del contenedor.
+- **Secretos**: Vaultwarden (gestor de contraseñas para equipos, compatible con Bitwarden), OpenBao, HashiCorp Vault y Lowkey Vault (Azure Key Vault). OpenBao y Vault tienen una variante con almacenamiento que puede guardar sus datos en un volumen para que sobrevivan a la recreación del contenedor.
 - **Mis imágenes**: lo que construiste o descargaste. **Cualquier imagen** despliega una imagen por nombre.
 
 Las plantillas que necesitan una contraseña o una dirección la piden en el diálogo de despliegue. Revisá los valores de entorno antes de desplegar.

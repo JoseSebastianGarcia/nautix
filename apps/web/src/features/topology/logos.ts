@@ -13,6 +13,7 @@ import {
   siRabbitmq,
   siRedis,
   siTraefikproxy,
+  siVaultwarden,
 } from "simple-icons";
 
 export interface Logo {
@@ -54,6 +55,12 @@ const BRANDS: Brand[] = [
     path: siPrometheus.path,
     hex: `#${siPrometheus.hex}`,
     initials: "PM",
+  },
+  {
+    match: /vaultwarden/,
+    path: siVaultwarden.path,
+    hex: `#${siVaultwarden.hex}`,
+    initials: "VW",
   },
   { match: /grafana/, path: siGrafana.path, hex: `#${siGrafana.hex}`, initials: "GF" },
 ];

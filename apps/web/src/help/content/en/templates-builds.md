@@ -8,7 +8,7 @@ Some categories worth knowing:
 
 - **Identity**: Keycloak, Pocket ID and Casdoor.
 - **Storage**: RustFS (S3-compatible), Azurite (Azure Blob) and fake-gcs-server (Google Cloud Storage).
-- **Secrets**: OpenBao, HashiCorp Vault and Lowkey Vault (Azure Key Vault). OpenBao and Vault have a variant with storage that can keep their data in a volume so it survives recreating the container.
+- **Secrets**: Vaultwarden (password manager for teams, Bitwarden-compatible), OpenBao, HashiCorp Vault and Lowkey Vault (Azure Key Vault). OpenBao and Vault have a variant with storage that can keep their data in a volume so it survives recreating the container.
 - **My images**: anything you built or pulled. **Any image** deploys an image by name.
 
 Templates that need a password or an address ask for it in the deploy dialog. Check the environment values before deploying.
