@@ -34,6 +34,7 @@ import {
   type InspectKind,
 } from "../application/ports/docker-engine.js";
 import type { EngineContainerSpec } from "../domain/container-spec.js";
+import type { PortRebind } from "../domain/rebind-ports.js";
 
 const newId = (): string => randomBytes(32).toString("hex");
 
@@ -337,6 +338,18 @@ export class FakeDockerEngine extends DockerEngine {
       { kind: "added", path: "/var/log/app.log" },
       { kind: "deleted", path: "/tmp/old.lock" },
     ];
+  }
+
+  async rebindPorts(id: string, changes: PortRebind[]): Promise<void> {
+    const c = this.containers.get(id);
+    if (!c) throw new NotFoundError("container not found", "errors.notFound");
+    c.ports = c.ports.map((p) => {
+      const change = changes.find(
+        (x) => x.containerPort === p.privatePort && x.protocol === p.type,
+      );
+      return change ? { ...p, ip: change.hostIp } : p;
+    });
+    this.emit("container");
   }
 
   async renameContainer(id: string, name: string): Promise<void> {

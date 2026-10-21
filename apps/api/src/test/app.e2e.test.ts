@@ -868,6 +868,48 @@ describe("image tools and system commands", () => {
     expect((await post({ tag: "bad tag!", dockerfile: "FROM a" })).status).toBe(422);
   });
 
+  it("shows who can reach each published port and changes it", async () => {
+    await call("POST", "/containers", {
+      name: "exp-web",
+      image: "nginx:1.27-alpine",
+      networkId: null,
+      ports: [{ containerPort: 80, hostPort: 18080 }],
+    });
+    await call("POST", "/containers", {
+      name: "exp-lan",
+      image: "nginx:1.27-alpine",
+      networkId: null,
+      ports: [{ containerPort: 80, hostPort: 18081, bindAddress: "192.168.1.20" }],
+    });
+    const rows = () =>
+      (
+        call("GET", "/exposure") as Promise<{
+          json: { container: string; hostIp: string; exposure: { kind: string } }[];
+        }>
+      ).then((r) => r.json.filter((x) => x.container.startsWith("exp-")));
+    expect((await rows()).map((r) => [r.container, r.exposure.kind])).toEqual([
+      ["exp-lan", "address"],
+      ["exp-web", "local"],
+    ]);
+
+    const change = (exposure: unknown, port = 80) =>
+      call("PUT", "/containers/exp-web/exposure", { ports: [{ containerPort: port, exposure }] });
+    expect((await change({ kind: "open" })).res.status).toBe(204);
+    expect((await rows())[0]).toMatchObject({ container: "exp-web", exposure: { kind: "open" } });
+    expect((await change({ kind: "address", address: "10.0.0.2" })).res.status).toBe(204);
+    expect((await rows()).find((r) => r.container === "exp-web")?.hostIp).toBe("10.0.0.2");
+    expect((await change({ kind: "local" })).res.status).toBe(204);
+    expect((await change({ kind: "local" }, 9999)).res.status).toBe(422);
+    expect((await change({ kind: "address", address: "nope" })).res.status).toBe(422);
+    expect(
+      (
+        await call("PUT", "/containers/missing-one/exposure", {
+          ports: [{ containerPort: 80, exposure: { kind: "open" } }],
+        })
+      ).res.status,
+    ).toBe(404);
+  });
+
   it("builds from an uploaded project folder (tar body) and limits the options", async () => {
     const tar = buildTar([
       { path: "Dockerfile", content: 'FROM alpine:3.20\nCOPY app.txt /app.txt\nCMD ["sh"]\n' },

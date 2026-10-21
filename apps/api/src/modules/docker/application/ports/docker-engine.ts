@@ -23,6 +23,7 @@ import type {
   WaitResult,
 } from "@nautix/contracts";
 import type { EngineContainerSpec } from "../../domain/container-spec.js";
+import type { PortRebind } from "../../domain/rebind-ports.js";
 
 export type InspectKind = "container" | "image" | "volume" | "network";
 
@@ -54,6 +55,11 @@ export abstract class DockerEngine {
   abstract listContainers(): Promise<Container[]>;
   abstract inspectContainers(ids: string[]): Promise<ContainerDetails[]>;
   abstract createContainer(spec: EngineContainerSpec): Promise<{ id: string }>;
+  /**
+   * Recreates the container identically except for the host address of some published ports
+   * (Docker cannot rebind a live port). Puts the original back if the new one cannot start.
+   */
+  abstract rebindPorts(id: string, changes: PortRebind[]): Promise<void>;
   abstract containerAction(
     id: string,
     action: ContainerAction,

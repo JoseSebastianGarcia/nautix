@@ -32,7 +32,7 @@ export interface EngineContainerSpec {
 /**
  * Builds the engine spec from a request.
  * Safety rule: a published port binds to 127.0.0.1 unless the caller explicitly
- * asks to expose it publicly. Nothing ever binds to 0.0.0.0 by accident.
+ * asks for another address or to expose it publicly. Nothing ever binds to 0.0.0.0 by accident.
  */
 export const buildContainerSpec = (
   request: CreateContainer,
@@ -45,7 +45,7 @@ export const buildContainerSpec = (
     exposedPorts[key] = {};
     portBindings[key] = [
       {
-        HostIp: port.exposePublicly ? PUBLIC : LOOPBACK,
+        HostIp: port.bindAddress ?? (port.exposePublicly ? PUBLIC : LOOPBACK),
         HostPort: port.hostPort ? String(port.hostPort) : "",
       },
     ];

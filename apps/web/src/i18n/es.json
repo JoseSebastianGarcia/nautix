@@ -336,7 +336,8 @@
     "fixedIp_inUse": "Otro contenedor ya usa esa dirección",
     "dnsNoAddress": "El contenedor DNS no tiene dirección de red",
     "dnsTargetMissing": "Un registro apunta a un contenedor que no existe",
-    "dnsTargetNoIp": "Un registro apunta a un contenedor sin dirección IP (¿está en ejecución?)"
+    "dnsTargetNoIp": "Un registro apunta a un contenedor sin dirección IP (¿está en ejecución?)",
+    "portNotPublished": "Ese puerto no está publicado por el contenedor"
   },
   "terminal": {
     "title": "Terminal",
@@ -601,7 +602,8 @@
       "overview": "Resumen",
       "prune": "Asistente de limpieza",
       "events": "Eventos",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "exposure": "Exposición"
     },
     "engine": "Motor",
     "os": "Sistema operativo",
@@ -1054,5 +1056,29 @@
     "targetHint": "Una dirección IP o el nombre de un contenedor: Nautix busca su IP actual cada vez que aplicás, así sigue funcionando si el contenedor se recrea.",
     "container": "contenedor",
     "noIp": "sin IP (¿detenido?)"
+  },
+  "exposure": {
+    "title": "Quién puede llegar al puerto {{port}}",
+    "who": "Quién puede llegar",
+    "address": "Dirección del host",
+    "addressHint": "Una dirección de esta máquina, por ejemplo su IP de LAN o de VPN.",
+    "kind": {
+      "local": "Solo esta máquina",
+      "address": "Una dirección",
+      "open": "Todos (todas las interfaces)"
+    },
+    "help": {
+      "local": "Escucha en 127.0.0.1. Es lo más seguro.",
+      "address": "Escucha en una sola dirección del host, por ejemplo tu LAN o una VPN.",
+      "open": "Escucha en 0.0.0.0. Cualquiera que llegue a esta máquina llega al puerto."
+    },
+    "recreate": "Docker no puede cambiar un puerto en ejecución: el contenedor se recrea con la misma configuración (una breve interrupción). Si el nuevo no arranca, se restaura el original.",
+    "apply": "Aplicar",
+    "done": "Exposición cambiada",
+    "change": "Cambiar",
+    "intro": "Cada puerto que un contenedor publica en esta máquina y quién puede llegar. Los abiertos van primero.",
+    "container": "Contenedor",
+    "port": "Puerto",
+    "openCount": "Puertos abiertos: {{count}}. Cualquiera en las redes de esta máquina puede llegar a ellos."
   }
 }

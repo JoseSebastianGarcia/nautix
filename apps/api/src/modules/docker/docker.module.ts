@@ -7,6 +7,7 @@ import { ApplyDnsHandler } from "./application/commands/apply-dns.handler.js";
 import { ApplyGatewayHandler } from "./application/commands/apply-gateway.handler.js";
 import { BuildContextHandler } from "./application/commands/build-context.handler.js";
 import { BuildImageHandler } from "./application/commands/build-image.handler.js";
+import { ChangeExposureHandler } from "./application/commands/change-exposure.handler.js";
 import { CommitContainerHandler } from "./application/commands/commit-container.handler.js";
 import { ConnectNetworkHandler } from "./application/commands/connect-network.handler.js";
 import { ContainerActionHandler } from "./application/commands/container-action.handler.js";
@@ -109,6 +110,7 @@ const HANDLERS = [
   BuildImageHandler,
   BuildContextHandler,
   SetFixedIpHandler,
+  ChangeExposureHandler,
   ApplyDnsHandler,
   LookupDnsHandler,
   BrowseVolumeHandler,

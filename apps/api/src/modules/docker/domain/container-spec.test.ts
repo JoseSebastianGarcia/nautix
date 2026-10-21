@@ -56,6 +56,27 @@ describe("buildContainerSpec", () => {
     expect(spec.portBindings["80/tcp"]?.[0]?.HostIp).toBe("0.0.0.0");
   });
 
+  it("binds to a chosen host address, which wins over exposePublicly", () => {
+    const spec = buildContainerSpec(
+      parse({
+        name: "db",
+        image: "postgres",
+        networkId: null,
+        ports: [{ containerPort: 5432, bindAddress: "10.0.0.2", exposePublicly: true }],
+      }),
+      undefined,
+    );
+    expect(spec.portBindings["5432/tcp"]?.[0]?.HostIp).toBe("10.0.0.2");
+    expect(
+      CreateContainer.safeParse({
+        name: "db",
+        image: "postgres",
+        networkId: null,
+        ports: [{ containerPort: 5432, bindAddress: "not-an-ip" }],
+      }).success,
+    ).toBe(false);
+  });
+
   it("labels containers as managed and keeps the network", () => {
     const spec = buildContainerSpec(
       parse({ name: "db", image: "postgres", networkId: "n1" }),

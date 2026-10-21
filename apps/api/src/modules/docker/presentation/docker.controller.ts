@@ -1,10 +1,13 @@
 import {
+  ChangeExposure,
   ConnectNetwork,
+  type Container,
   ContainerAction,
   CreateContainer,
   CreateNetwork,
   CreateTunnel,
   CreateVolume,
+  exposureInventory,
   KILL_SIGNALS,
   PullImage,
   SetFixedIp,
@@ -32,6 +35,7 @@ import { z } from "zod";
 import { requireAdmin } from "../../../shared/principal.js";
 import { parse } from "../../../shared/zod-body.js";
 import { AdminOnly } from "../../auth/presentation/admin-only.decorator.js";
+import { ChangeExposureCommand } from "../application/commands/change-exposure.command.js";
 import { ConnectNetworkCommand } from "../application/commands/connect-network.command.js";
 import { ContainerActionCommand } from "../application/commands/container-action.command.js";
 import { CreateContainerCommand } from "../application/commands/create-container.command.js";
@@ -186,6 +190,22 @@ export class DockerController {
   async fixedIp(@Param("id") id: string, @Body() body: unknown) {
     const b = parse(SetFixedIp, body);
     await this.commands.execute(new SetFixedIpCommand(id, b.network, b.ip));
+  }
+
+  /** Every published port and who can reach it, open ones first. */
+  @Get("exposure")
+  async exposureList() {
+    const containers = await this.queries.execute<ListContainersQuery, Container[]>(
+      new ListContainersQuery(),
+    );
+    return exposureInventory(containers);
+  }
+
+  /** Which host address each published port binds to (local only, one address, or open). */
+  @Put("containers/:id/exposure")
+  @HttpCode(204)
+  async exposure(@Param("id") id: string, @Body() body: unknown) {
+    await this.commands.execute(new ChangeExposureCommand(id, parse(ChangeExposure, body).ports));
   }
 
   @Post("networks/:id/disconnect")

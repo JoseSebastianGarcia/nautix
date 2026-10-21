@@ -336,7 +336,8 @@
     "fixedIp_inUse": "Another container already uses that address",
     "dnsNoAddress": "The DNS container has no network address",
     "dnsTargetMissing": "A record points at a container that does not exist",
-    "dnsTargetNoIp": "A record points at a container that has no IP address (is it running?)"
+    "dnsTargetNoIp": "A record points at a container that has no IP address (is it running?)",
+    "portNotPublished": "That port is not published by the container"
   },
   "terminal": {
     "title": "Terminal",
@@ -601,7 +602,8 @@
       "overview": "Overview",
       "prune": "Prune wizard",
       "events": "Events",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "exposure": "Exposure"
     },
     "engine": "Engine",
     "os": "Operating system",
@@ -1054,5 +1056,29 @@
     "targetHint": "An IP address, or a container name: Nautix looks up its current IP every time you apply, so it keeps working if the container is recreated.",
     "container": "container",
     "noIp": "no IP (stopped?)"
+  },
+  "exposure": {
+    "title": "Who can reach port {{port}}",
+    "who": "Who can reach it",
+    "address": "Host address",
+    "addressHint": "An address of this machine, for example its LAN or VPN IP.",
+    "kind": {
+      "local": "Only this machine",
+      "address": "One address",
+      "open": "Everyone (all interfaces)"
+    },
+    "help": {
+      "local": "Bound to 127.0.0.1. Safe default.",
+      "address": "Bound to one address of the host, for example your LAN or a VPN.",
+      "open": "Bound to 0.0.0.0. Anyone who can reach this machine can reach the port."
+    },
+    "recreate": "Docker cannot rebind a running port: the container is recreated with the same settings (a short interruption). If the new one cannot start, the original is put back.",
+    "apply": "Apply",
+    "done": "Exposure changed",
+    "change": "Change",
+    "intro": "Every port a container publishes on this machine and who can reach it. Open ports come first.",
+    "container": "Container",
+    "port": "Port",
+    "openCount": "Open ports: {{count}}. Anyone on any network this machine is on can reach them."
   }
 }

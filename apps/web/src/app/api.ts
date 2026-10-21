@@ -1,6 +1,7 @@
 import type {
   ApiTokenInfo,
   BuildRequest,
+  ChangeExposure,
   CommitContainer,
   ComposeAction,
   ComposeProject,
@@ -22,6 +23,7 @@ import type {
   DnsEntry,
   DnsServer,
   EngineInfo,
+  ExposureEntry,
   FsChange,
   GatewayApplyResult,
   GatewayRoute,
@@ -145,6 +147,9 @@ export const api = {
     request<void>("DELETE", `/plugins/${encodeURIComponent(name)}?force=${force}`),
   setFixedIp: (id: string, network: string, ip: string | null) =>
     request<void>("PUT", `/containers/${id}/fixed-ip`, { network, ip }),
+  setExposure: (id: string, ports: ChangeExposure["ports"]) =>
+    request<void>("PUT", `/containers/${id}/exposure`, { ports }),
+  exposure: () => request<ExposureEntry[]>("GET", "/exposure"),
   dnsServers: () => request<DnsServer[]>("GET", "/dns"),
   dnsRecords: (name: string) => request<DnsEntry[]>("GET", `/dns/${name}/records`),
   saveDnsRecords: (name: string, records: DnsEntry[]) =>

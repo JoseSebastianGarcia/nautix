@@ -241,6 +241,58 @@ describe("against a real Docker daemon", () => {
     expect(ipOf(svc)).toMatch(/^\d+\.\d+\.\d+\.\d+$/);
   });
 
+  it("changes who can reach a published port by recreating the container, keeping its data and address", async () => {
+    expect(
+      (await call("POST", "/networks", { name: `${PREFIX}ex`, internal: false })).res.status,
+    ).toBe(201);
+    const net = (
+      (await call("GET", "/networks")).json as { id: string; name: string; subnet: string | null }[]
+    ).find((n) => n.name === `${PREFIX}ex`);
+    const [a1, a2, a3] = (net?.subnet ?? "172.0.0.0/16").split("/")[0]?.split(".") ?? [];
+    const ip = `${a1}.${a2}.${a3}.210`;
+    const name = `${PREFIX}rebind`;
+    const created = await call("POST", "/containers", {
+      name,
+      image: IMAGE,
+      networkId: net?.id,
+      restartPolicy: "no",
+      command: ["sleep", "300"],
+      ipAddress: ip,
+      volumes: ["/data"],
+      ports: [{ containerPort: 80, hostPort: 18555 }],
+    });
+    expect(created.res.status, JSON.stringify(created.json)).toBe(201);
+    docker("exec", name, "sh", "-c", "echo keep > /data/file");
+    const bound = () => docker("inspect", "-f", "{{json .HostConfig.PortBindings}}", name);
+    expect(bound()).toContain('"HostIp":"127.0.0.1"');
+    const oldId = docker("inspect", "-f", "{{.Id}}", name);
+
+    const change = await call("PUT", `/containers/${name}/exposure`, {
+      ports: [{ containerPort: 80, exposure: { kind: "address", address: "127.0.0.2" } }],
+    });
+    expect(change.res.status, JSON.stringify(change.json)).toBe(204);
+
+    expect(docker("inspect", "-f", "{{.Id}}", name)).not.toBe(oldId);
+    expect(bound()).toContain('"HostIp":"127.0.0.2"');
+    expect(bound()).toContain('"HostPort":"18555"');
+    expect(docker("inspect", "-f", "{{.State.Running}}", name)).toBe("true");
+    expect(
+      docker(
+        "inspect",
+        "-f",
+        `{{(index .NetworkSettings.Networks "${PREFIX}ex").IPAddress}}`,
+        name,
+      ),
+    ).toBe(ip);
+    expect(docker("exec", name, "cat", "/data/file")).toBe("keep");
+    const rows = (await call("GET", "/exposure")).json as {
+      container: string;
+      exposure: { kind: string };
+    }[];
+    expect(rows.find((r) => r.container === name)?.exposure.kind).toBe("address");
+    expect(docker("ps", "-a", "--filter", `name=${name}`, "--format", "{{.Names}}")).toBe(name);
+  });
+
   it("opens a real tunnel between two networks and only that port crosses", async () => {
     await call("POST", "/networks", { name: `${PREFIX}b`, internal: true });
     const nets = (await call("GET", "/networks")).json as Net[];

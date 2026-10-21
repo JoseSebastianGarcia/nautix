@@ -42,6 +42,7 @@ import {
 import type { EngineContainerSpec } from "../domain/container-spec.js";
 import { computeStats } from "../domain/container-stats.js";
 import { summarizeDf } from "../domain/disk-usage.js";
+import { type InspectedContainer, type PortRebind, planRebind } from "../domain/rebind-ports.js";
 import { demuxStdcopy, isMultiplexed } from "./stdcopy.js";
 
 interface Reply {
@@ -352,6 +353,49 @@ export class DockerSocketEngine extends DockerEngine {
       },
     );
     return { id: created.Id };
+  }
+
+  async rebindPorts(id: string, changes: PortRebind[]): Promise<void> {
+    const old = await this.json<InspectedContainer & { State: { Running: boolean } }>(
+      "GET",
+      `/containers/${encodeURIComponent(id)}/json`,
+    );
+    const name = old.Name.replace(/^\//, "");
+    const plan = planRebind(old, changes);
+    const wasRunning = old.State.Running;
+    const parked = `${name}-nautix-old-${Date.now().toString(36)}`;
+
+    if (wasRunning) await this.send("POST", `/containers/${encodeURIComponent(id)}/stop?t=10`);
+    await this.renameContainer(id, parked);
+    let created: string | undefined;
+    try {
+      created = (
+        await this.json<{ Id: string }>(
+          "POST",
+          `/containers/create?name=${encodeURIComponent(name)}`,
+          plan.createBody,
+        )
+      ).Id;
+      for (const extra of plan.extraNetworks)
+        await this.send("POST", `/networks/${encodeURIComponent(extra.name)}/connect`, {
+          Container: created,
+          EndpointConfig: extra.endpoint,
+        });
+      if (wasRunning) await this.send("POST", `/containers/${created}/start`);
+    } catch (error) {
+      // Put the original back exactly as it was.
+      if (created)
+        await this.send("DELETE", `/containers/${created}?force=true`).catch(() => undefined);
+      await this.renameContainer(id, name).catch(() => undefined);
+      if (wasRunning)
+        await this.send("POST", `/containers/${encodeURIComponent(id)}/start`).catch(
+          () => undefined,
+        );
+      throw error;
+    }
+    await this.send("DELETE", `/containers/${encodeURIComponent(id)}?force=true`).catch(
+      () => undefined,
+    );
   }
 
   containerAction(id: string, action: ContainerAction, options: ActionOptions = {}): Promise<void> {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isIpAddress } from "./ip.js";
 
 export const ContainerState = z.enum([
   "created",
@@ -119,6 +120,8 @@ export const CreateContainer = z.object({
         hostPort: z.number().int().min(1).max(65535).optional(),
         /** false = bound to 127.0.0.1 only (default); true = 0.0.0.0, needs explicit consent. */
         exposePublicly: z.boolean().default(false),
+        /** Bind to one host address (for example the LAN or VPN IP). Wins over `exposePublicly`. */
+        bindAddress: z.string().trim().refine(isIpAddress, "invalid IP address").optional(),
       }),
     )
     .default([]),

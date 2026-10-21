@@ -1,6 +1,7 @@
 import {
   type Container,
   type ContainerAction,
+  exposureOf,
   type Network,
   type TunnelInfo,
   tunnelFromContainer,
@@ -25,6 +26,7 @@ import { cli } from "../../app/cli.js";
 import { keys, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog, ShowCommand } from "../../components/ui.js";
+import { ExposureDialog, type ExposureTarget } from "../containers/exposure-dialog.js";
 import type { ExportTarget } from "./export-dialog.js";
 import { LogoBadge } from "./logo-badge.js";
 
@@ -95,6 +97,7 @@ function ContainerInspector({
   const { t } = useTranslation();
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [exposing, setExposing] = useState<ExposureTarget | null>(null);
   const refresh = [keys.containers, keys.networks];
 
   const isAdmin = useIsAdmin();
@@ -227,28 +230,53 @@ function ContainerInspector({
         {published.length === 0 && <p className="text-sm text-dim">{t("common.none")}</p>}
         <ul className="flex flex-col gap-1">
           {published.map((p) => {
-            const open = p.ip === "0.0.0.0" || p.ip === "::" || p.ip === undefined;
+            const kind = exposureOf(p.ip).kind;
             return (
               <li
                 key={`${p.ip}:${p.publicPort}:${p.privatePort}`}
-                className="flex items-center justify-between rounded-lg bg-bg2 px-2 py-1 font-mono text-xs"
+                className="flex items-center justify-between gap-2 rounded-lg bg-bg2 px-2 py-1 font-mono text-xs"
               >
-                <span>
+                <span className="min-w-0 truncate">
                   {p.ip ?? "0.0.0.0"}:{p.publicPort} → {p.privatePort}/{p.type}
                 </span>
-                {open ? (
-                  <ShieldAlert
-                    size={14}
-                    className="text-amber"
-                    aria-label={t("topology.publicPort")}
-                  />
-                ) : (
-                  <Lock size={14} className="text-cyan" aria-label={t("topology.protectedPort")} />
-                )}
+                <span className="flex shrink-0 items-center gap-2">
+                  {kind === "open" ? (
+                    <ShieldAlert
+                      size={14}
+                      className="text-amber"
+                      aria-label={t("topology.publicPort")}
+                    />
+                  ) : (
+                    <Lock
+                      size={14}
+                      className={kind === "local" ? "text-cyan" : "text-accent"}
+                      aria-label={t("topology.protectedPort")}
+                    />
+                  )}
+                  {!locked && (
+                    <button
+                      type="button"
+                      className="text-accent hover:underline"
+                      onClick={() =>
+                        setExposing({
+                          containerId: c.id,
+                          container: c.name,
+                          containerPort: p.privatePort,
+                          hostPort: p.publicPort ?? 0,
+                          protocol: p.type,
+                          hostIp: p.ip ?? "",
+                        })
+                      }
+                    >
+                      {t("exposure.change")}
+                    </button>
+                  )}
+                </span>
               </li>
             );
           })}
         </ul>
+        <ExposureDialog target={exposing} onClose={() => setExposing(null)} />
       </section>
 
       <section>

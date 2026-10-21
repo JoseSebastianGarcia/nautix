@@ -1,6 +1,7 @@
 import {
   type CustomTemplateInput,
   checkFixedIp,
+  isIpAddress,
   type Network,
   type RestartPolicy,
   type Template,
@@ -34,7 +35,9 @@ interface PortDraft {
   protocol: "tcp" | "udp";
   containerPort: string;
   hostPort: string;
-  expose: boolean;
+  /** Who can reach the published port: this machine only, everyone, or one host address. */
+  exposure: "local" | "open" | "address";
+  address: string;
 }
 
 const validPort = (v: string): boolean => /^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 65535;
@@ -81,7 +84,8 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
       protocol: p.protocol ?? "tcp",
       containerPort: String(p.containerPort),
       hostPort: p.hostPort ? String(p.hostPort) : "",
-      expose: false,
+      exposure: "local",
+      address: "",
     })),
   );
   const [env, setEnv] = useState<[string, string][]>(() =>
@@ -133,7 +137,8 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
           containerPort: Number(p.containerPort),
           protocol: p.protocol,
           ...(p.hostPort ? { hostPort: Number(p.hostPort) } : {}),
-          exposePublicly: p.expose,
+          exposePublicly: p.exposure === "open",
+          ...(p.exposure === "address" ? { bindAddress: p.address.trim() } : {}),
         })),
         volumes: namedVolumes(name, volumes),
         ...(command.trim() ? { command: splitCommand(command) } : {}),
@@ -185,7 +190,10 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
       ...(p.hostPort ? { host: Number(p.hostPort) } : {}),
       container: Number(p.containerPort) || 0,
       protocol: p.protocol,
-      pub: p.expose,
+      pub: p.exposure === "open",
+      ...(p.exposure === "address" && isIpAddress(p.address.trim())
+        ? { ip: p.address.trim() }
+        : {}),
     })),
   });
 
@@ -298,17 +306,38 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
                 <X size={14} />
               </button>
             </div>
-            <label className="flex items-center gap-2 text-xs text-dim">
-              <input
-                type="checkbox"
-                checked={p.expose}
+            <div className="flex flex-wrap items-center gap-2 text-xs text-dim">
+              <select
+                aria-label={`${t("exposure.who")} ${p.containerPort}`}
+                value={p.exposure}
                 onChange={(e) =>
-                  setPorts(ports.map((q, j) => (j === i ? { ...q, expose: e.target.checked } : q)))
+                  setPorts(
+                    ports.map((q, j) =>
+                      j === i ? { ...q, exposure: e.target.value as PortDraft["exposure"] } : q,
+                    ),
+                  )
                 }
-              />
-              {t("topology.exposePublicly")}
-            </label>
-            {p.expose && <p className="text-xs text-amber">{t("topology.exposeWarning")}</p>}
+                className="rounded-lg border border-line bg-bg0 px-2 py-1 text-fg"
+              >
+                <option value="local">{t("exposure.kind.local")}</option>
+                <option value="address">{t("exposure.kind.address")}</option>
+                <option value="open">{t("exposure.kind.open")}</option>
+              </select>
+              {p.exposure === "address" && (
+                <Input
+                  aria-label={`${t("exposure.address")} ${p.containerPort}`}
+                  placeholder="192.168.1.20"
+                  value={p.address}
+                  aria-invalid={p.address !== "" && !isIpAddress(p.address.trim())}
+                  onChange={(e) =>
+                    setPorts(ports.map((q, j) => (j === i ? { ...q, address: e.target.value } : q)))
+                  }
+                />
+              )}
+            </div>
+            {p.exposure === "open" && (
+              <p className="text-xs text-amber">{t("topology.exposeWarning")}</p>
+            )}
           </div>
         ))}
         {!portsValid && <p className="text-xs text-danger">{t("topology.invalidPort")}</p>}
@@ -316,7 +345,13 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
           onClick={() =>
             setPorts([
               ...ports,
-              { protocol: "tcp", containerPort: "", hostPort: "", expose: false },
+              {
+                protocol: "tcp",
+                containerPort: "",
+                hostPort: "",
+                exposure: "local",
+                address: "",
+              },
             ])
           }
         >
