@@ -10,6 +10,7 @@ import {
   exposureInventory,
   KILL_SIGNALS,
   PullImage,
+  SetEnv,
   SetFixedIp,
 } from "@nautix/contracts";
 import {
@@ -48,6 +49,7 @@ import { RemoveContainerCommand } from "../application/commands/remove-container
 import { RemoveImageCommand } from "../application/commands/remove-image.command.js";
 import { RemoveNetworkCommand } from "../application/commands/remove-network.command.js";
 import { RemoveVolumeCommand } from "../application/commands/remove-volume.command.js";
+import { SetContainerEnvCommand } from "../application/commands/set-container-env.command.js";
 import { SetFixedIpCommand } from "../application/commands/set-fixed-ip.command.js";
 import type { EngineEventKind } from "../application/ports/docker-engine.js";
 import { BrowseVolumeQuery } from "../application/queries/browse-volume.query.js";
@@ -205,7 +207,22 @@ export class DockerController {
   @Put("containers/:id/exposure")
   @HttpCode(204)
   async exposure(@Param("id") id: string, @Body() body: unknown) {
-    await this.commands.execute(new ChangeExposureCommand(id, parse(ChangeExposure, body).ports));
+    await this.commands.execute(
+      new ChangeExposureCommand(
+        id,
+        parse(ChangeExposure, body).ports,
+        parse(ChangeExposure, body).gate,
+      ),
+    );
+  }
+
+  /** Edits environment variables: the container is recreated and must pass the health gate (else rolled back). */
+  @Put("containers/:id/env")
+  async env(@Param("id") id: string, @Body() body: unknown) {
+    const b = parse(SetEnv, body);
+    return this.commands.execute<SetContainerEnvCommand, { changed: string[] }>(
+      new SetContainerEnvCommand(id, b.set, b.unset, b.gate),
+    );
   }
 
   @Post("networks/:id/disconnect")

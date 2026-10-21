@@ -42,7 +42,14 @@ import {
 import type { EngineContainerSpec } from "../domain/container-spec.js";
 import { computeStats } from "../domain/container-stats.js";
 import { summarizeDf } from "../domain/disk-usage.js";
-import { type InspectedContainer, type PortRebind, planRebind } from "../domain/rebind-ports.js";
+import { type GateSample, judgeGate } from "../domain/health-gate.js";
+import {
+  type ContainerChange,
+  DEFAULT_GATE,
+  type InspectedContainer,
+  planRecreate,
+  type RecreateGate,
+} from "../domain/recreate.js";
 import { demuxStdcopy, isMultiplexed } from "./stdcopy.js";
 
 interface Reply {
@@ -355,13 +362,17 @@ export class DockerSocketEngine extends DockerEngine {
     return { id: created.Id };
   }
 
-  async rebindPorts(id: string, changes: PortRebind[]): Promise<void> {
+  async recreateContainer(
+    id: string,
+    change: ContainerChange,
+    gate: RecreateGate = DEFAULT_GATE,
+  ): Promise<void> {
     const old = await this.json<InspectedContainer & { State: { Running: boolean } }>(
       "GET",
       `/containers/${encodeURIComponent(id)}/json`,
     );
     const name = old.Name.replace(/^\//, "");
-    const plan = planRebind(old, changes);
+    const plan = planRecreate(old, change);
     const wasRunning = old.State.Running;
     const parked = `${name}-nautix-old-${Date.now().toString(36)}`;
 
@@ -381,7 +392,10 @@ export class DockerSocketEngine extends DockerEngine {
           Container: created,
           EndpointConfig: extra.endpoint,
         });
-      if (wasRunning) await this.send("POST", `/containers/${created}/start`);
+      if (wasRunning) {
+        await this.send("POST", `/containers/${created}/start`);
+        await this.passGate(created, gate);
+      }
     } catch (error) {
       // Put the original back exactly as it was.
       if (created)
@@ -396,6 +410,34 @@ export class DockerSocketEngine extends DockerEngine {
     await this.send("DELETE", `/containers/${encodeURIComponent(id)}?force=true`).catch(
       () => undefined,
     );
+  }
+
+  /** Waits until the new container has proven itself, or fails with why (and its last log lines). */
+  private async passGate(id: string, gate: RecreateGate): Promise<void> {
+    const started = Date.now();
+    for (;;) {
+      const info = await this.json<{ State: GateSample; RestartCount?: number }>(
+        "GET",
+        `/containers/${id}/json`,
+      );
+      const verdict = judgeGate(
+        {
+          ...info.State,
+          ...(info.RestartCount !== undefined ? { RestartCount: info.RestartCount } : {}),
+        },
+        Date.now() - started,
+        gate,
+      );
+      if (verdict.verdict === "pass") return;
+      if (verdict.verdict === "fail") {
+        const logs = await this.containerLogs(id, 20).catch(() => "");
+        throw new ConflictError(
+          `the new container was not accepted: ${verdict.reason}${logs.trim() ? `\n${logs.trim().slice(-1500)}` : ""}`,
+          "errors.applyUnhealthy",
+        );
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
   }
 
   containerAction(id: string, action: ContainerAction, options: ActionOptions = {}): Promise<void> {

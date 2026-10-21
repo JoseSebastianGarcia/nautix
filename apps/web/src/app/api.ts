@@ -45,6 +45,7 @@ import type {
   RegistryInfo,
   SaveRegistry,
   Session,
+  SetEnvInput,
   StackInfo,
   SwarmItem,
   SwarmNode,
@@ -68,6 +69,8 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     readonly hintKey: string | undefined,
+    /** Server-side explanation (for a rolled-back apply: why, with the last log lines). */
+    readonly detail?: string,
   ) {
     super(code);
   }
@@ -94,8 +97,12 @@ const request = async <T>(method: string, path: string, body?: unknown): Promise
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   if (!res.ok) {
-    const problem = (await res.json().catch(() => ({}))) as { code?: string; hintKey?: string };
-    throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey);
+    const problem = (await res.json().catch(() => ({}))) as {
+      code?: string;
+      hintKey?: string;
+      detail?: string;
+    };
+    throw new ApiError(res.status, problem.code ?? "internal", problem.hintKey, problem.detail);
   }
   return (res.status === 204 ? undefined : await res.json()) as T;
 };
@@ -152,6 +159,8 @@ export const api = {
     request<void>("PUT", `/containers/${id}/fixed-ip`, { network, ip }),
   setExposure: (id: string, ports: ChangeExposure["ports"]) =>
     request<void>("PUT", `/containers/${id}/exposure`, { ports }),
+  setEnv: (id: string, change: SetEnvInput) =>
+    request<{ changed: string[] }>("PUT", `/containers/${id}/env`, change),
   exposure: () => request<ExposureEntry[]>("GET", "/exposure"),
   guardStatus: () => request<GuardStatus>("GET", "/guard"),
   saveGuardRules: (rules: GuardRule[], acknowledgeLockout: boolean) =>

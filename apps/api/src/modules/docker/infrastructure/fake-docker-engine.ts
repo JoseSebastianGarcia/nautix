@@ -34,7 +34,7 @@ import {
   type InspectKind,
 } from "../application/ports/docker-engine.js";
 import type { EngineContainerSpec } from "../domain/container-spec.js";
-import type { PortRebind } from "../domain/rebind-ports.js";
+import type { ContainerChange, RecreateGate } from "../domain/recreate.js";
 
 const newId = (): string => randomBytes(32).toString("hex");
 
@@ -340,15 +340,38 @@ export class FakeDockerEngine extends DockerEngine {
     ];
   }
 
-  async rebindPorts(id: string, changes: PortRebind[]): Promise<void> {
+  async recreateContainer(
+    id: string,
+    change: ContainerChange,
+    _gate?: RecreateGate,
+  ): Promise<void> {
     const c = this.containers.get(id);
     if (!c) throw new NotFoundError("container not found", "errors.notFound");
+    // Test hook: a change that sets this variable makes the new container fail its gate, so the
+    // original must be left exactly as it was.
+    if (change.env?.NAUTIX_FAKE_FAIL)
+      throw new ConflictError(
+        "the new container was not accepted: it exited (code 1)",
+        "errors.applyUnhealthy",
+      );
     c.ports = c.ports.map((p) => {
-      const change = changes.find(
+      const rebind = change.ports?.find(
         (x) => x.containerPort === p.privatePort && x.protocol === p.type,
       );
-      return change ? { ...p, ip: change.hostIp } : p;
+      return rebind ? { ...p, ip: rebind.hostIp } : p;
     });
+    if (change.env) {
+      const env = { ...(this.env.get(id) ?? {}) };
+      for (const [k, v] of Object.entries(change.env)) {
+        if (v === null) delete env[k];
+        else env[k] = v;
+      }
+      this.env.set(id, env);
+    }
+    for (const name of change.joinNetworks ?? []) {
+      const net = [...this.networks.values()].find((n) => n.name === name);
+      if (net && !c.networks.includes(net.name)) this.attach(net.id, id);
+    }
     this.emit("container");
   }
 

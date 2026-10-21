@@ -341,7 +341,8 @@
     "portNotPublished": "That port is not published by the container",
     "guardLockout": "These rules would cut your own access: your address is not in the allowed list",
     "guardLockoutSelf": "One of these rules guards Nautix itself",
-    "guardNoTrial": "There is no change waiting for confirmation"
+    "guardNoTrial": "There is no change waiting for confirmation",
+    "applyUnhealthy": "The new container did not start properly, so the previous one was put back"
   },
   "terminal": {
     "title": "Terminal",
@@ -1120,5 +1121,17 @@
     "note": "Rules apply to traffic that Docker forwards to published ports (DOCKER-USER chain). With Docker Desktop or rootless Docker the helper cannot reach the host firewall.",
     "preview": "Show the firewall commands",
     "backend": "Firewall"
+  },
+  "env": {
+    "title": "Environment of {{name}}",
+    "variables": "Variables",
+    "recreate": "Docker cannot change a running container's variables, so it is recreated with the same settings (a short interruption). The new one has to stay up (or pass its health check) or the previous one is put back.",
+    "edit": "Edit environment",
+    "done": "Environment applied",
+    "applying": "Applying…",
+    "apply": "Apply {{count}} change(s)"
+  },
+  "apply": {
+    "rolledBack": "The change was rolled back: the previous container is running again."
   }
 }

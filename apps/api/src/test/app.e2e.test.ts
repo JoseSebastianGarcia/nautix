@@ -1003,6 +1003,51 @@ describe("image tools and system commands", () => {
     expect(await status()).toMatchObject({ rules: [], trial: null });
   });
 
+  it("edits a container's environment safely: applied, never echoed, and rolled back when the new one fails", async () => {
+    await call("POST", "/containers", {
+      name: "env-app",
+      image: "nginx:1.27-alpine",
+      networkId: null,
+      env: { KEEP: "yes", OLD: "1" },
+    });
+    const env = (body: unknown) => call("PUT", "/containers/env-app/env", body);
+    const stored = async () => {
+      const id = ((await call("GET", "/containers")).json as { id: string; name: string }[]).find(
+        (c) => c.name === "env-app",
+      )?.id;
+      const raw = (await call("GET", `/containers/${id}/inspect`)).json as {
+        Config: { Env: string[] };
+      };
+      return Object.fromEntries(raw.Config.Env.map((e) => [e.split("=")[0], e.split("=")[1]]));
+    };
+
+    const ok = await env({ set: { API_URL: "http://x", OLD: "2" }, unset: ["KEEP"] });
+    expect(ok.res.status).toBe(200);
+    expect(ok.json).toEqual({ changed: ["API_URL", "KEEP", "OLD"] });
+    expect(JSON.stringify(ok.json)).not.toContain("http://x");
+    expect(await stored()).toEqual({ API_URL: "http://x", OLD: "2" });
+
+    // a failing new container is rolled back: the environment is exactly as before
+    const failed = await env({ set: { NAUTIX_FAKE_FAIL: "1", ONLY_IF_OK: "1" } });
+    expect(failed.res.status).toBe(409);
+    expect(failed.json.hintKey).toBe("errors.applyUnhealthy");
+    expect(await stored()).toEqual({ API_URL: "http://x", OLD: "2" });
+
+    expect((await env({})).res.status).toBe(422);
+    expect((await env({ set: { "bad name": "1" } })).res.status).toBe(422);
+    expect((await env({ set: { A: "1" }, unset: ["A"] })).res.status).toBe(422);
+    expect((await env({ set: { A: "1" }, gate: { settleSeconds: 99 } })).res.status).toBe(422);
+    expect((await call("PUT", "/containers/missing-one/env", { set: { A: "1" } })).res.status).toBe(
+      404,
+    );
+    const self = (
+      (await call("GET", "/containers")).json as { id: string; isSelf?: boolean }[]
+    ).find((c) => c.isSelf);
+    expect((await call("PUT", `/containers/${self?.id}/env`, { set: { A: "1" } })).res.status).toBe(
+      403,
+    );
+  });
+
   it("shows who can reach each published port and changes it", async () => {
     await call("POST", "/containers", {
       name: "exp-web",

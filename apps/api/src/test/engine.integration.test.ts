@@ -293,6 +293,77 @@ describe("against a real Docker daemon", () => {
     expect(docker("ps", "-a", "--filter", `name=${name}`, "--format", "{{.Names}}")).toBe(name);
   });
 
+  it("applies a change only when the new container proves itself, and puts the old one back otherwise", async () => {
+    const name = `${PREFIX}gate`;
+    const created = await call("POST", "/containers", {
+      name,
+      image: IMAGE,
+      networkId: null,
+      restartPolicy: "no",
+      env: { KEEP: "yes" },
+      volumes: ["/data"],
+      command: [
+        "sh",
+        "-c",
+        'if [ -n "$BOOM" ]; then echo "boom: refusing to start" >&2; exit 1; fi; if [ -z "$NOHEALTH" ]; then touch /tmp/ok; fi; sleep 300',
+      ],
+      healthcheck: {
+        command: "test -f /tmp/ok",
+        intervalSeconds: 1,
+        timeoutSeconds: 2,
+        retries: 1,
+      },
+    });
+    expect(created.res.status, JSON.stringify(created.json)).toBe(201);
+    docker("exec", name, "sh", "-c", "echo precious > /data/file");
+    const id = () => docker("inspect", "-f", "{{.Id}}", name);
+    const env = () => docker("inspect", "-f", "{{range .Config.Env}}{{println .}}{{end}}", name);
+    const put = (body: unknown) => call("PUT", `/containers/${name}/env`, body);
+    const gate = { settleSeconds: 2, timeoutSeconds: 15 };
+    // wait until the original is healthy so the comparisons below start from a known state
+    for (
+      let i = 0;
+      i < 20 && docker("inspect", "-f", "{{.State.Health.Status}}", name) !== "healthy";
+      i++
+    )
+      await new Promise((r) => setTimeout(r, 500));
+
+    // 1. a good change is applied: new container, same data, still healthy
+    const before = id();
+    const good = await put({ set: { GOOD: "1" }, gate });
+    expect(good.res.status, JSON.stringify(good.json)).toBe(200);
+    expect(id()).not.toBe(before);
+    expect(env()).toContain("GOOD=1");
+    expect(env()).toContain("KEEP=yes");
+    expect(docker("exec", name, "cat", "/data/file")).toBe("precious");
+    expect(docker("inspect", "-f", "{{.State.Health.Status}}", name)).toBe("healthy");
+
+    // 2. a change that makes the process exit is refused and the previous container is back, untouched
+    const stable = id();
+    const crash = await put({ set: { BOOM: "1" }, gate });
+    expect(crash.res.status).toBe(409);
+    expect(crash.json.hintKey).toBe("errors.applyUnhealthy");
+    expect(crash.json.detail).toContain("exited");
+    expect(crash.json.detail).toContain("boom: refusing to start");
+    expect(id()).toBe(stable);
+    expect(docker("inspect", "-f", "{{.State.Running}}", name)).toBe("true");
+    expect(env()).not.toContain("BOOM");
+    expect(docker("exec", name, "cat", "/data/file")).toBe("precious");
+
+    // 3. a change that keeps it running but unhealthy is refused by the health check
+    const unhealthy = await put({ set: { NOHEALTH: "1" }, gate });
+    expect(unhealthy.res.status).toBe(409);
+    expect(unhealthy.json.detail).toContain("health check");
+    expect(id()).toBe(stable);
+    expect(env()).not.toContain("NOHEALTH");
+
+    // 4. removing a variable works the same way
+    expect((await put({ unset: ["GOOD"], gate })).res.status).toBe(200);
+    expect(env()).not.toContain("GOOD=1");
+    expect(env()).toContain("KEEP=yes");
+    docker("rm", "-f", "-v", name);
+  });
+
   it("opens a real tunnel between two networks and only that port crosses", async () => {
     await call("POST", "/networks", { name: `${PREFIX}b`, internal: true });
     const nets = (await call("GET", "/networks")).json as Net[];

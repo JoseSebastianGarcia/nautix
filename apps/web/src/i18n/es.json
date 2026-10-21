@@ -341,7 +341,8 @@
     "portNotPublished": "Ese puerto no está publicado por el contenedor",
     "guardLockout": "Estas reglas cortarían tu propio acceso: tu dirección no está en la lista permitida",
     "guardLockoutSelf": "Una de estas reglas protege al propio Nautix",
-    "guardNoTrial": "No hay ningún cambio esperando confirmación"
+    "guardNoTrial": "No hay ningún cambio esperando confirmación",
+    "applyUnhealthy": "El contenedor nuevo no arrancó bien, así que se restauró el anterior"
   },
   "terminal": {
     "title": "Terminal",
@@ -1120,5 +1121,17 @@
     "note": "Las reglas valen para el tráfico que Docker reenvía a puertos publicados (cadena DOCKER-USER). Con Docker Desktop o Docker sin root el ayudante no llega al firewall del host.",
     "preview": "Ver los comandos del firewall",
     "backend": "Firewall"
+  },
+  "env": {
+    "title": "Entorno de {{name}}",
+    "variables": "Variables",
+    "recreate": "Docker no puede cambiar las variables de un contenedor en ejecución, así que se recrea con la misma configuración (una breve interrupción). El nuevo tiene que mantenerse en pie (o pasar su health check) o se restaura el anterior.",
+    "edit": "Editar entorno",
+    "done": "Entorno aplicado",
+    "applying": "Aplicando…",
+    "apply": "Aplicar {{count}} cambio(s)"
+  },
+  "apply": {
+    "rolledBack": "El cambio se deshizo: el contenedor anterior volvió a ejecutarse."
   }
 }

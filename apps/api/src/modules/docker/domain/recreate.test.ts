@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type InspectedContainer, planRebind } from "./rebind-ports.js";
+import { type InspectedContainer, planRebind, planRecreate } from "./recreate.js";
 
 const base = (): InspectedContainer => ({
   Id: "abcdef1234567890",
@@ -86,5 +86,49 @@ describe("planRebind", () => {
     expect(() =>
       planRebind(base(), [{ containerPort: 443, protocol: "tcp", hostIp: "0.0.0.0" }]),
     ).toThrow(/not published/);
+  });
+});
+
+describe("planRecreate", () => {
+  const port = [{ containerPort: 80, protocol: "tcp" as const, hostIp: "127.0.0.1" }];
+
+  it("sets, replaces and removes environment variables and keeps the rest in order", () => {
+    const old = base();
+    old.Config.Env = ["A=1", "B=2", "KEEP=yes"];
+    const plan = planRecreate(old, { env: { B: "two", C: "3", A: null } });
+    expect((plan.createBody as { Env: string[] }).Env).toEqual(["KEEP=yes", "B=two", "C=3"]);
+  });
+
+  it("leaves the environment alone when the change has none", () => {
+    const old = base();
+    old.Config.Env = ["A=1"];
+    expect((planRecreate(old, { ports: port }).createBody as { Env: string[] }).Env).toEqual([
+      "A=1",
+    ]);
+  });
+
+  it("creates the environment of a container that had none", () => {
+    const old = base();
+    old.Config.Env = null as never;
+    expect((planRecreate(old, { env: { X: "1" } }).createBody as { Env: string[] }).Env).toEqual([
+      "X=1",
+    ]);
+  });
+
+  it("joins extra networks once and ignores the ones it is already on", () => {
+    const plan = planRecreate(base(), { joinNetworks: ["data", "data", "app", "db"] });
+    expect(plan.extraNetworks.map((n) => n.name)).toEqual(["db", "data"]);
+  });
+
+  it("combines ports, env and networks in one recreate", () => {
+    const plan = planRecreate(base(), {
+      ports: [{ containerPort: 80, protocol: "tcp", hostIp: "0.0.0.0" }],
+      env: { MODE: "x" },
+      joinNetworks: ["data"],
+    });
+    const host = plan.createBody.HostConfig as { PortBindings: unknown };
+    expect(host.PortBindings).toEqual({ "80/tcp": [{ HostIp: "0.0.0.0", HostPort: "32768" }] });
+    expect((plan.createBody as { Env: string[] }).Env).toContain("MODE=x");
+    expect(plan.extraNetworks.map((n) => n.name)).toContain("data");
   });
 });

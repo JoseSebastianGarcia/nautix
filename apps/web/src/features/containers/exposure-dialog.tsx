@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
 import { keys } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
+import { ApplyFailure } from "../../components/apply-failure.js";
 import { Button, Dialog, Field, Input } from "../../components/ui.js";
 
 export interface ExposureTarget {
@@ -106,6 +107,7 @@ function ExposureForm({ target, onClose }: { target: ExposureTarget; onClose: ()
       )}
       {kind === "open" && <p className="text-xs text-amber">{t("topology.exposeWarning")}</p>}
       <p className="text-xs text-dim">{t("exposure.recreate")}</p>
+      <ApplyFailure error={save.error} />
       <div className="flex justify-end gap-2">
         <Button type="button" onClick={onClose}>
           {t("common.cancel")}

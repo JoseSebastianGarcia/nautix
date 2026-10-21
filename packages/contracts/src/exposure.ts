@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Container } from "./docker.js";
 import { isIpAddress } from "./ip.js";
+import { ApplyGate } from "./recreate.js";
 
 /** Who can reach a published port: the address it is bound to on the host. */
 export const Exposure = z.discriminatedUnion("kind", [
@@ -42,6 +43,7 @@ export const ChangeExposure = z.object({
     )
     .min(1)
     .max(100),
+  gate: ApplyGate.optional(),
 });
 export type ChangeExposure = z.infer<typeof ChangeExposure>;
 

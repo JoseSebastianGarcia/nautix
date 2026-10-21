@@ -26,6 +26,7 @@ import { cli } from "../../app/cli.js";
 import { keys, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog, ShowCommand } from "../../components/ui.js";
+import { EnvDialog } from "../containers/env-dialog.js";
 import { ExposureDialog, type ExposureTarget } from "../containers/exposure-dialog.js";
 import type { ExportTarget } from "./export-dialog.js";
 import { LogoBadge } from "./logo-badge.js";
@@ -98,6 +99,7 @@ function ContainerInspector({
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [exposing, setExposing] = useState<ExposureTarget | null>(null);
+  const [editingEnv, setEditingEnv] = useState(false);
   const refresh = [keys.containers, keys.networks];
 
   const isAdmin = useIsAdmin();
@@ -278,6 +280,15 @@ function ContainerInspector({
         </ul>
         <ExposureDialog target={exposing} onClose={() => setExposing(null)} />
       </section>
+
+      {!locked && (
+        <section>
+          <Button write onClick={() => setEditingEnv(true)}>
+            {t("env.edit")}
+          </Button>
+          <EnvDialog container={editingEnv ? c : null} onClose={() => setEditingEnv(false)} />
+        </section>
+      )}
 
       <section>
         <Button onClick={() => setShowLogs((v) => !v)}>{t("topology.logs")}</Button>

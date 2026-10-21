@@ -23,7 +23,7 @@ import type {
   WaitResult,
 } from "@nautix/contracts";
 import type { EngineContainerSpec } from "../../domain/container-spec.js";
-import type { PortRebind } from "../../domain/rebind-ports.js";
+import type { ContainerChange, RecreateGate } from "../../domain/recreate.js";
 
 export type InspectKind = "container" | "image" | "volume" | "network";
 
@@ -56,10 +56,15 @@ export abstract class DockerEngine {
   abstract inspectContainers(ids: string[]): Promise<ContainerDetails[]>;
   abstract createContainer(spec: EngineContainerSpec): Promise<{ id: string }>;
   /**
-   * Recreates the container identically except for the host address of some published ports
-   * (Docker cannot rebind a live port). Puts the original back if the new one cannot start.
+   * Recreates the container identically except for `change` (Docker cannot edit a live container's
+   * environment, ports or networks). The new one must pass the gate before the old one is dropped;
+   * otherwise the original is put back and the call fails with `errors.applyUnhealthy`.
    */
-  abstract rebindPorts(id: string, changes: PortRebind[]): Promise<void>;
+  abstract recreateContainer(
+    id: string,
+    change: ContainerChange,
+    gate?: RecreateGate,
+  ): Promise<void>;
   abstract containerAction(
     id: string,
     action: ContainerAction,

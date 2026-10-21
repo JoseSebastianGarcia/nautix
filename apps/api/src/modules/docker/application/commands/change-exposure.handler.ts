@@ -8,7 +8,7 @@ import { ChangeExposureCommand } from "./change-exposure.command.js";
 
 /**
  * Changes the host address of published ports. Docker cannot rebind a live port, so the container is
- * recreated with the same settings (see `DockerEngine.rebindPorts`): a short interruption, and the
+ * recreated with the same settings (see `DockerEngine.recreateContainer`): a short interruption, and the
  * original comes back if the new one cannot start.
  */
 @CommandHandler(ChangeExposureCommand)
@@ -18,7 +18,7 @@ export class ChangeExposureHandler implements ICommandHandler<ChangeExposureComm
     @Inject(SelfGuard) private readonly guard: SelfGuard,
   ) {}
 
-  async execute({ containerId, ports }: ChangeExposureCommand): Promise<void> {
+  async execute({ containerId, ports, gate }: ChangeExposureCommand): Promise<void> {
     await this.guard.assertNotSelf(containerId);
     const container = (await this.engine.listContainers()).find(
       (c) => c.id === containerId || c.name === containerId,
@@ -28,13 +28,16 @@ export class ChangeExposureHandler implements ICommandHandler<ChangeExposureComm
     for (const p of ports)
       if (!published.has(`${p.containerPort}/${p.protocol}`))
         throw new ValidationError("that port is not published", "errors.portNotPublished");
-    await this.engine.rebindPorts(
+    await this.engine.recreateContainer(
       container.id,
-      ports.map((p) => ({
-        containerPort: p.containerPort,
-        protocol: p.protocol,
-        hostIp: bindAddressOf(p.exposure),
-      })),
+      {
+        ports: ports.map((p) => ({
+          containerPort: p.containerPort,
+          protocol: p.protocol,
+          hostIp: bindAddressOf(p.exposure),
+        })),
+      },
+      gate,
     );
   }
 }
