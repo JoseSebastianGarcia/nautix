@@ -1136,5 +1136,43 @@
   },
   "apply": {
     "rolledBack": "El cambio se deshizo: el contenedor anterior volvió a ejecutarse."
+  },
+  "bindings": {
+    "dragHint": "Arrastrá hasta otro contenedor para vincularlos",
+    "title": "Vincular {{app}} con {{service}}",
+    "name": "Nombre",
+    "nameHint": "Nombra las variables, por ejemplo ConnectionStrings__Orders u ORDERS_URL.",
+    "style": "Formato",
+    "styles": {
+      "dotnet": "Cadena de conexión .NET",
+      "url": "URL"
+    },
+    "cannot": "Todavía no se pueden vincular. Revisá que el servicio esté en una red que hayas creado.",
+    "kindIs": "Un servicio {{kind}}",
+    "kinds": {
+      "postgres": "PostgreSQL",
+      "mysql": "MySQL",
+      "mariadb": "MariaDB",
+      "redis": "Redis",
+      "mongodb": "MongoDB",
+      "sqlserver": "SQL Server",
+      "rabbitmq": "RabbitMQ",
+      "http": "HTTP"
+    },
+    "joins": "{{app}} se une a la red {{network}}",
+    "shares": "ya comparten {{network}}",
+    "secretNote": "La contraseña del servicio se copia al entorno de la app, así que quien pueda inspeccionarla la puede leer. Acá se muestran enmascaradas.",
+    "recreate": "La app se recrea para recibir los datos; si no queda sana, se restaura la anterior y no se vincula nada.",
+    "bind": "Vincular",
+    "done": "Vinculado",
+    "section": "Vínculos",
+    "uses": "usa {{service}} ({{kind}})",
+    "usedBy": "la usa {{app}} ({{kind}})",
+    "reapply": "Reaplicar",
+    "reapplied": "Datos actualizados",
+    "remove": "Desvincular",
+    "removed": "Desvinculado",
+    "removeTitle": "¿Quitar este vínculo?",
+    "removeBody": "{{app}} pierde {{variables}} y se recrea. La red a la que se unió se mantiene."
   }
 }

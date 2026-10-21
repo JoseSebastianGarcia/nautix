@@ -1,4 +1,5 @@
 import {
+  type Binding,
   type Container,
   type Layout,
   type Network,
@@ -20,7 +21,7 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileDown, LayoutGrid } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,9 +37,17 @@ import {
 } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
+import { BindingDialog, type BindTarget } from "../bindings/binding-dialog.js";
 import { DeployDialog, type DeployTarget } from "./deploy-dialog.js";
 import { ExportDialog, type ExportTarget } from "./export-dialog.js";
-import { type FlowNode, nodeTypes, toEdges, toNodes, tunnelEdges } from "./flow-graph.js";
+import {
+  bindingEdges,
+  type FlowNode,
+  nodeTypes,
+  toEdges,
+  toNodes,
+  tunnelEdges,
+} from "./flow-graph.js";
 import { Inspector, type Selection } from "./inspector.js";
 import {
   EXTERNAL_ID,
@@ -57,6 +66,7 @@ import { TunnelDialog, type TunnelTarget } from "./tunnel-dialog.js";
 const NO_CONTAINERS: Container[] = [];
 const NO_NETWORKS: Network[] = [];
 const NO_TEMPLATES: Template[] = [];
+const NO_BINDINGS: Binding[] = [];
 const EMPTY_LAYOUT: Layout = { zones: {}, nodes: {} };
 
 interface PendingMove {
@@ -105,11 +115,16 @@ function Canvas() {
   const [resetting, setResetting] = useState(false);
   const [tunnelTarget, setTunnelTarget] = useState<TunnelTarget | null>(null);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  const [bindTarget, setBindTarget] = useState<BindTarget | null>(null);
+  const { data: bindings = NO_BINDINGS } = useQuery({
+    queryKey: keys.bindings,
+    queryFn: api.bindings,
+  });
 
   // Re-sync from engine data whenever it changes (drag offsets are intentionally discarded).
   const fitted = useRef(false);
   useEffect(() => {
-    setNodes(toNodes(topology, services, isAdmin, isAdmin));
+    setNodes(toNodes(topology, services, isAdmin, isAdmin, isAdmin));
     if (!fitted.current && containers.length > 0) {
       fitted.current = true;
       requestAnimationFrame(() => void flow.fitView({ padding: 0.1, maxZoom: 1 }));
@@ -117,7 +132,7 @@ function Canvas() {
   }, [topology, services, containers.length, flow, isAdmin]);
 
   const relayout = useCallback(
-    () => setNodes(toNodes(topology, services, isAdmin, isAdmin)),
+    () => setNodes(toNodes(topology, services, isAdmin, isAdmin, isAdmin)),
     [topology, services, isAdmin],
   );
 
@@ -201,18 +216,27 @@ function Canvas() {
     () => [
       ...toEdges(topology),
       ...tunnelEdges(tunnels, networks, selection?.kind === "tunnel" ? selection.id : undefined),
+      ...bindingEdges(bindings, containers),
     ],
-    [topology, tunnels, networks, selection],
+    [topology, tunnels, networks, selection, bindings, containers],
   );
 
   // Dragging from one box's dot to another's opens the tunnel dialog.
   const onConnect = useCallback(
     (c: Connection) => {
+      // App → service: bind them.
+      if (c.source.startsWith("c:") && c.target.startsWith("c:")) {
+        const consumer = containers.find((x) => `c:${x.id}` === c.source);
+        const provider = containers.find((x) => `c:${x.id}` === c.target);
+        if (consumer && provider && consumer.id !== provider.id)
+          setBindTarget({ consumer, provider });
+        return;
+      }
       const from = networks.find((n) => `z:${n.id}` === c.source);
       const to = networks.find((n) => `z:${n.id}` === c.target);
       if (from && to && from.id !== to.id) setTunnelTarget({ from, to });
     },
-    [networks],
+    [networks, containers],
   );
 
   const label = (n: Network | null) => n?.name ?? t("topology.external");
@@ -277,6 +301,7 @@ function Canvas() {
         selection={selection}
         containers={containers}
         networks={networks}
+        bindings={bindings}
         onClearSelection={() => setSelection(null)}
         onExport={setExporting}
       />
@@ -295,6 +320,7 @@ function Canvas() {
         containers={containers}
         onClose={() => setTunnelTarget(null)}
       />
+      <BindingDialog target={bindTarget} onClose={() => setBindTarget(null)} />
       <ExportDialog target={exporting} onClose={() => setExporting(null)} />
       <NetworkDialog open={newNetwork} onClose={() => setNewNetwork(false)} />
       <ConfirmDialog

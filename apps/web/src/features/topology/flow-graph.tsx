@@ -1,4 +1,4 @@
-import type { Container, Network, TunnelInfo } from "@nautix/contracts";
+import type { Binding, Container, Network, TunnelInfo } from "@nautix/contracts";
 import type { Edge } from "@xyflow/react";
 import { NODE_H, NODE_W, type Topology } from "./layout.js";
 import { type ContainerFlowNode, ContainerNode, type ZoneFlowNode, ZoneNode } from "./nodes.js";
@@ -12,6 +12,7 @@ export const toNodes = (
   containers: Container[],
   draggableZones: boolean,
   canTunnel = false,
+  canBind = false,
 ): FlowNode[] => {
   const byId = new Map(containers.map((c) => [c.id, c]));
   const zones: ZoneFlowNode[] = topology.zones.map((z) => ({
@@ -35,7 +36,7 @@ export const toNodes = (
             // Children are positioned relative to their box, so dragging a box moves them with it.
             parentId: `z:${p.zoneId}`,
             position: { x: p.x - zone.x, y: p.y - zone.y },
-            data: { container },
+            data: { container, canBind },
             zIndex: 1,
             width: NODE_W,
             height: NODE_H,
@@ -83,6 +84,37 @@ export const tunnelEdges = (
           strokeWidth: selectedId === t.containerId ? 4 : 2.5,
         },
         markerEnd: { type: "arrowclosed" as const, color: "var(--nx-cyan)" },
+      },
+    ];
+  });
+
+/** One line per binding, from the app to the service it uses, labelled with the kind of service. */
+export const bindingEdges = (
+  bindings: Binding[],
+  containers: Container[],
+  selectedId?: string,
+): Edge[] =>
+  bindings.flatMap((b) => {
+    const consumer = containers.find((c) => c.name === b.consumer);
+    const provider = containers.find((c) => c.name === b.provider);
+    if (!consumer || !provider) return [];
+    return [
+      {
+        id: `b:${b.id}`,
+        source: `c:${consumer.id}`,
+        target: `c:${provider.id}`,
+        sourceHandle: "bind",
+        targetHandle: "bind",
+        label: b.kind,
+        labelStyle: { fill: "var(--nx-text)", fontFamily: "var(--font-mono)", fontSize: 11 },
+        labelBgStyle: { fill: "var(--nx-bg-1)", stroke: "var(--nx-line)" },
+        labelBgPadding: [6, 3] as [number, number],
+        labelBgBorderRadius: 6,
+        style: {
+          stroke: "var(--nx-accent)",
+          strokeWidth: selectedId === b.id ? 4 : 2.5,
+        },
+        markerEnd: { type: "arrowclosed" as const, color: "var(--nx-accent)" },
       },
     ];
   });

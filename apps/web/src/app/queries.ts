@@ -11,6 +11,7 @@ export const keys = {
   layout: ["layout"],
   catalog: ["catalog"],
   composeProjects: ["compose-projects"],
+  bindings: ["bindings"],
 } as const;
 
 /** Live updates come from the SSE stream; polling is only a slow safety net. */

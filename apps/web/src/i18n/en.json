@@ -1136,5 +1136,43 @@
   },
   "apply": {
     "rolledBack": "The change was rolled back: the previous container is running again."
+  },
+  "bindings": {
+    "dragHint": "Drag to another container to bind them",
+    "title": "Bind {{app}} to {{service}}",
+    "name": "Name",
+    "nameHint": "Names the settings, for example ConnectionStrings__Orders or ORDERS_URL.",
+    "style": "Format",
+    "styles": {
+      "dotnet": ".NET connection string",
+      "url": "URL"
+    },
+    "cannot": "These two cannot be bound yet. Check that the service is on a network you created.",
+    "kindIs": "A {{kind}} service",
+    "kinds": {
+      "postgres": "PostgreSQL",
+      "mysql": "MySQL",
+      "mariadb": "MariaDB",
+      "redis": "Redis",
+      "mongodb": "MongoDB",
+      "sqlserver": "SQL Server",
+      "rabbitmq": "RabbitMQ",
+      "http": "HTTP"
+    },
+    "joins": "{{app}} will join the network {{network}}",
+    "shares": "they already share {{network}}",
+    "secretNote": "The service's password is copied into the app's environment, so anyone who can inspect the app can read it. Passwords are masked here.",
+    "recreate": "The app is recreated to receive the settings; if it does not come up healthy, the previous one is put back and nothing is bound.",
+    "bind": "Bind",
+    "done": "Bound",
+    "section": "Bindings",
+    "uses": "uses {{service}} ({{kind}})",
+    "usedBy": "used by {{app}} ({{kind}})",
+    "reapply": "Re-apply",
+    "reapplied": "Settings updated",
+    "remove": "Unbind",
+    "removed": "Unbound",
+    "removeTitle": "Remove this binding?",
+    "removeBody": "{{app}} loses {{variables}} and is recreated. The network it joined stays."
   }
 }

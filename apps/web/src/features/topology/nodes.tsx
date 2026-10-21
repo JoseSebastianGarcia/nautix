@@ -5,7 +5,10 @@ import { useTranslation } from "react-i18next";
 import { NODE_H, NODE_W } from "./layout.js";
 import { LogoBadge } from "./logo-badge.js";
 
-export type ContainerNodeData = { container: Container } & Record<string, unknown>;
+export type ContainerNodeData = { container: Container; canBind?: boolean } & Record<
+  string,
+  unknown
+>;
 export type ZoneNodeData = {
   network: Network | null;
   count: number;
@@ -19,6 +22,14 @@ export type ZoneFlowNode = Node<ZoneNodeData, "zone">;
 
 // Handles only anchor edges (extra networks, depends_on); they are not interactive, so they stay invisible.
 const HIDDEN_HANDLE = { opacity: 0, pointerEvents: "none" as const };
+
+/** A small dot on the node's edge: drag from an app's dot to a service's dot to bind them. */
+const BIND_HANDLE = {
+  width: 12,
+  height: 12,
+  background: "var(--nx-accent)",
+  border: "2px solid var(--nx-bg-1)",
+} as const;
 
 const STATE_COLOR: Record<string, string> = {
   running: "bg-ok",
@@ -40,13 +51,22 @@ export function ContainerNode({ data, selected }: NodeProps<ContainerFlowNode>) 
   const { t } = useTranslation();
   const c = data.container;
   const exposed = isPubliclyBound(c);
+  // Nautix itself is locked, and viewers cannot change anything.
+  const bindable = data.canBind === true && !c.isSelf;
   const published = c.ports.filter((p) => p.publicPort !== undefined);
   return (
     <div
       style={{ width: NODE_W, height: NODE_H, boxShadow: selected ? "var(--nx-glow)" : undefined }}
       className="flex items-center gap-3 rounded-xl border border-line bg-bg1 px-3"
     >
-      <Handle type="target" position={Position.Left} isConnectable={false} style={HIDDEN_HANDLE} />
+      <Handle
+        id="bind"
+        type="target"
+        position={Position.Left}
+        isConnectable={bindable}
+        style={bindable ? BIND_HANDLE : HIDDEN_HANDLE}
+        aria-label={t("bindings.dragHint")}
+      />
       <LogoBadge image={c.image} name={c.name} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -79,7 +99,14 @@ export function ContainerNode({ data, selected }: NodeProps<ContainerFlowNode>) 
           )}
         </div>
       </div>
-      <Handle type="source" position={Position.Right} isConnectable={false} style={HIDDEN_HANDLE} />
+      <Handle
+        id="bind"
+        type="source"
+        position={Position.Right}
+        isConnectable={bindable}
+        style={bindable ? BIND_HANDLE : HIDDEN_HANDLE}
+        aria-label={t("bindings.dragHint")}
+      />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import {
+  type Binding,
   type Container,
   type ContainerAction,
   exposureOf,
@@ -26,6 +27,7 @@ import { cli } from "../../app/cli.js";
 import { keys, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog, ShowCommand } from "../../components/ui.js";
+import { BindingsSection } from "../bindings/bindings-section.js";
 import { EnvDialog } from "../containers/env-dialog.js";
 import { ExposureDialog, type ExposureTarget } from "../containers/exposure-dialog.js";
 import type { ExportTarget } from "./export-dialog.js";
@@ -41,12 +43,14 @@ export function Inspector({
   selection,
   containers,
   networks,
+  bindings,
   onClearSelection,
   onExport,
 }: {
   selection: Selection;
   containers: Container[];
   networks: Network[];
+  bindings: Binding[];
   onClearSelection: () => void;
   onExport: (target: ExportTarget) => void;
 }) {
@@ -69,7 +73,12 @@ export function Inspector({
       </h2>
       {tunnel && <TunnelInspector tunnel={tunnel} onGone={onClearSelection} />}
       {container && (
-        <ContainerInspector container={container} networks={networks} onGone={onClearSelection} />
+        <ContainerInspector
+          container={container}
+          networks={networks}
+          bindings={bindings}
+          onGone={onClearSelection}
+        />
       )}
       {network && (
         <NetworkInspector
@@ -89,10 +98,12 @@ export function Inspector({
 function ContainerInspector({
   container: c,
   networks,
+  bindings,
   onGone,
 }: {
   container: Container;
   networks: Network[];
+  bindings: Binding[];
   onGone: () => void;
 }) {
   const { t } = useTranslation();
@@ -280,6 +291,8 @@ function ContainerInspector({
         </ul>
         <ExposureDialog target={exposing} onClose={() => setExposing(null)} />
       </section>
+
+      <BindingsSection container={c} bindings={bindings} />
 
       {!locked && (
         <section>

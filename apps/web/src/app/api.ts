@@ -1,5 +1,7 @@
 import type {
   ApiTokenInfo,
+  Binding,
+  BindingPlan,
   BuildRequest,
   ChangeExposure,
   CommitContainer,
@@ -11,6 +13,7 @@ import type {
   ContainerAction,
   ContainerStats,
   ContainerTop,
+  CreateBindingInput,
   CreateContainerInput,
   CreateNetwork,
   CreateSwarmServiceInput,
@@ -162,6 +165,11 @@ export const api = {
   setEnv: (id: string, change: SetEnvInput) =>
     request<{ changed: string[] }>("PUT", `/containers/${id}/env`, change),
   exposure: () => request<ExposureEntry[]>("GET", "/exposure"),
+  bindings: () => request<Binding[]>("GET", "/bindings"),
+  planBinding: (b: CreateBindingInput) => request<BindingPlan>("POST", "/bindings/plan", b),
+  createBinding: (b: CreateBindingInput) => request<Binding>("POST", "/bindings", b),
+  reapplyBinding: (id: string) => request<Binding>("POST", `/bindings/${id}/apply`),
+  deleteBinding: (id: string) => request<void>("DELETE", `/bindings/${id}`),
   guardStatus: () => request<GuardStatus>("GET", "/guard"),
   saveGuardRules: (rules: GuardRule[], acknowledgeLockout: boolean) =>
     request<{ trialUntil: string | null }>("PUT", "/guard/rules", { rules, acknowledgeLockout }),
