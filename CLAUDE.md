@@ -14,7 +14,7 @@ Product of **Patterna** · SSPL-1.0 · UI in **English + Spanish** · **dark + l
 - Verify versions at M0; record in `docs/DECISIONS.md`.
 
 ## Spec index
-`00-product` · `01-architecture` · `02-docker-and-install` · `03-web` · `04-editors` · `05-commands` · `06-roadmap` · `07-port-guards` (all in `docs/spec/`).
+`00-product` · `01-architecture` · `02-docker-and-install` · `03-web` · `04-editors` · `05-commands` · `06-roadmap` · `07-port-guards` · `08-bindings-and-safe-apply` · `09-zone-spec` (all in `docs/spec/`). User-facing help lives in `apps/web/src/help/content/` (en + es): update the matching topic when a feature changes.
 
 ## Rules
 

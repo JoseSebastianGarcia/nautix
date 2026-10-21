@@ -3,6 +3,8 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsAdmin } from "../app/queries.js";
+import { HelpButton } from "../help/help-button.js";
+import type { TopicId } from "../help/topics.js";
 import { useToasts } from "./toast-store.js";
 
 type Variant = "primary" | "ghost" | "danger";
@@ -64,11 +66,14 @@ export function Dialog({
   open,
   onClose,
   title,
+  help,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  /** Help topic behind a small "?" next to the title. */
+  help?: TopicId;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -87,7 +92,10 @@ export function Dialog({
     >
       {open && (
         <div className="flex flex-col gap-4 p-6">
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">{title}</h2>
+            {help && <HelpButton topic={help} />}
+          </div>
           {children}
         </div>
       )}

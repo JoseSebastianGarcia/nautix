@@ -1222,5 +1222,13 @@
       "removesService": "{{service}} is running but is not in the document.",
       "nameTakenOutside": "The name {{service}} belongs to a container outside this zone."
     }
+  },
+  "help": {
+    "title": "Help",
+    "open": "Help",
+    "search": "Search the help",
+    "allTopics": "All topics",
+    "thisPage": "About this page",
+    "noResults": "No topic matches your search"
   }
 }

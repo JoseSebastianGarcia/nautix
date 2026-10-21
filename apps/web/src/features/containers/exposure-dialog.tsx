@@ -33,6 +33,7 @@ export function ExposureDialog({
       open={target !== null}
       onClose={onClose}
       title={t("exposure.title", { port: target?.hostPort ?? "" })}
+      help="guards"
     >
       {/* The dialog only renders its children while open, so the form starts fresh each time. */}
       {target && <ExposureForm target={target} onClose={onClose} />}

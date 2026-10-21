@@ -1222,5 +1222,13 @@
       "removesService": "{{service}} está corriendo pero no está en el documento.",
       "nameTakenOutside": "El nombre {{service}} pertenece a un contenedor fuera de esta zona."
     }
+  },
+  "help": {
+    "title": "Ayuda",
+    "open": "Ayuda",
+    "search": "Buscar en la ayuda",
+    "allTopics": "Todos los temas",
+    "thisPage": "Sobre esta página",
+    "noResults": "Ningún tema coincide con la búsqueda"
   }
 }

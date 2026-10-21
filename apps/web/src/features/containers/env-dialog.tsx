@@ -33,6 +33,7 @@ export function EnvDialog({
       open={container !== null}
       onClose={onClose}
       title={t("env.title", { name: container?.name ?? "" })}
+      help="safe-apply"
     >
       {container && <EnvForm container={container} onClose={onClose} />}
     </Dialog>

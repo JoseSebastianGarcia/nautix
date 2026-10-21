@@ -5,6 +5,9 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Logo } from "../components/logo.js";
 import { Select } from "../components/select.js";
 import { ChangePasswordDialog } from "../features/auth/password-dialogs.js";
+import { HelpButton } from "../help/help-button.js";
+import { HelpPanel } from "../help/help-panel.js";
+import { topicForPath } from "../help/topics.js";
 import { LANGUAGES, type Language, setLanguage } from "../i18n/index.js";
 import { type ThemeChoice, useTheme } from "../theme/theme-store.js";
 import { api } from "./api.js";
@@ -92,6 +95,7 @@ export function Shell() {
           >
             <KeyRound size={16} />
           </button>
+          <HelpButton topic={topicForPath(pathname)} size={16} />
           {session?.role === "admin" && (
             <NavLink
               to="/settings"
@@ -113,6 +117,7 @@ export function Shell() {
           </button>
         </div>
       </header>
+      <HelpPanel />
       <ChangePasswordDialog open={changingPassword} onClose={() => setChangingPassword(false)} />
       {isResourcePath(pathname) && (
         <nav

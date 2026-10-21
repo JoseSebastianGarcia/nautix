@@ -38,6 +38,7 @@ export function BindingDialog({
           ? t("bindings.title", { app: target.consumer.name, service: target.provider.name })
           : ""
       }
+      help="bindings"
     >
       {target && <BindingForm target={target} onClose={onClose} />}
     </Dialog>
