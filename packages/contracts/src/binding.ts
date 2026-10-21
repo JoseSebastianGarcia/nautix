@@ -68,3 +68,9 @@ export interface BindingPlan {
   /** Applying recreates the consumer (behind the health gate). */
   recreates: true;
 }
+
+/** The name a binding gets when none is given: the provider's name, letters and numbers only. */
+export const defaultBindingName = (provider: string): string => {
+  const clean = provider.replace(/[^A-Za-z0-9]/g, "");
+  return /^[A-Za-z]/.test(clean) ? clean : `Svc${clean}`;
+};

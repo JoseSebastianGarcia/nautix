@@ -2,6 +2,7 @@ import {
   type Binding,
   type BindingStyle,
   bindingKind,
+  defaultBindingName,
   type Container,
   type Network,
 } from "@nautix/contracts";
@@ -57,7 +58,7 @@ export class BindingPlanner {
     if (consumer.isSelf || provider.isSelf)
       throw new ValidationError("Nautix itself cannot be bound", "errors.selfLocked");
     const kind = bindingKind(provider.image);
-    const name = input.name ?? provider.name.replace(/[^A-Za-z0-9]/g, "");
+    const name = input.name ?? defaultBindingName(provider.name);
     const providerEnv = envOf(
       await this.queries.execute<InspectQuery, unknown>(new InspectQuery("container", provider.id)),
     );
@@ -67,15 +68,9 @@ export class BindingPlanner {
       providerEnv,
       networks,
       kind,
-      name: /^[A-Za-z]/.test(name) ? name : `Svc${name}`,
+      name,
       style: input.style,
     });
-    return {
-      ...planned,
-      consumer,
-      provider,
-      kind,
-      name: /^[A-Za-z]/.test(name) ? name : `Svc${name}`,
-    };
+    return { ...planned, consumer, provider, kind, name };
   }
 }
