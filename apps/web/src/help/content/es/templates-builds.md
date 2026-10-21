@@ -8,6 +8,7 @@ Algunas categorías que conviene conocer:
 
 - **Identidad**: Keycloak, Pocket ID y Casdoor.
 - **Almacenamiento**: RustFS (compatible con S3), Azurite (Azure Blob) y fake-gcs-server (Google Cloud Storage).
+- **Proxies**: además de Traefik, Nginx, Caddy y HAProxy, **Caddy HTTPS (un sitio)** pone un certificado real delante de un servicio: indicá tu dominio y el destino en su comando (`--from vault.example.com --to vaultwarden:80`). Necesita un dominio público apuntando a la máquina y los puertos 80 y 443 abiertos a internet, así que sirve para un VPS, no para una notebook.
 - **Secretos**: Vaultwarden (gestor de contraseñas para equipos, compatible con Bitwarden), OpenBao, HashiCorp Vault y Lowkey Vault (Azure Key Vault). OpenBao y Vault tienen una variante con almacenamiento que puede guardar sus datos en un volumen para que sobrevivan a la recreación del contenedor.
 - **Mis imágenes**: lo que construiste o descargaste. **Cualquier imagen** despliega una imagen por nombre.
 

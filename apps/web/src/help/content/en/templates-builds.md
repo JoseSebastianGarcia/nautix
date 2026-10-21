@@ -8,6 +8,7 @@ Some categories worth knowing:
 
 - **Identity**: Keycloak, Pocket ID and Casdoor.
 - **Storage**: RustFS (S3-compatible), Azurite (Azure Blob) and fake-gcs-server (Google Cloud Storage).
+- **Proxies**: besides Traefik, Nginx, Caddy and HAProxy, **Caddy HTTPS (one site)** puts a real certificate in front of one service: set your domain and the target in its command (`--from vault.example.com --to vaultwarden:80`). It needs a public domain pointing at the machine and ports 80 and 443 open to the internet, so it fits a VPS, not a laptop.
 - **Secrets**: Vaultwarden (password manager for teams, Bitwarden-compatible), OpenBao, HashiCorp Vault and Lowkey Vault (Azure Key Vault). OpenBao and Vault have a variant with storage that can keep their data in a volume so it survives recreating the container.
 - **My images**: anything you built or pulled. **Any image** deploys an image by name.
 

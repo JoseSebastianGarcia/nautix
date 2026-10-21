@@ -83,6 +83,25 @@ export const TEMPLATES: readonly Template[] = [
     ports: [{ containerPort: 80, label: "http" }],
   },
   {
+    id: "caddy-https",
+    name: "Caddy HTTPS (one site)",
+    category: "proxy",
+    image: "caddy:2-alpine",
+    description:
+      "HTTPS with a real certificate in front of one service. Put your domain and the target in the command",
+    icon: "caddy",
+    color: "#1F88C0",
+    // Needs a public domain pointing at this machine and ports 80 and 443 reachable from the internet: Let's
+    // Encrypt checks the domain through port 80 and serves on 443. Publish both to all interfaces when deploying.
+    // Certificates are kept in /data, so recreating the container does not ask for new ones.
+    ports: [
+      { containerPort: 80, label: "http (certificate check)", hostPort: 80 },
+      { containerPort: 443, label: "https", hostPort: 443 },
+    ],
+    command: ["caddy", "reverse-proxy", "--from", "vault.example.com", "--to", "vaultwarden:80"],
+    volumes: ["/data"],
+  },
+  {
     id: "haproxy",
     name: "HAProxy",
     category: "proxy",
@@ -451,7 +470,7 @@ export const TEMPLATES: readonly Template[] = [
     category: "secrets",
     image: "vaultwarden/server:1.37.4",
     description:
-      "Password and secrets manager for teams (Bitwarden-compatible). Bitwarden apps need HTTPS outside localhost",
+      "Password and secrets manager for teams (Bitwarden-compatible). Needs HTTPS outside localhost: put Caddy HTTPS in front",
     icon: "vaultwarden",
     color: "#175DDC",
     ports: [{ containerPort: 80, label: "web", hostPort: 8222 }],
