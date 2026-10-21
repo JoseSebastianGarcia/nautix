@@ -342,7 +342,10 @@
     "guardLockout": "These rules would cut your own access: your address is not in the allowed list",
     "guardLockoutSelf": "One of these rules guards Nautix itself",
     "guardNoTrial": "There is no change waiting for confirmation",
-    "applyUnhealthy": "The new container did not start properly, so the previous one was put back"
+    "applyUnhealthy": "The new container did not start properly, so the previous one was put back",
+    "bindingNeedsNetwork": "The service is only on the default network: put it on a network you created first",
+    "bindingSelf": "A container cannot be bound to itself",
+    "bindingExists": "This app already has a binding with that name"
   },
   "terminal": {
     "title": "Terminal",

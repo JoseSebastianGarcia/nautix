@@ -371,13 +371,15 @@ export class DockerSocketEngine extends DockerEngine {
       "GET",
       `/containers/${encodeURIComponent(id)}/json`,
     );
+    // From here on the container is addressed by its id: its name moves to the new one.
+    const oldId = old.Id;
     const name = old.Name.replace(/^\//, "");
     const plan = planRecreate(old, change);
     const wasRunning = old.State.Running;
     const parked = `${name}-nautix-old-${Date.now().toString(36)}`;
 
-    if (wasRunning) await this.send("POST", `/containers/${encodeURIComponent(id)}/stop?t=10`);
-    await this.renameContainer(id, parked);
+    if (wasRunning) await this.send("POST", `/containers/${oldId}/stop?t=10`);
+    await this.renameContainer(oldId, parked);
     let created: string | undefined;
     try {
       created = (
@@ -400,16 +402,11 @@ export class DockerSocketEngine extends DockerEngine {
       // Put the original back exactly as it was.
       if (created)
         await this.send("DELETE", `/containers/${created}?force=true`).catch(() => undefined);
-      await this.renameContainer(id, name).catch(() => undefined);
-      if (wasRunning)
-        await this.send("POST", `/containers/${encodeURIComponent(id)}/start`).catch(
-          () => undefined,
-        );
+      await this.renameContainer(oldId, name).catch(() => undefined);
+      if (wasRunning) await this.send("POST", `/containers/${oldId}/start`).catch(() => undefined);
       throw error;
     }
-    await this.send("DELETE", `/containers/${encodeURIComponent(id)}?force=true`).catch(
-      () => undefined,
-    );
+    await this.send("DELETE", `/containers/${oldId}?force=true`).catch(() => undefined);
   }
 
   /** Waits until the new container has proven itself, or fails with why (and its last log lines). */

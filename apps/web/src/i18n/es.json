@@ -342,7 +342,10 @@
     "guardLockout": "Estas reglas cortarían tu propio acceso: tu dirección no está en la lista permitida",
     "guardLockoutSelf": "Una de estas reglas protege al propio Nautix",
     "guardNoTrial": "No hay ningún cambio esperando confirmación",
-    "applyUnhealthy": "El contenedor nuevo no arrancó bien, así que se restauró el anterior"
+    "applyUnhealthy": "El contenedor nuevo no arrancó bien, así que se restauró el anterior",
+    "bindingNeedsNetwork": "El servicio está solo en la red por defecto: primero ponelo en una red que hayas creado",
+    "bindingSelf": "Un contenedor no puede vincularse consigo mismo",
+    "bindingExists": "Esta app ya tiene un vínculo con ese nombre"
   },
   "terminal": {
     "title": "Terminal",

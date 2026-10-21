@@ -1,4 +1,5 @@
 export * from "./auth.js";
+export * from "./binding.js";
 export * from "./catalog.js";
 export * from "./dns.js";
 export * from "./docker.js";

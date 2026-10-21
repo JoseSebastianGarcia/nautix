@@ -120,6 +120,47 @@ describe("planRecreate", () => {
     expect(plan.extraNetworks.map((n) => n.name)).toEqual(["db", "data"]);
   });
 
+  it("makes a joined network the main one when the container was on the default bridge", () => {
+    const old = base();
+    old.HostConfig.NetworkMode = "bridge";
+    old.NetworkSettings.Networks = { bridge: { Aliases: null } };
+    const plan = planRecreate(old, { joinNetworks: ["data", "more"] });
+    expect((plan.createBody.HostConfig as { NetworkMode: string }).NetworkMode).toBe("data");
+    expect(plan.createBody.NetworkingConfig).toEqual({ EndpointsConfig: { data: {} } });
+    expect(plan.extraNetworks.map((n) => n.name)).toEqual(["bridge", "more"]);
+  });
+
+  it("does not try to reconnect a placeholder endpoint of a network that does not exist", () => {
+    const old = base();
+    old.HostConfig.NetworkMode = "bridge";
+    old.NetworkSettings.Networks = { bridge: { NetworkID: "" } };
+    const plan = planRecreate(old, { joinNetworks: ["data"] });
+    expect(plan.extraNetworks).toEqual([]);
+    expect((plan.createBody.HostConfig as { NetworkMode: string }).NetworkMode).toBe("data");
+  });
+
+  it("does not carry NetworkDisabled over when it joins a network", () => {
+    const old = base();
+    old.Config.NetworkDisabled = true;
+    expect(planRecreate(old, { joinNetworks: ["data"] }).createBody).not.toHaveProperty(
+      "NetworkDisabled",
+    );
+    expect(planRecreate(old, { env: { A: "1" } }).createBody).toHaveProperty(
+      "NetworkDisabled",
+      true,
+    );
+  });
+
+  it("keeps a user-defined main network when joining another", () => {
+    const plan = planRecreate(base(), { joinNetworks: ["data"] });
+    expect((plan.createBody.HostConfig as { NetworkMode: string }).NetworkMode).toBe("app");
+    expect(
+      Object.keys(
+        (plan.createBody.NetworkingConfig as { EndpointsConfig: object }).EndpointsConfig,
+      ),
+    ).toEqual(["app"]);
+  });
+
   it("combines ports, env and networks in one recreate", () => {
     const plan = planRecreate(base(), {
       ports: [{ containerPort: 80, protocol: "tcp", hostIp: "0.0.0.0" }],

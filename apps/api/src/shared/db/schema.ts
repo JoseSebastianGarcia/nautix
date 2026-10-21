@@ -75,4 +75,11 @@ export const MIGRATIONS: readonly Migration[] = [
       db.exec("CREATE TABLE IF NOT EXISTS guard_state (key TEXT PRIMARY KEY, json TEXT NOT NULL)");
     },
   },
+  {
+    version: 4,
+    name: "bindings",
+    up(db: Db) {
+      db.exec("CREATE TABLE IF NOT EXISTS bindings (id TEXT PRIMARY KEY, json TEXT NOT NULL)");
+    },
+  },
 ];

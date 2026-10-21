@@ -4,6 +4,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthController } from "./modules/auth/presentation/health.controller.js";
 import type { Restarter } from "./modules/backup/application/ports/backup-service.js";
 import { BackupModule } from "./modules/backup/backup.module.js";
+import { BindingsModule } from "./modules/bindings/bindings.module.js";
 import { CatalogModule } from "./modules/catalog/catalog.module.js";
 import { ComposeModule } from "./modules/compose/compose.module.js";
 import { DnsModule } from "./modules/dns/dns.module.js";
@@ -37,6 +38,7 @@ export class AppModule {
         PluginsModule.register(config),
         DnsModule.register(config),
         GuardModule.register(config),
+        BindingsModule.register(config),
         BackupModule.register(config, restarter),
       ],
       controllers: [HealthController],

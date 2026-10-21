@@ -1048,6 +1048,120 @@ describe("image tools and system commands", () => {
     );
   });
 
+  it("binds an app to a service: network, connection settings, safe apply, re-apply and removal", async () => {
+    const net = await call("POST", "/networks", { name: "bind-net", internal: false });
+    expect(net.res.status).toBe(201);
+    await call("POST", "/containers", {
+      name: "bind-db",
+      image: "postgres:16-alpine",
+      networkId: net.json.id,
+      env: { POSTGRES_USER: "app", POSTGRES_PASSWORD: "hunter2", POSTGRES_DB: "orders" },
+    });
+    await call("POST", "/containers", {
+      name: "bind-api",
+      image: "myorg/api:1",
+      networkId: null,
+      env: { KEEP: "yes" },
+    });
+    const envOf = async (name: string) => {
+      const id = ((await call("GET", "/containers")).json as { id: string; name: string }[]).find(
+        (c) => c.name === name,
+      )?.id;
+      const raw = (await call("GET", `/containers/${id}/inspect`)).json as {
+        Config: { Env: string[] };
+        NetworkSettings: { Networks: Record<string, unknown> };
+      };
+      return {
+        env: Object.fromEntries(
+          raw.Config.Env.map((e) => [e.slice(0, e.indexOf("=")), e.slice(e.indexOf("=") + 1)]),
+        ),
+        networks: Object.keys(raw.NetworkSettings.Networks),
+      };
+    };
+    const body = { consumer: "bind-api", provider: "bind-db", name: "Orders" };
+
+    // the plan changes nothing and never shows the password
+    const plan = await call("POST", "/bindings/plan", body);
+    expect(plan.res.status).toBe(200);
+    expect(plan.json).toMatchObject({
+      kind: "postgres",
+      network: "bind-net",
+      joins: true,
+      recreates: true,
+    });
+    expect(plan.json.variables[0].key).toBe("ConnectionStrings__Orders");
+    expect(JSON.stringify(plan.json)).not.toContain("hunter2");
+    expect(plan.json.variables[0].preview).toContain("Host=bind-db;Port=5432;Database=orders");
+    expect((await envOf("bind-api")).env.ConnectionStrings__Orders).toBeUndefined();
+
+    // create: the consumer joins the network and receives the real settings
+    const created = await call("POST", "/bindings", body);
+    expect(created.res.status).toBe(201);
+    expect(created.json).toMatchObject({
+      consumer: "bind-api",
+      provider: "bind-db",
+      kind: "postgres",
+      name: "Orders",
+      variables: ["ConnectionStrings__Orders"],
+    });
+    expect(JSON.stringify(created.json)).not.toContain("hunter2");
+    let api = await envOf("bind-api");
+    expect(api.env.ConnectionStrings__Orders).toBe(
+      "Host=bind-db;Port=5432;Database=orders;Username=app;Password=hunter2",
+    );
+    expect(api.env.KEEP).toBe("yes");
+    expect(api.networks).toContain("bind-net");
+    expect(((await call("GET", "/bindings")).json as unknown[]).length).toBe(1);
+
+    // the same name twice, itself, an unknown container and Nautix itself are refused
+    expect((await call("POST", "/bindings", body)).res.status).toBe(409);
+    expect(
+      (await call("POST", "/bindings", { consumer: "bind-api", provider: "bind-api" })).res.status,
+    ).toBe(422);
+    expect((await call("POST", "/bindings", { ...body, provider: "nope" })).res.status).toBe(404);
+    expect(
+      (await call("POST", "/bindings", { ...body, provider: "nautix", name: "Self" })).res.status,
+    ).toBe(422);
+    expect((await call("POST", "/bindings", { ...body, name: "bad name" })).res.status).toBe(422);
+
+    // a provider that is only on the default network cannot be reached by name
+    await call("POST", "/containers", { name: "bind-flat", image: "redis:7", networkId: null });
+    const flat = await call("POST", "/bindings", { consumer: "bind-api", provider: "bind-flat" });
+    expect(flat.res.status).toBe(422);
+    expect(flat.json.hintKey).toBe("errors.bindingNeedsNetwork");
+
+    // a binding whose apply fails is rolled back and never stored
+    const failing = await call("POST", "/bindings", {
+      consumer: "bind-api",
+      provider: "bind-db",
+      name: "NautixFakeFail",
+      style: "url",
+    });
+    expect(failing.res.status).toBe(409);
+    expect(failing.json.hintKey).toBe("errors.applyUnhealthy");
+    expect(((await call("GET", "/bindings")).json as unknown[]).length).toBe(1);
+    api = await envOf("bind-api");
+    expect(Object.keys(api.env).some((k) => k.startsWith("NAUTIX_FAKE_FAIL"))).toBe(false);
+
+    // the provider's password changes: re-applying brings the consumer up to date
+    expect(
+      (await call("PUT", "/containers/bind-db/env", { set: { POSTGRES_PASSWORD: "n3w" } })).res
+        .status,
+    ).toBe(200);
+    expect((await envOf("bind-api")).env.ConnectionStrings__Orders).toContain("Password=hunter2");
+    const again = await call("POST", `/bindings/${created.json.id}/apply`);
+    expect(again.res.status).toBe(200);
+    expect((await envOf("bind-api")).env.ConnectionStrings__Orders).toContain("Password=n3w");
+
+    // removing the binding removes exactly its variables
+    expect((await call("DELETE", `/bindings/${created.json.id}`)).res.status).toBe(204);
+    api = await envOf("bind-api");
+    expect(api.env.ConnectionStrings__Orders).toBeUndefined();
+    expect(api.env.KEEP).toBe("yes");
+    expect(((await call("GET", "/bindings")).json as unknown[]).length).toBe(0);
+    expect((await call("DELETE", `/bindings/${created.json.id}`)).res.status).toBe(404);
+  });
+
   it("shows who can reach each published port and changes it", async () => {
     await call("POST", "/containers", {
       name: "exp-web",

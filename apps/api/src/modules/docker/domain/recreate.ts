@@ -104,38 +104,64 @@ export const planRecreate = (old: InspectedContainer, change: ContainerChange): 
   for (const v of volumes)
     if (!targets.has(v.destination)) binds.push(`${v.name}:${v.destination}${v.rw ? "" : ":ro"}`);
 
-  const config: Record<string, unknown> & { Hostname?: string; Env?: string[] | null } = {
+  const config: Record<string, unknown> & {
+    Hostname?: string;
+    Env?: string[] | null;
+    NetworkDisabled?: boolean;
+  } = {
     ...old.Config,
   };
   if (config.Hostname === old.Id.slice(0, 12)) delete config.Hostname;
   if (change.env) config.Env = applyEnv(config.Env ?? [], change.env);
 
-  const networks = Object.entries(old.NetworkSettings.Networks);
-  const primaryName = old.HostConfig.NetworkMode ?? networks[0]?.[0];
+  // An endpoint with an empty NetworkID is a placeholder (no such network on this engine): not attached.
+  const networks = Object.entries(old.NetworkSettings.Networks).filter(
+    ([, n]) => n.NetworkID !== "",
+  );
+  const oldPrimaryName = old.HostConfig.NetworkMode ?? networks[0]?.[0];
   const endpoint = (n: InspectedContainer["NetworkSettings"]["Networks"][string]) => ({
     ...(n.Aliases ? { Aliases: n.Aliases.filter((a) => a !== old.Id.slice(0, 12)) } : {}),
     ...(n.IPAMConfig ? { IPAMConfig: n.IPAMConfig } : {}),
   });
-  const primary = networks.find(([name]) => name === primaryName) ?? networks[0];
   const known = new Set(networks.map(([name]) => name));
-  const joined = [...new Set(change.joinNetworks ?? [])]
-    .filter((name) => !known.has(name))
-    .map((name) => ({ name, endpoint: {} as Record<string, unknown> }));
+  const joined = [...new Set(change.joinNetworks ?? [])].filter((name) => !known.has(name));
+
+  // Docker's name resolution only works when the container's main network is a user-defined one.
+  // A container whose main network is the default bridge and that joins a network of its own gets
+  // that network as its main one, and keeps the bridge as an extra (so it still reaches the outside).
+  const onDefaultBridge = oldPrimaryName === "bridge" || oldPrimaryName === "default";
+  const promoted = onDefaultBridge ? joined[0] : undefined;
+  const primaryName = promoted ?? oldPrimaryName;
+  const primary = networks.find(([name]) => name === primaryName);
+  // A container that had no usable network (no default bridge on this engine) is inspected with
+  // NetworkDisabled; carried over, it would stay offline after joining one.
+  if (joined.length > 0) delete config.NetworkDisabled;
+
+  const extraNetworks = [
+    ...networks
+      .filter(([name]) => name !== primaryName)
+      .map(([name, n]) => ({ name, endpoint: endpoint(n) as Record<string, unknown> })),
+    ...joined
+      .filter((name) => name !== promoted)
+      .map((name) => ({ name, endpoint: {} as Record<string, unknown> })),
+  ];
+  const primaryEndpoint = primary ? endpoint(primary[1]) : {};
+  const hostConfig: Record<string, unknown> = {
+    ...old.HostConfig,
+    PortBindings: portBindings,
+    Binds: binds,
+    ...(promoted ? { NetworkMode: promoted } : {}),
+  };
 
   return {
     createBody: {
       ...config,
-      HostConfig: { ...old.HostConfig, PortBindings: portBindings, Binds: binds },
-      ...(primary
-        ? { NetworkingConfig: { EndpointsConfig: { [primary[0]]: endpoint(primary[1]) } } }
+      HostConfig: hostConfig,
+      ...(primaryName
+        ? { NetworkingConfig: { EndpointsConfig: { [primaryName]: primaryEndpoint } } }
         : {}),
     },
-    extraNetworks: [
-      ...networks
-        .filter(([name]) => name !== primary?.[0])
-        .map(([name, n]) => ({ name, endpoint: endpoint(n) })),
-      ...joined,
-    ],
+    extraNetworks,
   };
 };
 

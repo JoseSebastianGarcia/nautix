@@ -347,9 +347,9 @@ export class FakeDockerEngine extends DockerEngine {
   ): Promise<void> {
     const c = this.containers.get(id);
     if (!c) throw new NotFoundError("container not found", "errors.notFound");
-    // Test hook: a change that sets this variable makes the new container fail its gate, so the
+    // Test hook: a change that sets a variable starting with this makes the new container fail its gate, so the
     // original must be left exactly as it was.
-    if (change.env?.NAUTIX_FAKE_FAIL)
+    if (Object.keys(change.env ?? {}).some((k) => k.startsWith("NAUTIX_FAKE_FAIL")))
       throw new ConflictError(
         "the new container was not accepted: it exited (code 1)",
         "errors.applyUnhealthy",

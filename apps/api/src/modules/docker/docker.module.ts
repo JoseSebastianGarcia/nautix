@@ -22,6 +22,7 @@ import { PruneResourcesHandler } from "./application/commands/prune-resources.ha
 import { PullImageHandler } from "./application/commands/pull-image.handler.js";
 import { PushImageHandler } from "./application/commands/push-image.handler.js";
 import { PutArchiveHandler } from "./application/commands/put-archive.handler.js";
+import { RecreateContainerHandler } from "./application/commands/recreate-container.handler.js";
 import { RemoveContainerHandler } from "./application/commands/remove-container.handler.js";
 import { RemoveImageHandler } from "./application/commands/remove-image.handler.js";
 import { RemoveNetworkHandler } from "./application/commands/remove-network.handler.js";
@@ -113,6 +114,7 @@ const HANDLERS = [
   SetFixedIpHandler,
   ChangeExposureHandler,
   SetContainerEnvHandler,
+  RecreateContainerHandler,
   ApplyDnsHandler,
   LookupDnsHandler,
   BrowseVolumeHandler,

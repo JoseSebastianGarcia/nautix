@@ -25,8 +25,18 @@ let base: string;
 let dataDir: string;
 let cookie = "";
 
-const docker = (...args: string[]): string =>
-  execFileSync("docker", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+const docker = (...args: string[]): string => {
+  try {
+    return execFileSync("docker", args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  } catch (error) {
+    const stderr = (error as { stderr?: string }).stderr?.trim();
+    // Say why it failed, not just that it did.
+    throw new Error(`docker ${args.join(" ")}\n${stderr ?? String(error)}`);
+  }
+};
 
 const call = async (method: string, path: string, body?: unknown) => {
   const res = await fetch(`${base}/api/v1${path}`, {
@@ -362,6 +372,96 @@ describe("against a real Docker daemon", () => {
     expect(env()).not.toContain("GOOD=1");
     expect(env()).toContain("KEEP=yes");
     docker("rm", "-f", "-v", name);
+  });
+
+  it("binds an app to a real Postgres: joins the network, gets working settings and loses them on removal", async () => {
+    const image = "postgres:16-alpine";
+    try {
+      docker("image", "inspect", image);
+    } catch {
+      return; // image not available offline: nothing to verify
+    }
+    const net = await call("POST", "/networks", { name: `${PREFIX}bind`, internal: false });
+    expect(net.res.status).toBe(201);
+    const password = 'p@ss;w"rd 1';
+    const db = `${PREFIX}pg`;
+    const app = `${PREFIX}client`;
+    expect(
+      (
+        await call("POST", "/containers", {
+          name: db,
+          image,
+          networkId: net.json.id,
+          restartPolicy: "no",
+          env: { POSTGRES_USER: "app", POSTGRES_PASSWORD: password, POSTGRES_DB: "orders" },
+        })
+      ).res.status,
+    ).toBe(201);
+    expect(
+      (
+        await call("POST", "/containers", {
+          name: app,
+          image,
+          networkId: null,
+          restartPolicy: "no",
+          env: { KEEP: "yes" },
+          command: ["sleep", "600"],
+        })
+      ).res.status,
+    ).toBe(201);
+    for (let i = 0; i < 40; i++) {
+      try {
+        // over TCP: during first-run initialisation Postgres only answers on its Unix socket
+        docker("exec", db, "pg_isready", "-h", "127.0.0.1", "-U", "app", "-d", "orders");
+        break;
+      } catch {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+
+    const gate = { settleSeconds: 2, timeoutSeconds: 15 };
+    const url = await call("POST", "/bindings", {
+      consumer: app,
+      provider: db,
+      name: "Orders",
+      style: "url",
+      gate,
+    });
+    expect(url.res.status, JSON.stringify(url.json)).toBe(201);
+    console.log(
+      "NETDEBUG",
+      docker(
+        "inspect",
+        "-f",
+        "{{json .HostConfig.NetworkMode}} {{json .NetworkSettings.Networks}} {{.State.Status}}",
+        app,
+      ),
+    );
+    expect(
+      docker("inspect", "-f", "{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}", app),
+    ).toContain(`${PREFIX}bind`);
+    // the connection works with exactly what Nautix wrote, password quirks included
+    expect(docker("exec", app, "sh", "-c", 'psql "$ORDERS_URL" -tAc "select 42"')).toBe("42");
+    expect(docker("exec", app, "printenv", "KEEP")).toBe("yes");
+
+    const dotnet = await call("POST", "/bindings", {
+      consumer: app,
+      provider: db,
+      name: "Orders",
+      style: "dotnet",
+      gate,
+    });
+    expect(dotnet.res.status, JSON.stringify(dotnet.json)).toBe(201);
+    expect(docker("exec", app, "printenv", "ConnectionStrings__Orders")).toBe(
+      `Host=${db};Port=5432;Database=orders;Username=app;Password="p@ss;w""rd 1"`,
+    );
+
+    for (const b of [url.json, dotnet.json])
+      expect((await call("DELETE", `/bindings/${b.id}`)).res.status).toBe(204);
+    expect(() => docker("exec", app, "printenv", "ORDERS_URL")).toThrow();
+    expect(() => docker("exec", app, "printenv", "ConnectionStrings__Orders")).toThrow();
+    expect(docker("exec", app, "printenv", "KEEP")).toBe("yes");
+    docker("rm", "-f", "-v", db, app);
   });
 
   it("opens a real tunnel between two networks and only that port crosses", async () => {
