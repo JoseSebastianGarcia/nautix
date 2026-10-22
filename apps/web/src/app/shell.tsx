@@ -1,4 +1,13 @@
-import { Activity, Boxes, KeyRound, Layers, LogOut, Settings, Workflow } from "lucide-react";
+import {
+  Activity,
+  Boxes,
+  Hexagon,
+  KeyRound,
+  Layers,
+  LogOut,
+  Settings,
+  Workflow,
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
@@ -20,6 +29,7 @@ const NAV = [
   { to: "/", key: "nav.topology", icon: Workflow },
   { to: "/containers", key: "nav.resources", icon: Boxes },
   { to: "/compose", key: "nav.compose", icon: Layers },
+  { to: "/swarm", key: "nav.swarm", icon: Hexagon },
   { to: "/system", key: "nav.system", icon: Activity },
 ] as const;
 

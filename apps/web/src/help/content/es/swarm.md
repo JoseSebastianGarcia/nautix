@@ -15,7 +15,9 @@ Docker Swarm convierte una o varias máquinas en un único cluster. En vez de co
 
 ## En Nautix
 
-**Recursos, Swarm** tiene pestañas para servicios, nodos, stacks, secretos, configs y el cluster. Podés crear un swarm en este motor o unirte a uno existente con la dirección del manager y un token, escalar servicios hacia arriba y abajo, y leer el estado y el error de cada tarea.
+**Swarm**, en el menú principal (y también como pestaña en **Recursos**), tiene pestañas para servicios, nodos, stacks, secretos, configs y el cluster. Podés crear un swarm en este motor o unirte a uno existente con la dirección del manager y un token, escalar servicios hacia arriba y abajo, y leer el estado y el error de cada tarea.
+
+Mientras no haya un swarm conectado, la Topología muestra un botón flotante **Conectar a Swarm**: inicia un swarm en este motor o se une a uno existente, y una vez conectado la misma página pasa a mostrar el cluster.
 
 - Solo un **manager** puede administrar el cluster. En un worker, Nautix te indica que uses un manager.
 - Un puerto publicado por un servicio se abre en **todos los nodos**, en todas las interfaces.

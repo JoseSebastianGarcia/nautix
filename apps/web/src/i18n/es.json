@@ -1056,7 +1056,9 @@
     "leaveServices": "{{count}} servicio(s) se detienen acá y el cluster los crea de nuevo en otros nodos, si quedan: {{names}}.",
     "leaveDataSafe": "Los datos no se tocan: los volúmenes quedan en el disco de este servidor y los contenedores sueltos siguen corriendo.",
     "leaveLastManager": "Es el último manager: salir disuelve el cluster. Para conservarlo, promové antes a otro nodo a manager.",
-    "leaveUnknown": "Este motor no es un manager, así que Nautix no puede listar qué se vería afectado."
+    "leaveUnknown": "Este motor no es un manager, así que Nautix no puede listar qué se vería afectado.",
+    "connectFab": "Conectar a Swarm",
+    "connectTitle": "Conectar a Swarm"
   },
   "plugins": {
     "install": "Instalar plugin",

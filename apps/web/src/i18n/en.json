@@ -1056,7 +1056,9 @@
     "leaveServices": "{{count}} service(s) stop here and the cluster creates them again on other nodes, if any remain: {{names}}.",
     "leaveDataSafe": "Data is not touched: volumes stay on this server's disk and standalone containers keep running.",
     "leaveLastManager": "This is the last manager: leaving dissolves the cluster. To keep it, promote another node to manager first.",
-    "leaveUnknown": "This engine is not a manager, so Nautix cannot list what would be affected."
+    "leaveUnknown": "This engine is not a manager, so Nautix cannot list what would be affected.",
+    "connectFab": "Connect to Swarm",
+    "connectTitle": "Connect to Swarm"
   },
   "plugins": {
     "install": "Install plugin",

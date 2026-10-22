@@ -366,7 +366,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           <Controls showInteractive={false} />
         </ReactFlow>
         {model.services.length === 0 && plan.length === 0 && (
-          <p className="pointer-events-none absolute inset-x-0 top-6 text-center text-sm text-dim">
+          <p className="pointer-events-none absolute inset-x-0 top-6 pr-[22rem] text-center text-sm text-dim">
             {t("swarmCanvas.empty")}
           </p>
         )}

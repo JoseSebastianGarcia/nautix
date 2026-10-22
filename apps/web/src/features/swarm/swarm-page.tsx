@@ -9,6 +9,7 @@ import { EnvEditor } from "../../components/fields.js";
 import { Button, ConfirmDialog, Dialog, Field, Input } from "../../components/ui.js";
 import { PageHeader, Table, Td } from "../resources/table.js";
 import { LeaveSwarmDialog } from "./leave-dialog.js";
+import { SwarmConnect } from "./swarm-connect.js";
 
 const SWARM = ["swarm"];
 const TABS = ["services", "nodes", "stacks", "secrets", "configs", "cluster"] as const;
@@ -53,65 +54,10 @@ export function SwarmPage() {
 
 function Setup() {
   const { t } = useTranslation();
-  const [addr, setAddr] = useState("");
-  const [join, setJoin] = useState({ remoteAddr: "", token: "" });
-  const init = useApiMutation(
-    () => api.swarmInit(addr.trim() || undefined),
-    [SWARM],
-    () => t("swarm.initialized"),
-  );
-  const joinMutation = useApiMutation(
-    () => api.swarmJoin(join),
-    [SWARM],
-    () => t("swarm.joined"),
-  );
   return (
     <div className="flex max-w-xl flex-col gap-6 p-6">
       <PageHeader title={t("swarm.title")} />
-      <p className="text-sm text-dim">{t("swarm.intro")}</p>
-      <section className="flex flex-col gap-3 rounded-xl border border-line bg-bg1 p-4">
-        <h2 className="font-semibold">{t("swarm.initTitle")}</h2>
-        <Field label={t("swarm.advertiseAddr")} hint={t("swarm.advertiseHint")}>
-          <Input
-            value={addr}
-            onChange={(e) => setAddr(e.target.value)}
-            placeholder="192.168.1.10"
-          />
-        </Field>
-        <Button
-          write
-          variant="primary"
-          disabled={init.isPending}
-          onClick={() => init.mutate(undefined)}
-        >
-          {t("swarm.init")}
-        </Button>
-      </section>
-      <section className="flex flex-col gap-3 rounded-xl border border-line bg-bg1 p-4">
-        <h2 className="font-semibold">{t("swarm.joinTitle")}</h2>
-        <Field label={t("swarm.remoteAddr")}>
-          <Input
-            value={join.remoteAddr}
-            onChange={(e) => setJoin({ ...join, remoteAddr: e.target.value })}
-            placeholder="192.168.1.10:2377"
-          />
-        </Field>
-        <Field label={t("swarm.token")}>
-          <Input
-            type="password"
-            autoComplete="off"
-            value={join.token}
-            onChange={(e) => setJoin({ ...join, token: e.target.value })}
-          />
-        </Field>
-        <Button
-          write
-          disabled={!join.remoteAddr || !join.token || joinMutation.isPending}
-          onClick={() => joinMutation.mutate(undefined)}
-        >
-          {t("swarm.join")}
-        </Button>
-      </section>
+      <SwarmConnect />
     </div>
   );
 }

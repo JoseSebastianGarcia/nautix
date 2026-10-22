@@ -15,7 +15,9 @@ Docker Swarm turns one or more machines into a single cluster. Instead of runnin
 
 ## In Nautix
 
-**Resources, Swarm** has tabs for services, nodes, stacks, secrets, configs and the cluster. You can create a swarm on this engine or join an existing one with the manager's address and a token, scale services up and down, and read each task's state and error.
+**Swarm**, in the main menu (and also as a tab under **Resources**), has tabs for services, nodes, stacks, secrets, configs and the cluster. You can create a swarm on this engine or join an existing one with the manager's address and a token, scale services up and down, and read each task's state and error.
+
+While no swarm is connected, the Topology shows a floating **Connect to Swarm** button: it starts a swarm on this engine or joins an existing one, and once connected the same page switches to the cluster.
 
 - Only a **manager** can manage the cluster. On a worker, Nautix tells you to use a manager.
 - A port published by a service opens on **every node**, on all interfaces.

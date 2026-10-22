@@ -1,4 +1,7 @@
-/** Containers, images, volumes, networks, builds, gateways, DNS, guards and swarm live under one "Resources" entry with its own tabs. */
+/**
+ * Containers, images, volumes, networks, builds, gateways, DNS and guards live under one "Resources" entry with its own
+ * tabs. Swarm is in that list too, as a shortcut, and also has its own entry in the main menu; the page is the same.
+ */
 export const RESOURCE_TABS = [
   { to: "/containers", key: "nav.containers" },
   { to: "/images", key: "nav.images" },
@@ -14,8 +17,11 @@ export const RESOURCE_TABS = [
 const under = (pathname: string, base: string): boolean =>
   pathname === base || pathname.startsWith(`${base}/`);
 
+/** The swarm page belongs to its own menu entry, so the Resources tabs and entry stay out of its way. */
+export const isSwarmPath = (pathname: string): boolean => under(pathname, "/swarm");
+
 export const isResourcePath = (pathname: string): boolean =>
-  RESOURCE_TABS.some((t) => under(pathname, t.to));
+  !isSwarmPath(pathname) && RESOURCE_TABS.some((t) => under(pathname, t.to));
 
 /** Whether a main-menu entry is the current one (the "Resources" entry covers its four sections). */
 export const isActivePath = (itemTo: string, pathname: string): boolean => {

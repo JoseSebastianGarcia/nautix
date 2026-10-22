@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isActivePath, isResourcePath } from "./nav.js";
+import { isActivePath, isResourcePath, isSwarmPath } from "./nav.js";
 
 describe("navigation", () => {
   it("the Resources entry covers containers, images, volumes, networks and builds (and details)", () => {
@@ -30,5 +30,12 @@ describe("navigation", () => {
 
   it("does not confuse similar prefixes", () => {
     expect(isActivePath("/containers", "/containers-old")).toBe(false);
+  });
+
+  it("swarm has its own entry and does not light up Resources", () => {
+    expect(isSwarmPath("/swarm")).toBe(true);
+    expect(isActivePath("/swarm", "/swarm")).toBe(true);
+    expect(isActivePath("/containers", "/swarm")).toBe(false);
+    expect(isResourcePath("/swarm")).toBe(false);
   });
 });

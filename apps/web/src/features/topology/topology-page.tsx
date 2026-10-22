@@ -23,7 +23,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileDown, LayoutGrid } from "lucide-react";
+import { FileDown, Hexagon, LayoutGrid } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
@@ -40,6 +40,7 @@ import {
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
 import { BindingDialog, type BindTarget } from "../bindings/binding-dialog.js";
+import { SwarmConnectDialog } from "../swarm/swarm-connect.js";
 import { ClusterView } from "./cluster-view.js";
 import { DeployDialog, type DeployTarget } from "./deploy-dialog.js";
 import { ExportDialog, type ExportTarget } from "./export-dialog.js";
@@ -378,6 +379,26 @@ function Canvas() {
   );
 }
 
+/** Floating shortcut shown while no swarm is connected; connecting changes the page (see TopologyPage). */
+function ConnectSwarmButton() {
+  const { t } = useTranslation();
+  const isAdmin = useIsAdmin();
+  const [open, setOpen] = useState(false);
+  if (!isAdmin) return null;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="nx-glass nx-lens-wide absolute right-[22rem] top-4 z-10 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-fg hover:opacity-90"
+      >
+        <Hexagon size={15} className="text-accent" /> {t("swarm.connectFab")}
+      </button>
+      <SwarmConnectDialog open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
 const MODE_KEY = "nautix.topology.mode";
 const readMode = (): "local" | "cluster" => {
   try {
@@ -403,11 +424,27 @@ export function TopologyPage() {
       /* the choice just is not remembered */
     }
   };
+  // Connecting from the floating button changes the page: the Local server / Cluster switch appears and the cluster opens.
+  const wasActive = useRef(swarm?.active === true);
+  useEffect(() => {
+    if (swarm?.active && !wasActive.current) {
+      setModeState("cluster");
+      try {
+        localStorage.setItem(MODE_KEY, "cluster");
+      } catch {
+        /* the choice just is not remembered */
+      }
+    }
+    wasActive.current = swarm?.active === true;
+  }, [swarm?.active]);
   if (!swarm?.active)
     return (
-      <ReactFlowProvider>
-        <Canvas />
-      </ReactFlowProvider>
+      <div className="relative h-full min-h-0">
+        <ReactFlowProvider>
+          <Canvas />
+        </ReactFlowProvider>
+        {swarm && <ConnectSwarmButton />}
+      </div>
     );
   return (
     <div className="flex h-full min-h-0 flex-col">
