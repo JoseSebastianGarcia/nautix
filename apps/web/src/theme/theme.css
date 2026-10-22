@@ -258,3 +258,9 @@ dialog[open].nx-glass {
     transition: none !important;
   }
 }
+
+/* A placeholder must not read as a typed value: softer than the dim text used for labels. */
+::placeholder {
+  color: color-mix(in srgb, var(--nx-text-dim) 60%, transparent);
+  opacity: 1;
+}
