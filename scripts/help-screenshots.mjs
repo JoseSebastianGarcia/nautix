@@ -209,7 +209,13 @@ const seedCluster = async () => {
   );
   for (const svc of [
     { name: "orders-api", image: "myorg/orders-api:1.4", replicas: 3, networks: ["orders"] },
-    { name: "orders-db", image: "postgres:16-alpine", replicas: 1, networks: ["orders"] },
+    {
+      name: "orders-db",
+      image: "postgres:16-alpine",
+      replicas: 1,
+      networks: ["orders"],
+      env: { POSTGRES_USER: "app", POSTGRES_PASSWORD: "demo-password", POSTGRES_DB: "orders" },
+    },
     {
       name: "traefik",
       image: "traefik:v3.1",
@@ -219,6 +225,10 @@ const seedCluster = async () => {
     },
   ])
     await call("POST", "/swarm/services", svc).catch(() => {});
+  await call("POST", "/swarm/secrets", { name: "db-password", value: "demo" }).catch(() => {});
+  await call("POST", "/swarm/bindings", { consumer: "orders-api", provider: "orders-db" }).catch(
+    () => {},
+  );
 };
 
 const clusterShot = (name, by) =>
@@ -250,6 +260,12 @@ await canvasShot("cluster-canvas", async (page) => {
   await page.getByText("orders-db").first().click();
   await page.getByRole("button", { name: "More replicas" }).click();
   await planRedis(page);
+});
+await canvasShot("cluster-service", async (page) => {
+  await page
+    .getByRole("button", { name: /PostgreSQL/ })
+    .first()
+    .click();
 });
 await canvasShot("cluster-plan", async (page) => {
   await planRedis(page);

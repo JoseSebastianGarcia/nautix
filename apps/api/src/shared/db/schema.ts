@@ -91,4 +91,13 @@ export const MIGRATIONS: readonly Migration[] = [
       );
     },
   },
+  {
+    version: 6,
+    name: "swarm_bindings",
+    up(db: Db) {
+      db.exec(
+        "CREATE TABLE IF NOT EXISTS swarm_bindings (id TEXT PRIMARY KEY, json TEXT NOT NULL)",
+      );
+    },
+  },
 ];

@@ -1427,6 +1427,21 @@
     "stepUpdate": "Actualizar {{name}}",
     "stepRemove": "Eliminar el servicio {{name}}",
     "removeWarn": "Se elimina al final y no se puede deshacer: {{names}}. Sus volúmenes y secretos quedan, pero su configuración no se puede reconstruir desde acá.",
-    "alreadyRemoved": "Ya se eliminó y no se restaura: {{names}}."
+    "alreadyRemoved": "Ya se eliminó y no se restaura: {{names}}.",
+    "bindTitle": "Vincular un servicio con otro",
+    "bindHint": "El primero recibe los datos de conexión del segundo como variables de entorno, para llegar a él por nombre sobre el overlay. No cambia nada hasta que apliques el plan.",
+    "bindDrag": "Arrastrá a otro servicio para vincularlos",
+    "bindNameInvalid": "Letras y números, empezando por una letra.",
+    "bindDetected": "Detectado",
+    "bindJoins": "el primero se une",
+    "bindRolls": "Al aplicar, el primer servicio se actualiza de a una copia; si las copias nuevas no arrancan, el motor vuelve a la configuración anterior.",
+    "stepBind": "Vincular {{consumer}} con {{provider}}",
+    "stepUnbind": "Desvincular {{consumer}} de {{provider}}",
+    "bindingsTitle": "Vínculos",
+    "uses": "usa",
+    "usedBy": "usado por",
+    "unbind": "Desvincular",
+    "keepBinding": "Conservar",
+    "servers": "Servidores"
   }
 }

@@ -1,5 +1,6 @@
 import {
   Autolock,
+  CreateSwarmBinding,
   CreateSwarmSecret,
   CreateSwarmService,
   DeployStack,
@@ -23,14 +24,19 @@ import {
   Post,
   Put,
   Query,
+  Req,
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
+import type { Request } from "express";
 import { z } from "zod";
+import { bindingDetail, setAuditNote } from "../../../shared/audit-note.js";
 import { parse } from "../../../shared/zod-body.js";
 import { AdminOnly } from "../../auth/presentation/admin-only.decorator.js";
+import { CreateSwarmBindingCommand } from "../application/commands/create-swarm-binding.command.js";
 import { CreateSwarmConfigValueCommand } from "../application/commands/create-swarm-config-value.command.js";
 import { CreateSwarmSecretValueCommand } from "../application/commands/create-swarm-secret-value.command.js";
 import { CreateSwarmServiceSpecCommand } from "../application/commands/create-swarm-service-spec.command.js";
+import { DeleteSwarmBindingCommand } from "../application/commands/delete-swarm-binding.command.js";
 import { DeployStackCommand } from "../application/commands/deploy-stack.command.js";
 import { InitSwarmCommand } from "../application/commands/init-swarm.command.js";
 import { JoinSwarmCommand } from "../application/commands/join-swarm.command.js";
@@ -54,10 +60,12 @@ import { GetSwarmConfigDataQuery } from "../application/queries/get-swarm-config
 import { GetSwarmUnlockKeyQuery } from "../application/queries/get-swarm-unlock-key.query.js";
 import { ListServiceTasksQuery } from "../application/queries/list-service-tasks.query.js";
 import { ListStacksQuery } from "../application/queries/list-stacks.query.js";
+import { ListSwarmBindingsQuery } from "../application/queries/list-swarm-bindings.query.js";
 import { ListSwarmConfigsQuery } from "../application/queries/list-swarm-configs.query.js";
 import { ListSwarmNodesQuery } from "../application/queries/list-swarm-nodes.query.js";
 import { ListSwarmSecretsQuery } from "../application/queries/list-swarm-secrets.query.js";
 import { ListSwarmServicesQuery } from "../application/queries/list-swarm-services.query.js";
+import { PlanSwarmBindingQuery } from "../application/queries/plan-swarm-binding.query.js";
 
 const Force = z.object({ force: z.enum(["true", "false"]).default("false") });
 const Tail = z.object({ tail: z.coerce.number().int().min(1).max(5000).default(200) });
@@ -182,6 +190,36 @@ export class SwarmController {
   @HttpCode(204)
   async removeService(@Param("id") id: string) {
     await this.commands.execute(new RemoveSwarmServiceCommand(id));
+  }
+
+  /** Bindings between services: what a service uses of another, wired into its environment. */
+  @Get("bindings")
+  bindings() {
+    return this.queries.execute(new ListSwarmBindingsQuery());
+  }
+
+  @Get("bindings/plan")
+  planBinding(@Query() query: unknown, @Req() req: Request) {
+    setAuditNote(req, { detail: "", skip: true });
+    return this.queries.execute(new PlanSwarmBindingQuery(parse(CreateSwarmBinding, query)));
+  }
+
+  @AdminOnly()
+  @Post("bindings")
+  async createBinding(@Body() body: unknown, @Req() req: Request) {
+    const binding = await this.commands.execute(
+      new CreateSwarmBindingCommand(parse(CreateSwarmBinding, body)),
+    );
+    setAuditNote(req, { detail: `service ${bindingDetail("create", binding)}` });
+    return binding;
+  }
+
+  @AdminOnly()
+  @Delete("bindings/:id")
+  @HttpCode(204)
+  async deleteBinding(@Param("id") id: string, @Req() req: Request) {
+    const binding = await this.commands.execute(new DeleteSwarmBindingCommand(id));
+    setAuditNote(req, { detail: `service ${bindingDetail("delete", binding)}` });
   }
 
   @Get("services/:id/tasks")

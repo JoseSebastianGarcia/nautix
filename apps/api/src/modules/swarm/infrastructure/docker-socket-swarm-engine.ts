@@ -14,6 +14,7 @@ import { EngineHttp } from "../../../shared/engine-http.js";
 import { demuxStdcopy, isMultiplexed } from "../../docker/infrastructure/stdcopy.js";
 import { SwarmEngine } from "../application/ports/swarm-engine.js";
 import {
+  envMap,
   fromClusterTask,
   fromNode,
   fromService,
@@ -158,6 +159,11 @@ export class DockerSocketSwarmEngine extends SwarmEngine {
   async allTasks(): Promise<ClusterTask[]> {
     const rows = await this.http.json<RawTask[]>("GET", "/tasks");
     return rows.map(fromClusterTask);
+  }
+
+  async serviceEnv(id: string): Promise<Record<string, string>> {
+    const service = await this.http.json<RawService>("GET", `/services/${encodeURIComponent(id)}`);
+    return envMap(service.Spec);
   }
 
   async serviceLogs(serviceId: string, tail: number): Promise<string> {

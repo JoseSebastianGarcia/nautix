@@ -2161,6 +2161,64 @@ describe("gateways and proxies of every supported type", () => {
     await call("POST", "/swarm/leave", { force: true });
   });
 
+  it("binds one swarm service to another: plan, apply, list, remove", async () => {
+    type B = { id: string; consumer: string; provider: string; kind: string; variables: string[] };
+    expect((await call("POST", "/swarm/init", {})).res.status).toBe(201);
+    await call("POST", "/networks", { name: "bind-ov", driver: "overlay" });
+    const web = await call("POST", "/swarm/services", {
+      name: "web",
+      image: "myorg/web:1",
+      networks: ["bind-ov"],
+    });
+    await call("POST", "/swarm/services", {
+      name: "db",
+      image: "postgres:16",
+      networks: ["bind-ov"],
+      env: { POSTGRES_USER: "app", POSTGRES_PASSWORD: "s3cret-pw", POSTGRES_DB: "shop" },
+    });
+    const webId = (web.json as { id: string }).id;
+
+    const plan = await call("GET", "/swarm/bindings/plan?consumer=web&provider=db");
+    expect(plan.res.status).toBe(200);
+    const planned = plan.json as {
+      kind: string;
+      network: string;
+      joins: boolean;
+      variables: { key: string; preview: string }[];
+    };
+    expect(planned).toMatchObject({ kind: "postgres", network: "bind-ov", joins: false });
+    expect(planned.variables[0]?.key).toBe("ConnectionStrings__db");
+    expect(JSON.stringify(plan.json)).not.toContain("s3cret-pw");
+
+    expect(
+      (await call("POST", "/swarm/bindings", { consumer: "web", provider: "web" })).res.status,
+    ).toBe(422);
+    const made = await call("POST", "/swarm/bindings", { consumer: "web", provider: "db" });
+    expect(made.res.status).toBe(201);
+    const binding = made.json as B;
+    expect(binding).toMatchObject({ consumer: "web", provider: "db", kind: "postgres" });
+    expect(JSON.stringify(made.json)).not.toContain("s3cret-pw");
+    expect(
+      (await call("POST", "/swarm/bindings", { consumer: "web", provider: "db" })).res.status,
+    ).toBe(409);
+    expect(((await call("GET", "/swarm/bindings")).json as B[]).map((b) => b.id)).toEqual([
+      binding.id,
+    ]);
+    // The consumer's update shows as completed: the change reached the engine.
+    const after = (
+      (await call("GET", "/swarm/services")).json as {
+        id: string;
+        update: { state: string | null };
+      }[]
+    ).find((s) => s.id === webId);
+    expect(after?.update.state).toBe("completed");
+
+    expect((await call("DELETE", `/swarm/bindings/${binding.id}`)).res.status).toBe(204);
+    expect(((await call("GET", "/swarm/bindings")).json as B[]).length).toBe(0);
+    expect((await call("DELETE", `/swarm/bindings/${binding.id}`)).res.status).toBe(404);
+    await call("POST", "/swarm/leave", { force: true });
+  });
+
   it("creates overlay networks only on a swarm manager and reads the whole cluster in one call", async () => {
     type Net = {
       id: string;

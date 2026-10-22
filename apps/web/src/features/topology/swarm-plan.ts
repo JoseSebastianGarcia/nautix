@@ -1,4 +1,6 @@
 import type {
+  BindingStyle,
+  CreateSwarmBindingInput,
   CreateSwarmServiceInput,
   SwarmPlacement,
   SwarmService,
@@ -46,12 +48,55 @@ export interface PlannedRemove {
   name: string;
 }
 
-export type PlanItem = PlannedCreate | PlannedScale | PlannedUpdate | PlannedRemove;
+/** Wires one service to another: the consumer gets the provider's connection settings. */
+export interface PlannedBind {
+  kind: "bind";
+  key: string;
+  consumer: { id: string; name: string };
+  provider: { id: string; name: string };
+  /** Names the variable (`ConnectionStrings__<name>`). */
+  name: string;
+  style: BindingStyle;
+  /** What the preview said: the variables (names only) and the overlay it talks over. */
+  variables: string[];
+  network: string;
+  joins: boolean;
+}
+
+/** Takes a binding's variables out of the consumer. It can be put back: the provider still has what it needs. */
+export interface PlannedUnbind {
+  kind: "unbind";
+  bindingId: string;
+  consumer: { id: string; name: string };
+  provider: string;
+  name: string;
+  style: BindingStyle;
+  variables: string[];
+}
+
+export type PlanItem =
+  | PlannedCreate
+  | PlannedScale
+  | PlannedUpdate
+  | PlannedRemove
+  | PlannedBind
+  | PlannedUnbind;
+
+/** The id the service plan items refer to (the consumer, for the ones that change its environment). */
+export const itemServiceId = (p: PlanItem): string | null =>
+  p.kind === "create"
+    ? null
+    : p.kind === "bind" || p.kind === "unbind"
+      ? p.consumer.id
+      : p.serviceId;
 
 export interface PlanIo {
   create: (spec: PlannedCreate["spec"]) => Promise<string>;
   update: (serviceId: string, patch: UpdateSwarmService) => Promise<void>;
   remove: (serviceId: string) => Promise<void>;
+  /** Creates a binding and returns its id. */
+  bind: (input: CreateSwarmBindingInput) => Promise<string>;
+  unbind: (bindingId: string) => Promise<void>;
   tasks: (serviceId: string) => Promise<SwarmTask[]>;
   service: (serviceId: string) => Promise<SwarmService | undefined>;
   sleep: (ms: number) => Promise<void>;
@@ -203,6 +248,17 @@ export const applyPlan = async (
           await io.update(item.serviceId, { replicas: item.from });
         } else if (item.kind === "update") {
           await io.update(item.serviceId, undoPatch(item.changes));
+        } else if (item.kind === "bind") {
+          const id = createdIds.get(item);
+          if (id) await io.unbind(id);
+        } else if (item.kind === "unbind") {
+          // Put the binding back: the consumer gets the same variables again.
+          await io.bind({
+            consumer: item.consumer.name,
+            provider: item.provider,
+            name: item.name,
+            style: item.style,
+          });
         }
         rolledBack.push(item);
       } catch (e) {
@@ -225,6 +281,24 @@ export const applyPlan = async (
         await io.update(item.serviceId, updatePatch(item.changes));
         opts.onStep?.(item, "waiting");
         error = await waitUpdated(io, item.serviceId, since, opts);
+      } else if (item.kind === "bind") {
+        const since = (await io.service(item.consumer.id))?.update.startedAt ?? "";
+        createdIds.set(
+          item,
+          await io.bind({
+            consumer: item.consumer.name,
+            provider: item.provider.name,
+            name: item.name,
+            style: item.style,
+          }),
+        );
+        opts.onStep?.(item, "waiting");
+        error = await waitUpdated(io, item.consumer.id, since, opts);
+      } else if (item.kind === "unbind") {
+        const since = (await io.service(item.consumer.id))?.update.startedAt ?? "";
+        await io.unbind(item.bindingId);
+        opts.onStep?.(item, "waiting");
+        error = await waitUpdated(io, item.consumer.id, since, opts);
       } else {
         await io.remove(item.serviceId);
       }
@@ -280,6 +354,17 @@ const placementFlags = (name: string, from: SwarmPlacement, to: SwarmPlacement):
 export const planCommands = (item: PlanItem): string[] => {
   if (item.kind === "scale") return [`docker service scale ${item.name}=${item.to}`];
   if (item.kind === "remove") return [`docker service rm ${item.name}`];
+  if (item.kind === "bind")
+    return [
+      `docker service update ${[
+        ...(item.joins ? [`--network-add ${item.network}`] : []),
+        ...item.variables.map((v) => `--env-add ${v}=…`),
+      ].join(" ")} ${item.consumer.name}`,
+    ];
+  if (item.kind === "unbind")
+    return [
+      `docker service update ${item.variables.map((v) => `--env-rm ${v}`).join(" ")} ${item.consumer.name}`,
+    ];
   if (item.kind === "update") {
     const { image, networks, placement } = item.changes;
     return [
@@ -402,6 +487,6 @@ export const planScale = (
 
 /** Removing a service replaces any other change planned for it. */
 export const planRemove = (plan: PlanItem[], svc: { id: string; name: string }): PlanItem[] => [
-  ...plan.filter((p) => !(p.kind !== "create" && p.serviceId === svc.id)),
+  ...plan.filter((p) => itemServiceId(p) !== svc.id),
   { kind: "remove", serviceId: svc.id, name: svc.name },
 ];

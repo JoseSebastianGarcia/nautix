@@ -1427,6 +1427,21 @@
     "stepUpdate": "Update {{name}}",
     "stepRemove": "Remove service {{name}}",
     "removeWarn": "Removed last and not undoable: {{names}}. Its volumes and secrets stay, but its settings cannot be rebuilt from here.",
-    "alreadyRemoved": "Already removed and not restored: {{names}}."
+    "alreadyRemoved": "Already removed and not restored: {{names}}.",
+    "bindTitle": "Bind a service to another",
+    "bindHint": "The first one receives the connection settings of the second as environment variables, so it can reach it by name over the overlay. Nothing changes until you apply the plan.",
+    "bindDrag": "Drag to another service to bind them",
+    "bindNameInvalid": "Letters and numbers, starting with a letter.",
+    "bindDetected": "Detected",
+    "bindJoins": "the first joins it",
+    "bindRolls": "Applying updates the first service one copy at a time; if the new copies do not start, the engine puts the previous settings back.",
+    "stepBind": "Bind {{consumer}} to {{provider}}",
+    "stepUnbind": "Unbind {{consumer}} from {{provider}}",
+    "bindingsTitle": "Bindings",
+    "uses": "uses",
+    "usedBy": "used by",
+    "unbind": "Unbind",
+    "keepBinding": "Keep",
+    "servers": "Servers"
   }
 }

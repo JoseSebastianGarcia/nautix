@@ -34,6 +34,8 @@ export abstract class SwarmEngine {
   abstract tasks(serviceId: string): Promise<SwarmTask[]>;
   /** Every task of the cluster, whatever node it runs on. */
   abstract allTasks(): Promise<ClusterTask[]>;
+  /** The environment the service was created with: read only on the server, to build connection settings. */
+  abstract serviceEnv(id: string): Promise<Record<string, string>>;
   abstract serviceLogs(serviceId: string, tail: number): Promise<string>;
   abstract createService(request: CreateSwarmService): Promise<{ id: string }>;
   abstract updateService(id: string, patch: UpdateSwarmService): Promise<void>;

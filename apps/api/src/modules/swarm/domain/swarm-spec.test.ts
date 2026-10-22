@@ -4,6 +4,7 @@ import {
   fromNode,
   fromService,
   fromTask,
+  patchEnv,
   patchServiceSpec,
   plainImage,
   stacksOf,
@@ -195,5 +196,22 @@ describe("swarm spec", () => {
       startedAt: "2026-01-01T00:00:00Z",
     });
     expect(fromService({ ID: "y", Spec: spec }).update.state).toBeNull();
+  });
+
+  it("sets and unsets environment variables without touching the others", () => {
+    expect(patchEnv(["A=1", "B=2", "KEEP=x=y"], { set: { B: "3", C: "4" }, unset: ["A"] })).toEqual(
+      ["KEEP=x=y", "B=3", "C=4"],
+    );
+    expect(patchEnv(undefined, { set: { A: "1" }, unset: [] })).toEqual(["A=1"]);
+  });
+
+  it("an environment change is a rolling update with a rollback policy", () => {
+    const spec = toServiceSpec(
+      CreateSwarmService.parse({ name: "a", image: "x", env: { A: "1" } }),
+    );
+    const { UpdateConfig: _drop, ...bare } = spec;
+    const next = patchServiceSpec(bare, { env: { set: { B: "2" }, unset: [] } });
+    expect(next.TaskTemplate.ContainerSpec.Env).toEqual(["A=1", "B=2"]);
+    expect(next.UpdateConfig).toMatchObject({ FailureAction: "rollback" });
   });
 });

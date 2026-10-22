@@ -16,6 +16,7 @@ import type {
   CreateBindingInput,
   CreateContainerInput,
   CreateNetwork,
+  CreateSwarmBindingInput,
   CreateSwarmServiceInput,
   CreateToken,
   CreateTunnel,
@@ -50,6 +51,8 @@ import type {
   Session,
   SetEnvInput,
   StackInfo,
+  SwarmBinding,
+  SwarmBindingPlan,
   SwarmCluster,
   SwarmItem,
   SwarmNode,
@@ -227,6 +230,20 @@ export const api = {
   swarmUpdateService: (id: string, b: UpdateSwarmService) =>
     request<void>("PATCH", `/swarm/services/${id}`, b),
   swarmRemoveService: (id: string) => request<void>("DELETE", `/swarm/services/${id}`),
+  swarmBindings: () => request<SwarmBinding[]>("GET", "/swarm/bindings"),
+  swarmBindingPlan: (b: CreateSwarmBindingInput) =>
+    request<SwarmBindingPlan>(
+      "GET",
+      `/swarm/bindings/plan?${new URLSearchParams({
+        consumer: b.consumer,
+        provider: b.provider,
+        ...(b.name ? { name: b.name } : {}),
+        ...(b.style ? { style: b.style } : {}),
+      }).toString()}`,
+    ),
+  swarmCreateBinding: (b: CreateSwarmBindingInput) =>
+    request<SwarmBinding>("POST", "/swarm/bindings", b),
+  swarmDeleteBinding: (id: string) => request<void>("DELETE", `/swarm/bindings/${id}`),
   swarmRollbackService: (id: string) => request<void>("POST", `/swarm/services/${id}/rollback`),
   swarmTasks: (id: string) => request<SwarmTask[]>("GET", `/swarm/services/${id}/tasks`),
   swarmServiceLogs: (id: string) =>

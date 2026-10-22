@@ -6,20 +6,47 @@ El cluster tiene tres dibujos: el **Lienzo**, donde construís, y **Por red** y 
 
 ## Lienzo: construir servicios sobre redes overlay
 
-![El lienzo: servicios dentro de su overlay, un servicio por crear (punteado) y otro por escalar, con la barra del plan](img:cluster-canvas)
+![El lienzo: servicios dentro de su overlay, uno por crear (punteado), otro con cambios pendientes, una línea de vínculo y la barra del plan](img:cluster-canvas)
 
-Cada **red overlay** es una caja y cada **servicio** un nodo adentro, con su logo, las copias en ejecución (`3/3`) y los puertos publicados. Movés cajas y nodos como en la topología local; las posiciones se guardan. Un servicio en dos overlays se dibuja en la primera y se une a la otra con una línea punteada.
+Cada **red overlay** es una caja y cada **servicio** un nodo adentro, con su logo, las copias en ejecución (`3/3`), los puertos publicados, un **punto por copia con el color del servidor donde corre** (hueco si la copia no está bien; la leyenda de arriba lista los servidores) e íconos chicos: **chincheta** (está atado a un nodo o a un rol), **disco** (tiene volúmenes), **llave** (recibe secretos) y **↺** (su última actualización se revirtió). Movés cajas y nodos como en la topología local; las posiciones se guardan. Un servicio en dos overlays se dibuja en la primera y se une a la otra con una línea punteada.
 
-- **Crear un servicio**: arrastrá una plantilla a una caja overlay (o hacé clic en ella). Nombre, imagen, copias (o una en cada nodo), red, los puertos a publicar y el entorno vienen completados. Todavía no se crea nada: el servicio aparece **punteado y marcado como nuevo**.
-- **Escalar un servicio**: seleccionalo y usá **− / +** en el inspector. Muestra `1 → 2` hasta que apliques.
-- **Barra del plan**: cada cambio espera en un plan (**Descartar** los quita todos, **Quitar del plan** uno solo). **Revisar y aplicar** lista cada cambio con su comando `docker service`.
+Cada cambio que hacés espera, punteado, en un **plan**; no pasa nada hasta que lo aplicás.
+
+### Crear un servicio
+
+![Crear un servicio desde una plantilla: copias, red, dónde corre, volúmenes, puertos, secretos y entorno](img:cluster-service)
+
+Arrastrá una plantilla a una caja overlay (o hacé clic en ella). Nombre, imagen, copias (o una en cada nodo), red y entorno vienen completados, y elegís:
+
+- **Dónde corre**: cualquier nodo, solo workers, solo managers, o **fijado a un nodo**; más un límite opcional de copias por nodo.
+- **Volúmenes**: volúmenes con nombre montados en el contenedor. Una plantilla que pide rutas de datos los trae. **Un volumen vive en el nodo donde corre una copia**: si el servicio puede pasar a otro nodo, la copia que cae ahí arranca con un volumen vacío. Por eso un servicio con volúmenes arranca **fijado a un nodo**, y el diálogo avisa cuando lo dejás libre.
+- **Puertos a publicar**: un puerto publicado se abre en todos los nodos, en todas las interfaces. Uno que no publicás igual es alcanzable por los demás servicios de la red.
+- **Secretos**: marcá los secretos de Swarm que debe recibir; cada uno aparece dentro del contenedor como el archivo `/run/secrets/<nombre>`. Se crean en **Swarm, Secretos**.
+
+### Cambiar un servicio existente
+
+Seleccionalo: el inspector muestra qué es y qué podés cambiar.
+
+- **Copias**: **− / +**.
+- **Imagen**: escribí la nueva y presioná **Aplicar**. Se despliega de a una copia (o deteniendo primero la vieja cuando tiene volúmenes). Si las copias nuevas no arrancan, el motor **vuelve a la imagen anterior por sí mismo**, y el plan lo informa.
+- **Mover al overlay**: elegí otro overlay de la lista, o **arrastrá el nodo a otra caja**. Sale del overlay viejo y se une al nuevo.
+- **Dónde corre**: cambiá el rol, fijalo a un nodo o limitá las copias por nodo.
+- **Volver a la versión anterior**: vuelve a la configuración que tenía antes de su última actualización (imagen, redes, ubicación). Este se hace al instante, después de confirmar.
+- **Eliminar del cluster**: el nodo se dibuja tachado. Las eliminaciones se aplican **al final** y no se pueden deshacer: los volúmenes y secretos del servicio quedan, pero su configuración no se puede reconstruir desde acá.
+
+### Vincular dos servicios
+
+Cada nodo tiene un punto chico a cada lado. **Arrastrá del punto de un servicio al de otro** para vincularlos: el primero recibe los datos de conexión del segundo (una cadena de conexión para PostgreSQL, MySQL, SQL Server, MongoDB, Redis, RabbitMQ, o una URL) en su entorno, y llega a él por nombre sobre el overlay que comparten. La vista previa muestra las variables con las contraseñas enmascaradas. El primer servicio se une al overlay del segundo si no estaba. La línea se dibuja con el tipo de servicio; para quitarla, **Desvincular** en el inspector del primero.
+
+### El plan
 
 ![Un plan que falla: el servicio no arranca y se deshace todo](img:cluster-plan)
 
-- **Aplicar** va de a un cambio y espera a que cada servicio tenga sus copias en ejecución, como hace `docker service create`. Si un cambio falla, o un servicio no arranca, se **deshace** todo lo que el plan ya hizo: los servicios creados se eliminan y los escalados vuelven a sus copias. El diálogo dice qué falló y por qué. No se elimina nada que el plan no haya creado.
-- Un **puerto publicado** se abre en todos los nodos del swarm, en todas las interfaces; el diálogo lo advierte. Un puerto que no publicás igual es alcanzable por los demás servicios de la red.
-- Una plantilla que pide **volúmenes** crea el servicio **sin ellos** por ahora (el diálogo lo dice): los datos no sobrevivirían a un reinicio en otro nodo.
-- **Eliminar** un servicio, cambiar su imagen o pasarlo a otra red no se hace desde el lienzo: usá la pestaña Swarm.
+**Revisar y aplicar** lista cada cambio con su comando `docker service` (los valores del entorno nunca se muestran). **Descartar** los quita todos; **Quitar del plan** uno solo.
+
+- **Aplicar** va de a un cambio y espera el resultado: para un servicio nuevo, hasta que sus copias corran; para una actualización, un vínculo o un movimiento, hasta que termine la actualización gradual. Si un cambio falla, **se deshace todo lo que el plan ya hizo**: los servicios creados se eliminan, los escalados o actualizados vuelven a lo que eran, un vínculo se quita y uno que se había quitado se vuelve a poner. El diálogo dice qué falló y por qué.
+- Las eliminaciones van al final. Si una falla, las anteriores quedan eliminadas (y el diálogo lo dice); todo lo demás se deshace.
+- No se elimina nada que el plan no haya creado o que no hayas pedido eliminar.
 
 ![El cluster por red: dos zonas overlay, con servicios, copias y el servidor donde corre cada una](img:cluster-network)
 
@@ -27,7 +54,7 @@ Cada **red overlay** es una caja y cada **servicio** un nodo adentro, con su log
 
 - **Topología → Servidor local / Cluster** aparece solo cuando este motor está en un swarm.
 - Necesita un **manager**. En un worker, o con el swarm bloqueado, la vista dice por qué y te lleva a la pestaña Swarm en vez de mostrar algo incompleto.
-- **Por red** y **Por servidor** son de solo lectura. El **Lienzo** crea y escala servicios mediante el plan de arriba.
+- **Por red** y **Por servidor** son de solo lectura. El **Lienzo** arma y cambia servicios mediante un plan.
 
 ## Por red
 

@@ -221,13 +221,39 @@ export const patchNetworks = (
   return [...kept, ...added];
 };
 
+/** `KEY=value` lines after unsetting and setting variables; the order of the ones left alone is kept. */
+export const patchEnv = (
+  current: string[] | undefined,
+  change: { set: Record<string, string>; unset: string[] },
+): string[] => {
+  const keyOf = (line: string): string =>
+    line.slice(0, Math.max(0, line.indexOf("=")) || line.length);
+  const gone = new Set([...change.unset, ...Object.keys(change.set)]);
+  return [
+    ...(current ?? []).filter((line) => !gone.has(keyOf(line))),
+    ...Object.entries(change.set).map(([k, v]) => `${k}=${v}`),
+  ];
+};
+
+/** The environment of a spec as a map (used to read a provider's own user and password). */
+export const envMap = (spec: RawService["Spec"]): Record<string, string> =>
+  Object.fromEntries(
+    (spec.TaskTemplate.ContainerSpec.Env ?? []).map((line) => {
+      const i = line.indexOf("=");
+      return i < 0 ? [line, ""] : [line.slice(0, i), line.slice(i + 1)];
+    }),
+  );
+
 export const patchServiceSpec = (
   spec: RawService["Spec"],
   patch: UpdateSwarmService,
   networkIds: Record<string, string> = {},
 ): RawService["Spec"] => {
   const rollsOut =
-    patch.image !== undefined || patch.networks !== undefined || patch.placement !== undefined;
+    patch.image !== undefined ||
+    patch.networks !== undefined ||
+    patch.placement !== undefined ||
+    patch.env !== undefined;
   const hasVolumes = (spec.TaskTemplate.ContainerSpec.Mounts ?? []).length > 0;
   return {
     ...spec,
@@ -236,6 +262,7 @@ export const patchServiceSpec = (
       ContainerSpec: {
         ...spec.TaskTemplate.ContainerSpec,
         ...(patch.image ? { Image: patch.image } : {}),
+        ...(patch.env ? { Env: patchEnv(spec.TaskTemplate.ContainerSpec.Env, patch.env) } : {}),
       },
       ...(patch.networks
         ? { Networks: patchNetworks(spec.TaskTemplate.Networks, patch.networks, networkIds) }

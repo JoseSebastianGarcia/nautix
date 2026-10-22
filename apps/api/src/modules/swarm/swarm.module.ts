@@ -1,9 +1,12 @@
 import { type DynamicModule, Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 import type { AppConfig } from "../../shared/config.js";
+import { openDatabase } from "../../shared/sqlite-database.js";
+import { CreateSwarmBindingHandler } from "./application/commands/create-swarm-binding.handler.js";
 import { CreateSwarmConfigValueHandler } from "./application/commands/create-swarm-config-value.handler.js";
 import { CreateSwarmSecretValueHandler } from "./application/commands/create-swarm-secret-value.handler.js";
 import { CreateSwarmServiceSpecHandler } from "./application/commands/create-swarm-service-spec.handler.js";
+import { DeleteSwarmBindingHandler } from "./application/commands/delete-swarm-binding.handler.js";
 import { DeployStackHandler } from "./application/commands/deploy-stack.handler.js";
 import { InitSwarmHandler } from "./application/commands/init-swarm.handler.js";
 import { JoinSwarmHandler } from "./application/commands/join-swarm.handler.js";
@@ -20,6 +23,7 @@ import { UnlockSwarmHandler } from "./application/commands/unlock-swarm.handler.
 import { UpdateSwarmNodeSpecHandler } from "./application/commands/update-swarm-node-spec.handler.js";
 import { UpdateSwarmServiceSpecHandler } from "./application/commands/update-swarm-service-spec.handler.js";
 import { StackRunner } from "./application/ports/stack-runner.js";
+import { SwarmBindingStore } from "./application/ports/swarm-binding-store.js";
 import { SwarmEngine } from "./application/ports/swarm-engine.js";
 import { GetJoinTokensHandler } from "./application/queries/get-join-tokens.handler.js";
 import { GetServiceLogsHandler } from "./application/queries/get-service-logs.handler.js";
@@ -29,14 +33,18 @@ import { GetSwarmConfigDataHandler } from "./application/queries/get-swarm-confi
 import { GetSwarmUnlockKeyHandler } from "./application/queries/get-swarm-unlock-key.handler.js";
 import { ListServiceTasksHandler } from "./application/queries/list-service-tasks.handler.js";
 import { ListStacksHandler } from "./application/queries/list-stacks.handler.js";
+import { ListSwarmBindingsHandler } from "./application/queries/list-swarm-bindings.handler.js";
 import { ListSwarmConfigsHandler } from "./application/queries/list-swarm-configs.handler.js";
 import { ListSwarmNodesHandler } from "./application/queries/list-swarm-nodes.handler.js";
 import { ListSwarmSecretsHandler } from "./application/queries/list-swarm-secrets.handler.js";
 import { ListSwarmServicesHandler } from "./application/queries/list-swarm-services.handler.js";
+import { PlanSwarmBindingHandler } from "./application/queries/plan-swarm-binding.handler.js";
+import { SwarmBindingPlanner } from "./application/swarm-binding-planner.js";
 import { DockerSocketSwarmEngine } from "./infrastructure/docker-socket-swarm-engine.js";
 import { FakeStackRunner } from "./infrastructure/fake-stack-runner.js";
 import { FakeSwarmEngine } from "./infrastructure/fake-swarm-engine.js";
 import { ProcessStackRunner } from "./infrastructure/process-stack-runner.js";
+import { SqliteSwarmBindingStore } from "./infrastructure/sqlite-swarm-binding.store.js";
 import { SwarmController } from "./presentation/swarm.controller.js";
 
 const HANDLERS = [
@@ -60,6 +68,11 @@ const HANDLERS = [
   UpdateSwarmServiceSpecHandler,
   RemoveSwarmServiceHandler,
   RollbackSwarmServiceHandler,
+  CreateSwarmBindingHandler,
+  DeleteSwarmBindingHandler,
+  ListSwarmBindingsHandler,
+  PlanSwarmBindingHandler,
+  SwarmBindingPlanner,
   ListSwarmSecretsHandler,
   CreateSwarmSecretValueHandler,
   RemoveSwarmSecretHandler,
@@ -85,6 +98,10 @@ export class SwarmModule {
           provide: SwarmEngine,
           useFactory: () =>
             fake ? new FakeSwarmEngine() : new DockerSocketSwarmEngine(config.dockerSocket),
+        },
+        {
+          provide: SwarmBindingStore,
+          useFactory: () => new SqliteSwarmBindingStore(openDatabase(config.dataDir)),
         },
         {
           provide: StackRunner,

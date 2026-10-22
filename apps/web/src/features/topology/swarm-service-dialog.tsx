@@ -234,7 +234,7 @@ function ServiceForm({
         {t("swarmCanvas.global")}
       </label>
 
-      <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="text-sm text-dim">{t("swarmCanvas.placement")}</legend>
         <div className="grid grid-cols-2 gap-3">
           <select
@@ -276,7 +276,7 @@ function ServiceForm({
         <p className="text-xs text-dim">{t("swarmCanvas.placementHint")}</p>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="text-sm text-dim">{t("swarmCanvas.volumes")}</legend>
         {mounts.map((m, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: rows are edited in place and have no id
@@ -324,7 +324,7 @@ function ServiceForm({
       </fieldset>
 
       {ports.length > 0 && (
-        <fieldset className="flex flex-col gap-2">
+        <fieldset className="flex min-w-0 flex-col gap-2">
           <legend className="text-sm text-dim">{t("common.ports")}</legend>
           <p className="text-xs text-dim">{t("swarmCanvas.portsHint")}</p>
           {ports.map((p, i) => (
@@ -351,7 +351,7 @@ function ServiceForm({
         </fieldset>
       )}
 
-      <fieldset className="flex flex-col gap-1">
+      <fieldset className="flex min-w-0 flex-col gap-1">
         <legend className="text-sm text-dim">{t("swarmCanvas.secrets")}</legend>
         {secretNames.length === 0 ? (
           <p className="text-xs text-dim">{t("swarmCanvas.noSecrets")}</p>

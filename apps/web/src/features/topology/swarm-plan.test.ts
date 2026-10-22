@@ -92,6 +92,13 @@ const fakeIo = (over: Partial<PlanIo> = {}) => {
     remove: async (id) => {
       calls.push(`remove ${id}`);
     },
+    bind: async (input) => {
+      calls.push(`bind ${input.consumer}>${input.provider}`);
+      return `b-${input.consumer}`;
+    },
+    unbind: async (id) => {
+      calls.push(`unbind ${id}`);
+    },
     tasks: async () => running3,
     service: async () => svc(finished),
     sleep: async () => {},
@@ -311,6 +318,78 @@ describe("applyPlan", () => {
     );
     expect(r.ok).toBe(true);
     expect(calls).toEqual(['update s {"replicas":1}']);
+  });
+});
+
+describe("bindings in the plan", () => {
+  const bind: PlanItem = {
+    kind: "bind",
+    key: "web>db:db",
+    consumer: { id: "w", name: "web" },
+    provider: { id: "d", name: "db" },
+    name: "db",
+    style: "dotnet",
+    variables: ["ConnectionStrings__db"],
+    network: "shop",
+    joins: true,
+  };
+  const unbind: PlanItem = {
+    kind: "unbind",
+    bindingId: "b1",
+    consumer: { id: "w", name: "web" },
+    provider: "db",
+    name: "db",
+    style: "dotnet",
+    variables: ["ConnectionStrings__db"],
+  };
+
+  it("applies a binding and waits for the consumer's update", async () => {
+    const calls: string[] = [];
+    const st = updating({ state: "completed", message: "" });
+    const { io } = fakeIo({
+      service: st.service,
+      bind: async (i) => {
+        calls.push(`bind ${i.consumer}>${i.provider}`);
+        await st.update();
+        return "new-id";
+      },
+    });
+    const r = await applyPlan([bind], io, OPTS);
+    expect(r.ok).toBe(true);
+    expect(calls).toEqual(["bind web>db"]);
+  });
+
+  it("undoes a binding that was made when the plan fails later, and re-creates one that was removed", async () => {
+    const calls: string[] = [];
+    const st = updating({ state: "completed", message: "" });
+    const { io } = fakeIo({
+      service: st.service,
+      bind: async (i) => {
+        calls.push(`bind ${i.consumer}>${i.provider}`);
+        await st.update();
+        return "new-id";
+      },
+      unbind: async (id) => {
+        calls.push(`unbind ${id}`);
+        await st.update();
+      },
+      create: async () => {
+        throw new Error("name taken");
+      },
+    });
+    const r = await applyPlan([unbind, bind, create("x")], io, OPTS);
+    expect(r.ok).toBe(false);
+    // Undone in reverse: the new binding goes, the removed one comes back.
+    expect(calls).toEqual(["unbind b1", "bind web>db", "unbind new-id", "bind web>db"]);
+  });
+
+  it("shows the docker lines for both", () => {
+    expect(planCommands(bind)).toEqual([
+      "docker service update --network-add shop --env-add ConnectionStrings__db=… web",
+    ]);
+    expect(planCommands(unbind)).toEqual([
+      "docker service update --env-rm ConnectionStrings__db web",
+    ]);
   });
 });
 

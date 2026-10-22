@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BINDING_STYLES, type BindingKind } from "./binding.js";
 import { ResourceName } from "./docker.js";
 
 export const SwarmStatus = z.object({
@@ -196,6 +197,13 @@ export const UpdateSwarmService = z.object({
     })
     .optional(),
   placement: SwarmPlacement.optional(),
+  /** Variables to set and to remove (a binding between services uses this). Values are never read back. */
+  env: z
+    .object({
+      set: z.record(z.string(), z.string()).default({}),
+      unset: z.array(z.string().min(1).max(256)).max(64).default([]),
+    })
+    .optional(),
 });
 export type UpdateSwarmService = z.infer<typeof UpdateSwarmService>;
 
@@ -215,4 +223,41 @@ export type DeployStack = z.infer<typeof DeployStack>;
 export interface StackInfo {
   name: string;
   services: number;
+}
+
+/** Wires one service to another (the consumer receives the provider's connection settings in its environment). */
+export const CreateSwarmBinding = z.object({
+  consumer: z.string().min(1).max(128),
+  provider: z.string().min(1).max(128),
+  name: z
+    .string()
+    .regex(/^[A-Za-z][A-Za-z0-9]{0,40}$/, "letters and numbers, starting with a letter")
+    .optional(),
+  style: z.enum(BINDING_STYLES).default("dotnet"),
+});
+export type CreateSwarmBinding = z.infer<typeof CreateSwarmBinding>;
+export type CreateSwarmBindingInput = z.input<typeof CreateSwarmBinding>;
+
+export interface SwarmBinding {
+  id: string;
+  /** Service names (stable across updates). */
+  consumer: string;
+  provider: string;
+  kind: BindingKind;
+  name: string;
+  style: (typeof BINDING_STYLES)[number];
+  /** Names of the variables this binding put in the consumer, so removing it removes exactly those. */
+  variables: string[];
+  /** The overlay they talk over. */
+  network: string;
+}
+
+export interface SwarmBindingPlan {
+  kind: BindingKind;
+  name: string;
+  network: string;
+  /** The consumer has to join that overlay first. */
+  joins: boolean;
+  /** Variable names with their values, passwords masked. */
+  variables: { key: string; preview: string }[];
 }

@@ -931,6 +931,91 @@ services:
     }
   }, 300_000);
 
+  it("binds a real swarm service to another: the consumer gets the connection string and loses it on unbind", async () => {
+    const status = (await call("GET", "/swarm")).json as { active: boolean };
+    const startedHere = !status.active;
+    if (startedHere)
+      await call("POST", "/swarm/init", { advertiseAddr: "127.0.0.1" }).then((r) =>
+        expect(r.res.status).toBe(201),
+      );
+    const net = `${PREFIX}bind-net`;
+    const provider = `${PREFIX}bind-db`;
+    const consumer = `${PREFIX}bind-app`;
+    const envOf = (name: string): string[] =>
+      (JSON.parse(
+        docker(
+          "service",
+          "inspect",
+          name,
+          "--format",
+          "{{json .Spec.TaskTemplate.ContainerSpec.Env}}",
+        ),
+      ) as string[] | null) ?? [];
+    try {
+      await call("POST", "/networks", { name: net, driver: "overlay" });
+      await call("POST", "/swarm/services", {
+        name: provider,
+        image: "postgres:16-alpine",
+        replicas: 1,
+        networks: [net],
+        env: { POSTGRES_USER: "app", POSTGRES_PASSWORD: "bind-it-pw", POSTGRES_DB: "shop" },
+      });
+      const app = await call("POST", "/swarm/services", {
+        name: consumer,
+        image: IMAGE,
+        replicas: 1,
+        networks: [net],
+        command: ["sleep", "300"],
+      });
+      const appId = (app.json as { id: string }).id;
+
+      const plan = await call(
+        "GET",
+        `/swarm/bindings/plan?consumer=${consumer}&provider=${provider}`,
+      );
+      expect(plan.res.status).toBe(200);
+      expect(JSON.stringify(plan.json)).not.toContain("bind-it-pw");
+
+      const made = await call("POST", "/swarm/bindings", { consumer, provider });
+      expect(made.res.status).toBe(201);
+      const binding = made.json as { id: string; variables: string[]; network: string };
+      expect(binding.network).toBe(net);
+      const value = envOf(consumer).find((l) => l.startsWith(`${binding.variables[0]}=`)) ?? "";
+      expect(value).toContain(`Host=${provider}`);
+      expect(value).toContain("Password=bind-it-pw");
+      expect(JSON.stringify(made.json)).not.toContain("bind-it-pw");
+
+      // The consumer finished its rolling update.
+      let state: string | null = null;
+      for (let i = 0; i < 80 && state !== "completed"; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        const list = (await call("GET", "/swarm/services")).json as {
+          id: string;
+          update: { state: string | null };
+        }[];
+        state = list.find((x) => x.id === appId)?.update.state ?? null;
+      }
+      expect(state).toBe("completed");
+
+      expect((await call("DELETE", `/swarm/bindings/${binding.id}`)).res.status).toBe(204);
+      expect(envOf(consumer).some((l) => l.startsWith(`${binding.variables[0]}=`))).toBe(false);
+    } finally {
+      for (const svc of (
+        (await call("GET", "/swarm/services")).json as { id: string; name: string }[]
+      ).filter((x) => x.name.startsWith(PREFIX)))
+        await call("DELETE", `/swarm/services/${svc.id}`);
+      for (let attempt = 0; attempt < 25; attempt++) {
+        const left = ((await call("GET", "/networks")).json as { id: string; name: string }[]).find(
+          (n) => n.name === net,
+        );
+        if (!left) break;
+        await call("DELETE", `/networks/${left.id}`);
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      if (startedHere) await call("POST", "/swarm/leave", { force: true });
+    }
+  }, 180_000);
+
   it("creates a real overlay network and reads the cluster with its services and tasks", async () => {
     const status = (await call("GET", "/swarm")).json as { active: boolean };
     const startedHere = !status.active;

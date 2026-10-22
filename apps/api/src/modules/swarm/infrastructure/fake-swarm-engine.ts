@@ -227,6 +227,11 @@ export class FakeSwarmEngine extends SwarmEngine {
     return [...this.serviceList.values()].flatMap((s) => this.tasksOf(s));
   }
 
+  async serviceEnv(serviceId: string): Promise<Record<string, string>> {
+    this.manager();
+    return { ...this.service(serviceId).env };
+  }
+
   async serviceLogs(serviceId: string): Promise<string> {
     this.manager();
     return `${now()} ${this.service(serviceId).name}.1 | started (demo)\n`;
@@ -268,7 +273,10 @@ export class FakeSwarmEngine extends SwarmEngine {
     this.manager();
     const s = this.service(serviceId);
     const rollsOut =
-      patch.image !== undefined || patch.networks !== undefined || patch.placement !== undefined;
+      patch.image !== undefined ||
+      patch.networks !== undefined ||
+      patch.placement !== undefined ||
+      patch.env !== undefined;
     if (rollsOut) {
       if (patch.image?.includes(FAILING_IMAGE)) {
         // Docker's own failure action: the new copies never start, so the update goes back by itself.
@@ -288,6 +296,10 @@ export class FakeSwarmEngine extends SwarmEngine {
           ...patch.networks.add.filter((n) => !s.networks.includes(n)),
         ];
       if (patch.placement) s.placement = patch.placement;
+      if (patch.env) {
+        for (const key of patch.env.unset) delete s.env[key];
+        Object.assign(s.env, patch.env.set);
+      }
       s.update = { state: "completed", message: "update completed", startedAt: now() };
     }
     if (patch.replicas !== undefined && s.mode === "replicated") {

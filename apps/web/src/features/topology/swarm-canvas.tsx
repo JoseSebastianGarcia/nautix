@@ -1,8 +1,16 @@
-import type { Layout, Network, SwarmNode, SwarmPlacement, Template } from "@nautix/contracts";
+import type {
+  Layout,
+  Network,
+  SwarmBinding,
+  SwarmNode,
+  SwarmPlacement,
+  Template,
+} from "@nautix/contracts";
 import {
   applyNodeChanges,
   Background,
   BackgroundVariant,
+  type Connection,
   ConnectionMode,
   Controls,
   type Edge,
@@ -32,11 +40,15 @@ import { LogoBadge } from "./logo-badge.js";
 import { NetworkDialog } from "./network-dialog.js";
 import { type ZoneFlowNode, ZoneNode } from "./nodes.js";
 import { CUSTOM_TEMPLATE_ID, DRAG_TYPE, Palette } from "./palette.js";
+import { type BindTarget, SwarmBindDialog } from "./swarm-bind-dialog.js";
 import {
   applyPlan,
   effectiveNetworks,
+  itemServiceId,
   type PlanItem,
+  type PlannedBind,
   type PlannedCreate,
+  type PlannedUnbind,
   type PlanResult,
   planCommands,
   planImage,
@@ -57,6 +69,7 @@ import {
 const EMPTY_LAYOUT: Layout = { zones: {}, nodes: {} };
 const NO_TEMPLATES: Template[] = [];
 const NO_NETWORKS: Network[] = [];
+const NO_BINDINGS: SwarmBinding[] = [];
 const NO_NAMES: { id: string; name: string }[] = [];
 
 /** Services are saved in the layout under their own prefix so they never clash with container names. */
@@ -70,8 +83,26 @@ interface ServiceNodeData extends Record<string, unknown> {
   /** Any other change waiting in the plan (image, placement, networks). */
   changed: boolean;
   removing: boolean;
+  /** The person may draw a binding from this service to another. */
+  canBind: boolean;
+  /** Where each copy runs: the server's colour and name, and whether the copy is well. */
+  where: { color: string; host: string; ok: boolean }[];
 }
 type ServiceFlowNode = Node<ServiceNodeData, "service">;
+
+/** One colour per server, from hues that never stand for ok, warning or error, so a node's copies can be told apart at a glance. */
+const SERVER_HUES = [210, 280, 180, 320, 250, 195, 300, 230];
+const serverColor = (index: number): string =>
+  `hsl(${SERVER_HUES[index % SERVER_HUES.length] ?? 210} 65% 62%)`;
+
+/** A dot on the edge of the node: drag from one service's dot to another's to bind them. */
+const BIND_HANDLE = {
+  width: 12,
+  height: 12,
+  background: "var(--nx-accent)",
+  border: "2px solid var(--nx-bg-1)",
+} as const;
+const HIDDEN_HANDLE = { opacity: 0, pointerEvents: "none" as const };
 
 const HEALTH_TEXT = { ok: "text-ok", degraded: "text-amber", down: "text-danger" } as const;
 
@@ -102,14 +133,32 @@ function ServiceNode({ data, selected }: NodeProps<ServiceFlowNode>) {
         boxShadow: selected ? "var(--nx-glow)" : undefined,
         opacity: removing ? 0.55 : 1,
       }}
-      className={`flex items-center gap-3 rounded-xl border bg-bg1 px-3 ${removing ? "border-dashed border-danger" : pending ? "border-dashed border-accent" : "border-line"}`}
+      className={`relative flex items-center gap-3 rounded-xl border bg-bg1 px-3 ${removing ? "border-dashed border-danger" : pending ? "border-dashed border-accent" : "border-line"}`}
     >
       <Handle
+        id="bind"
         type="target"
         position={Position.Left}
-        style={{ opacity: 0, pointerEvents: "none" }}
+        isConnectable={data.canBind}
+        style={data.canBind ? BIND_HANDLE : HIDDEN_HANDLE}
+        aria-label={t("swarmCanvas.bindDrag")}
       />
       <LogoBadge image={image} name={name} />
+      {data.where.length > 0 && (
+        <span className="absolute right-2 top-1.5 flex gap-0.5">
+          {data.where.map((w, i) => (
+            <span
+              // biome-ignore lint/suspicious/noArrayIndexKey: copies have no id of their own here
+              key={i}
+              title={w.host}
+              role="img"
+              aria-label={w.host}
+              className="h-1.5 w-1.5 rounded-full"
+              style={w.ok ? { background: w.color } : { border: `1px solid ${w.color}` }}
+            />
+          ))}
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className={`truncate text-sm font-semibold ${removing ? "line-through" : ""}`}>
@@ -163,9 +212,12 @@ function ServiceNode({ data, selected }: NodeProps<ServiceFlowNode>) {
         </div>
       </div>
       <Handle
+        id="bind"
         type="source"
         position={Position.Right}
-        style={{ opacity: 0, pointerEvents: "none" }}
+        isConnectable={data.canBind}
+        style={data.canBind ? BIND_HANDLE : HIDDEN_HANDLE}
+        aria-label={t("swarmCanvas.bindDrag")}
       />
     </div>
   );
@@ -218,6 +270,10 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
     queryKey: ["swarm-secrets"],
     queryFn: api.swarmSecrets,
   });
+  const { data: bindings = NO_BINDINGS } = useQuery({
+    queryKey: ["swarm-bindings"],
+    queryFn: api.swarmBindings,
+  });
   const saveLayout = useApiMutation((layout: Layout) => api.saveLayout(layout), []);
   const persist = useCallback(
     (next: Layout) => {
@@ -232,9 +288,14 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
   const [target, setTarget] = useState<ServiceTarget | null>(null);
   const [newNetwork, setNewNetwork] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const [bindTarget, setBindTarget] = useState<BindTarget | null>(null);
   const [nodes, setNodes] = useState<FlowNode[]>([]);
 
   const swarmNodes = useMemo(() => model.servers.map((s) => s.node), [model.servers]);
+  const serverIndex = useMemo(
+    () => new Map(model.servers.map((c, i) => [c.node.id, i] as const)),
+    [model.servers],
+  );
   const overlays = useMemo(
     () => networks.filter((n) => n.driver === "overlay" && !n.system),
     [networks],
@@ -293,6 +354,13 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
             scaleTo: item.existing ? (scaleOf.get(item.existing.service.id) ?? null) : null,
             changed: item.existing ? changedIds.has(item.existing.service.id) : false,
             removing: item.existing ? removingIds.has(item.existing.service.id) : false,
+            where: (item.existing?.placements ?? []).map((p) => ({
+              color: serverColor(Math.max(0, serverIndex.get(p.task.nodeId) ?? 0)),
+              host: p.node?.hostname ?? t("cluster.unknownNode"),
+              ok: p.state === "ok",
+            })),
+            canBind:
+              isAdmin && item.existing !== null && !removingIds.has(item.existing.service.id),
           },
           zIndex: 1,
           draggable: isAdmin,
@@ -302,7 +370,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
       ];
     });
     return [...zones, ...svc];
-  }, [items, topology, isAdmin, scaleOf, changedIds, removingIds, t]);
+  }, [items, topology, isAdmin, scaleOf, changedIds, removingIds, serverIndex, t]);
 
   const fitted = useRef(false);
   useEffect(() => {
@@ -319,18 +387,78 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
     }
   }, [build, model.services.length, overlays.length, flow]);
 
-  // A service on two overlays is drawn in the first and linked to the other.
-  const edges = useMemo<Edge[]>(
-    () =>
-      topology.links.map((l) => ({
+  // A service on two overlays is drawn in the first and linked to the other; bindings are the labelled lines.
+  const edges = useMemo<Edge[]>(() => {
+    const idOf = new Map(model.services.map((x) => [x.service.name, x.service.id]));
+    const label = {
+      labelStyle: { fill: "var(--nx-text)", fontFamily: "var(--font-mono)", fontSize: 11 },
+      labelBgStyle: { fill: "var(--nx-bg-1)", stroke: "var(--nx-line)" },
+      labelBgPadding: [6, 3] as [number, number],
+      labelBgBorderRadius: 6,
+    };
+    const unbinding = new Set(plan.flatMap((p) => (p.kind === "unbind" ? [p.bindingId] : [])));
+    const line = (
+      id: string,
+      from: string | undefined,
+      to: string | undefined,
+      text: string,
+      pending: boolean,
+      removing = false,
+    ): Edge[] =>
+      from && to
+        ? [
+            {
+              id,
+              source: `s:${from}`,
+              target: `s:${to}`,
+              sourceHandle: "bind",
+              targetHandle: "bind",
+              label: text,
+              ...label,
+              style: {
+                stroke: removing ? "var(--nx-danger)" : "var(--nx-accent)",
+                strokeWidth: 2.5,
+                ...(pending || removing ? { strokeDasharray: "6 4" } : {}),
+              },
+              markerEnd: {
+                type: "arrowclosed" as const,
+                color: removing ? "var(--nx-danger)" : "var(--nx-accent)",
+              },
+            },
+          ]
+        : [];
+    return [
+      ...topology.links.map((l) => ({
         id: `l:${l.containerId}:${l.zoneId}`,
         source: `s:${l.containerId}`,
         target: `z:${l.zoneId}`,
+        sourceHandle: "bind",
         animated: true,
         style: { strokeDasharray: "6 4", stroke: "var(--nx-accent)" },
       })),
-    [topology.links],
-  );
+      ...bindings.flatMap((b) =>
+        line(
+          `b:${b.id}`,
+          idOf.get(b.consumer),
+          idOf.get(b.provider),
+          b.kind,
+          false,
+          unbinding.has(b.id),
+        ),
+      ),
+      ...plan.flatMap((p) =>
+        p.kind === "bind"
+          ? line(
+              `pb:${p.key}`,
+              p.consumer.id,
+              p.provider.id,
+              `${p.name} (${t("swarmCanvas.new")})`,
+              true,
+            )
+          : [],
+      ),
+    ];
+  }, [topology.links, model.services, bindings, plan, t]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<FlowNode>[]) => setNodes((cur) => applyNodeChanges(changes, cur)),
@@ -387,6 +515,21 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
     [topology.zones, topology.placements, items, persist, saved],
   );
 
+  const onConnect = useCallback(
+    (c: Connection) => {
+      const find = (nodeId: string) =>
+        model.services.find((x) => `s:${x.service.id}` === nodeId)?.service;
+      const consumer = find(c.source);
+      const provider = find(c.target);
+      if (consumer && provider && consumer.id !== provider.id)
+        setBindTarget({
+          consumer: { id: consumer.id, name: consumer.name },
+          provider: { id: provider.id, name: provider.name },
+        });
+    },
+    [model.services],
+  );
+
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
@@ -440,7 +583,8 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
             );
           }}
           onPaneClick={() => setSelection(null)}
-          nodesConnectable={false}
+          onConnect={onConnect}
+          nodesConnectable={isAdmin}
           nodesDraggable={isAdmin}
           minZoom={0.2}
           proOptions={{ hideAttribution: true }}
@@ -449,6 +593,21 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           <Background variant={BackgroundVariant.Dots} gap={24} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
         </ReactFlow>
+        {model.servers.length > 0 && (
+          <div className="absolute left-4 top-4 z-10 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-line bg-bg1 px-3 py-1.5 text-xs text-dim">
+            <span>{t("swarmCanvas.servers")}</span>
+            {model.servers.map((c, i) => (
+              <span key={c.node.id} className="flex items-center gap-1 font-mono">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: serverColor(i) }}
+                  aria-hidden="true"
+                />
+                {c.node.hostname}
+              </span>
+            ))}
+          </div>
+        )}
         {model.services.length === 0 && plan.length === 0 && (
           <p className="pointer-events-none absolute inset-x-0 top-6 pr-[22rem] text-center text-sm text-dim">
             {t("swarmCanvas.empty")}
@@ -478,6 +637,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           <ServiceInspector
             svc={selectedService}
             plan={plan}
+            bindings={bindings}
             overlays={overlays}
             nodes={swarmNodes}
             onPlan={(change) => setPlan(change)}
@@ -515,6 +675,13 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
         }}
         onClose={() => setTarget(null)}
       />
+      <SwarmBindDialog
+        target={bindTarget}
+        onAdd={(item) =>
+          setPlan((cur) => [...cur.filter((p) => !(p.kind === "bind" && p.key === item.key)), item])
+        }
+        onClose={() => setBindTarget(null)}
+      />
       <NetworkDialog open={newNetwork} onClose={() => setNewNetwork(false)} />
       <PlanDialog
         open={reviewing}
@@ -526,7 +693,10 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           push("ok", t("swarmCanvas.applied"));
           void qc.invalidateQueries({ queryKey: keys.cluster });
         }}
-        onChanged={() => void qc.invalidateQueries({ queryKey: keys.cluster })}
+        onChanged={() => {
+          void qc.invalidateQueries({ queryKey: keys.cluster });
+          void qc.invalidateQueries({ queryKey: ["swarm-bindings"] });
+        }}
       />
     </div>
   );
@@ -536,6 +706,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
 function ServiceInspector({
   svc,
   plan,
+  bindings,
   overlays,
   nodes,
   onPlan,
@@ -543,6 +714,7 @@ function ServiceInspector({
 }: {
   svc: ClusterService;
   plan: PlanItem[];
+  bindings: SwarmBinding[];
   overlays: Network[];
   nodes: SwarmNode[];
   onPlan: (next: PlanItem[]) => void;
@@ -551,6 +723,8 @@ function ServiceInspector({
   const { t } = useTranslation();
   const isAdmin = useIsAdmin();
   const s = svc.service;
+  const uses = bindings.filter((b) => b.consumer === s.name);
+  const usedBy = bindings.filter((b) => b.provider === s.name);
   const handle = { id: s.id, name: s.name };
   const scaled = plan.find((p) => p.kind === "scale" && p.serviceId === s.id);
   const copies = scaled?.kind === "scale" ? scaled.to : s.desired;
@@ -582,6 +756,53 @@ function ServiceInspector({
   return (
     <>
       <ServiceDetails svc={svc} nodes={nodes} />
+      {(uses.length > 0 || usedBy.length > 0) && (
+        <>
+          <h3 className="font-mono text-xs uppercase tracking-wider text-dim">
+            {t("swarmCanvas.bindingsTitle")}
+          </h3>
+          {uses.map((b) => {
+            const undoing = plan.some((p) => p.kind === "unbind" && p.bindingId === b.id);
+            return (
+              <div key={b.id} className="flex items-center gap-2 rounded-lg bg-bg0 p-2 text-sm">
+                <span className="min-w-0 flex-1 truncate">
+                  {t("swarmCanvas.uses")} <b className="font-mono">{b.provider}</b>{" "}
+                  <span className="text-dim">({b.kind})</span>
+                </span>
+                {isAdmin && (
+                  <Button
+                    onClick={() =>
+                      onPlan(
+                        undoing
+                          ? plan.filter((p) => !(p.kind === "unbind" && p.bindingId === b.id))
+                          : [
+                              ...plan,
+                              {
+                                kind: "unbind",
+                                bindingId: b.id,
+                                consumer: { id: s.id, name: s.name },
+                                provider: b.provider,
+                                name: b.name,
+                                style: b.style,
+                                variables: b.variables,
+                              },
+                            ],
+                      )
+                    }
+                  >
+                    {undoing ? t("swarmCanvas.keepBinding") : t("swarmCanvas.unbind")}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+          {usedBy.map((b) => (
+            <p key={b.id} className="text-sm text-dim">
+              {t("swarmCanvas.usedBy")} <b className="font-mono text-fg">{b.consumer}</b>
+            </p>
+          ))}
+        </>
+      )}
       {!isAdmin ? null : removing ? (
         <Button
           onClick={() => onPlan(plan.filter((p) => !(p.kind === "remove" && p.serviceId === s.id)))}
@@ -735,8 +956,19 @@ function ServiceInspector({
 type StepState = "pending" | "running" | "waiting" | "done" | "undone";
 
 const itemKey = (p: PlanItem): string =>
-  p.kind === "create" ? `c:${p.key}` : `${p.kind}:${p.serviceId}`;
-const itemName = (p: PlanItem): string => (p.kind === "create" ? p.spec.name : p.name);
+  p.kind === "create"
+    ? `c:${p.key}`
+    : p.kind === "bind"
+      ? `bind:${p.key}`
+      : p.kind === "unbind"
+        ? `unbind:${p.bindingId}`
+        : `${p.kind}:${p.serviceId}`;
+const itemName = (p: PlanItem): string =>
+  p.kind === "create"
+    ? p.spec.name
+    : p.kind === "bind" || p.kind === "unbind"
+      ? p.consumer.name
+      : p.name;
 
 function PlanDialog({
   open,
@@ -773,6 +1005,8 @@ function PlanDialog({
         create: async (spec) => (await api.swarmCreateService(spec)).id,
         update: (id, patch) => api.swarmUpdateService(id, patch),
         remove: (id) => api.swarmRemoveService(id),
+        bind: async (input) => (await api.swarmCreateBinding(input)).id,
+        unbind: (id) => api.swarmDeleteBinding(id),
         tasks: (id) => api.swarmTasks(id),
         service: async (id) => (await api.swarmServices()).find((s) => s.id === id),
         sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
@@ -818,7 +1052,11 @@ function PlanDialog({
         ? t("swarmCanvas.stepScale", { name: p.name, from: p.from, to: p.to })
         : p.kind === "remove"
           ? t("swarmCanvas.stepRemove", { name: p.name })
-          : t("swarmCanvas.stepUpdate", { name: p.name });
+          : p.kind === "bind"
+            ? t("swarmCanvas.stepBind", { consumer: p.consumer.name, provider: p.provider.name })
+            : p.kind === "unbind"
+              ? t("swarmCanvas.stepUnbind", { consumer: p.consumer.name, provider: p.provider })
+              : t("swarmCanvas.stepUpdate", { name: p.name });
 
   return (
     <Dialog open={open} onClose={close} title={t("swarmCanvas.reviewTitle")}>
