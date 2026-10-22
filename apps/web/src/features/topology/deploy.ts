@@ -15,12 +15,20 @@ export const formatEnv = (env: Record<string, string>): string =>
     .map(([k, v]) => `${k}=${v}`)
     .join("\n");
 
-/** Template placeholder secrets are replaced by random values so nothing ships with "change-me". */
+/**
+ * Template placeholder secrets are replaced by random values so nothing ships with "change-me".
+ * "change-me-long" asks for 48 characters, for software that insists on 32 or more (Kibana's encryption keys).
+ */
 export const randomizeSecrets = (
   env: Record<string, string>,
   random: () => string,
 ): Record<string, string> =>
-  Object.fromEntries(Object.entries(env).map(([k, v]) => [k, v === "change-me" ? random() : v]));
+  Object.fromEntries(
+    Object.entries(env).map(([k, v]) => [
+      k,
+      v === "change-me" ? random() : v === "change-me-long" ? random() + random() : v,
+    ]),
+  );
 
 const UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const LOWER = "abcdefghijkmnopqrstuvwxyz";

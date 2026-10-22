@@ -2,7 +2,9 @@ import {
   siApachekafka,
   siCaddy,
   siDocker,
+  siElasticsearch,
   siGrafana,
+  siKibana,
   siKong,
   siMongodb,
   siMysql,
@@ -62,6 +64,13 @@ const BRANDS: Brand[] = [
     hex: `#${siVaultwarden.hex}`,
     initials: "VW",
   },
+  {
+    match: /elasticsearch/,
+    path: siElasticsearch.path,
+    hex: `#${siElasticsearch.hex}`,
+    initials: "ES",
+  },
+  { match: /kibana/, path: siKibana.path, hex: "#E8478B", initials: "KB" },
   { match: /grafana/, path: siGrafana.path, hex: `#${siGrafana.hex}`, initials: "GF" },
 ];
 

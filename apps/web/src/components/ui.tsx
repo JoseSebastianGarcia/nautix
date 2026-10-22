@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -76,6 +76,7 @@ export function Dialog({
   help?: TopicId;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -98,6 +99,15 @@ export function Dialog({
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{title}</h2>
             {help && <HelpButton topic={help} />}
+            <button
+              type="button"
+              aria-label={t("common.close")}
+              title={t("common.close")}
+              onClick={() => ref.current?.close()}
+              className="ml-auto rounded-full p-1.5 text-dim hover:bg-bg2 hover:text-fg"
+            >
+              <X size={16} />
+            </button>
           </div>
           {children}
         </div>

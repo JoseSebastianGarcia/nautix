@@ -16,6 +16,23 @@ Templates that need a password or an address ask for it in the deploy dialog. Ch
 
 **Your own templates**: **New template** saves ports, variables, volumes and command under *My images*. Built-in templates cannot be changed, but hovering one shows a copy icon (**Customize template**) that opens the editor with its values and saves your own version; the original stays. Your templates can be edited or removed at any time.
 
+## Elasticsearch and Kibana
+
+Two templates that work together on your own machine. They are close to a production setup for one node, with these choices made for you: **security on** (every request needs a password, the user is `elastic`), a **fixed 1 GB heap**, a **data volume** and a published port on `127.0.0.1` only. TLS on the HTTP port is **off** because the traffic stays on the Docker network; turn it on before opening the port to other machines. It is one node: for real production use three or more nodes and snapshots.
+
+1. **Prepare the host** once. Elasticsearch needs `vm.max_map_count=262144`: on Linux `sudo sysctl -w vm.max_map_count=262144` (put it in `/etc/sysctl.d/` to keep it). On WSL2 add `kernelCommandLine = sysctl.vm.max_map_count=262144` under `[wsl2]` in `.wslconfig` and run `wsl --shutdown`. Leave at least 2 GB of memory free.
+2. **Deploy Elasticsearch** on a network of its own (name it `elasticsearch`, the default). The password is generated for you: read `ELASTIC_PASSWORD` in its environment. It takes about a minute to be ready.
+3. **Deploy Kibana** on the **same network**. It signs in as `kibana_system`, not as `elastic`, and Elasticsearch does not know that password yet. Open the **Terminal** of the Elasticsearch container and run the command below, with the two passwords you read in the environments, and then restart Kibana.
+4. Open `http://localhost:5601` and sign in as `elastic` with `ELASTIC_PASSWORD`.
+
+The command of step 3:
+
+```
+curl -u elastic:<ELASTIC_PASSWORD> -X POST http://localhost:9200/_security/user/kibana_system/_password -H "Content-Type: application/json" -d '{"password":"<ELASTICSEARCH_PASSWORD of Kibana>"}'
+```
+
+The three Kibana encryption keys are generated too and must not change: they protect saved objects, sessions and reports.
+
 ## Builds
 
 **Resources, Builds** builds an image on this engine.

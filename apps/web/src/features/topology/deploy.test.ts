@@ -12,6 +12,10 @@ import {
 } from "./deploy.js";
 
 describe("joinCommand", () => {
+  it("makes the long placeholder at least 32 characters", () => {
+    expect(randomizeSecrets({ K: "change-me-long" }, () => "x".repeat(24))["K"]?.length).toBe(48);
+  });
+
   it("round-trips every template command through the deploy dialog's text field", () => {
     const withCommand = TEMPLATES.filter((t) => t.command);
     expect(withCommand.length).toBeGreaterThan(0);

@@ -16,6 +16,23 @@ Las plantillas que necesitan una contraseña o una dirección la piden en el di�
 
 **Tus propias plantillas**: **Nuevo template** guarda puertos, variables, volúmenes y comando en *Mis imágenes*. Los templates incluidos no se pueden cambiar, pero al pasar el mouse por uno aparece un ícono de copia (**Personalizar template**) que abre el editor con sus valores y guarda tu propia versión; el original queda como está. Tus templates se pueden editar o quitar cuando quieras.
 
+## Elasticsearch y Kibana
+
+Dos plantillas que funcionan juntas en tu máquina. Están cerca de una configuración de producción para un nodo, con estas decisiones ya tomadas: **seguridad activada** (cada pedido necesita contraseña, el usuario es `elastic`), **heap fijo de 1 GB**, un **volumen de datos** y el puerto publicado solo en `127.0.0.1`. El TLS del puerto HTTP está **desactivado** porque el tráfico queda en la red de Docker; activalo antes de abrir el puerto a otras máquinas. Es un solo nodo: para producción real usá tres o más nodos y snapshots.
+
+1. **Preparar el host** una vez. Elasticsearch necesita `vm.max_map_count=262144`: en Linux `sudo sysctl -w vm.max_map_count=262144` (ponelo en `/etc/sysctl.d/` para que quede). En WSL2 agregá `kernelCommandLine = sysctl.vm.max_map_count=262144` bajo `[wsl2]` en `.wslconfig` y ejecutá `wsl --shutdown`. Dejá al menos 2 GB de memoria libre.
+2. **Desplegar Elasticsearch** en una red propia (con el nombre `elasticsearch`, el de por defecto). La contraseña se genera sola: leé `ELASTIC_PASSWORD` en su entorno. Tarda cerca de un minuto en estar listo.
+3. **Desplegar Kibana** en la **misma red**. Entra como `kibana_system`, no como `elastic`, y Elasticsearch todavía no conoce esa contraseña. Abrí la **Terminal** del contenedor de Elasticsearch y ejecutá el comando de abajo, con las dos contraseñas que leíste en los entornos, y después reiniciá Kibana.
+4. Abrí `http://localhost:5601` y entrá como `elastic` con `ELASTIC_PASSWORD`.
+
+El comando del paso 3:
+
+```
+curl -u elastic:<ELASTIC_PASSWORD> -X POST http://localhost:9200/_security/user/kibana_system/_password -H "Content-Type: application/json" -d '{"password":"<ELASTICSEARCH_PASSWORD de Kibana>"}'
+```
+
+Las tres claves de cifrado de Kibana también se generan y no deben cambiar: protegen los objetos guardados, las sesiones y los reportes.
+
 ## Builds
 
 **Recursos, Builds** construye una imagen en este motor.

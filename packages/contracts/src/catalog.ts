@@ -484,6 +484,57 @@ export const TEMPLATES: readonly Template[] = [
     volumes: ["/data"],
   },
   {
+    id: "elasticsearch",
+    name: "Elasticsearch",
+    category: "database",
+    image: "docker.elastic.co/elasticsearch/elasticsearch:9.2.1",
+    description:
+      "Search and analytics engine, one node with security on. The host needs vm.max_map_count=262144",
+    icon: "elasticsearch",
+    color: "#005571",
+    ports: [{ containerPort: 9200, label: "http", hostPort: 9200 }],
+    // One node (no replicas to place), password required for every request (the user is `elastic`) and a fixed 1 GB heap
+    // (minimum equal to maximum, so the JVM never resizes it). TLS on the HTTP port is off: the traffic stays on the
+    // Docker network and the port is published on 127.0.0.1 only; turn it on before exposing the port. The password
+    // is generated at deploy time. On Linux and WSL the kernel needs `sysctl -w vm.max_map_count=262144` or the node
+    // exits at start. Everything lives in the data volume: back it up.
+    env: {
+      "cluster.name": "nautix-es",
+      "discovery.type": "single-node",
+      ELASTIC_PASSWORD: "change-me",
+      "xpack.security.enabled": "true",
+      "xpack.security.http.ssl.enabled": "false",
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g",
+    },
+    volumes: ["/usr/share/elasticsearch/data"],
+  },
+  {
+    id: "kibana",
+    name: "Kibana",
+    category: "observability",
+    image: "docker.elastic.co/kibana/kibana:9.2.1",
+    description:
+      "Dashboards and search UI for Elasticsearch. Set the kibana_system password in Elasticsearch to the one below first",
+    icon: "kibana",
+    color: "#005571",
+    ports: [{ containerPort: 5601, label: "web", hostPort: 5601 }],
+    // Deploy it in the same network as Elasticsearch (container name `elasticsearch`). Kibana cannot sign in as `elastic`:
+    // it uses the built-in `kibana_system` user, whose password Elasticsearch does not know yet. Set it once, with the
+    // same value as ELASTICSEARCH_PASSWORD here (see the Elasticsearch help topic). The three keys encrypt saved
+    // objects, sessions and reports; they must stay the same across restarts, and Kibana needs at least 32 characters.
+    env: {
+      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200",
+      ELASTICSEARCH_USERNAME: "kibana_system",
+      ELASTICSEARCH_PASSWORD: "change-me",
+      SERVER_PUBLICBASEURL: "http://localhost:5601",
+      XPACK_SECURITY_ENCRYPTIONKEY: "change-me-long",
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: "change-me-long",
+      XPACK_REPORTING_ENCRYPTIONKEY: "change-me-long",
+      TELEMETRY_OPTIN: "false",
+    },
+    volumes: ["/usr/share/kibana/data"],
+  },
+  {
     id: "kafka",
     name: "Kafka",
     category: "broker",
