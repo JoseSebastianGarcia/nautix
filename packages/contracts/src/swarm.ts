@@ -67,6 +67,25 @@ export const SwarmUpdatePolicy = z.object({
 });
 export type SwarmUpdatePolicy = z.infer<typeof SwarmUpdatePolicy>;
 
+/** Run with `/bin/sh -c` inside the container; healthy while it exits 0. */
+export const SwarmHealthcheck = z.object({
+  command: z.string().min(1).max(1000),
+  intervalSeconds: z.number().int().min(1).max(3600).default(30),
+  timeoutSeconds: z.number().int().min(1).max(3600).default(10),
+  retries: z.number().int().min(1).max(100).default(3),
+  startPeriodSeconds: z.number().int().min(0).max(3600).default(0),
+});
+export type SwarmHealthcheck = z.infer<typeof SwarmHealthcheck>;
+
+/** Limits cap what a copy may use; reservations are what the scheduler sets aside for it on a node. */
+export const SwarmResources = z.object({
+  cpuLimit: z.number().min(0.01).max(256).optional(),
+  memoryLimitMb: z.number().int().min(4).max(10_000_000).optional(),
+  cpuReserve: z.number().min(0.01).max(256).optional(),
+  memoryReserveMb: z.number().int().min(4).max(10_000_000).optional(),
+});
+export type SwarmResources = z.infer<typeof SwarmResources>;
+
 export const SwarmUpdateState = z.enum([
   "updating",
   "paused",
@@ -93,6 +112,12 @@ export const SwarmService = z.object({
   placement: SwarmPlacement,
   /** Names of the secrets the service receives (files under /run/secrets). */
   secrets: z.array(z.string()),
+  /** Names of the configs the service receives (files at `/<name>`). */
+  configs: z.array(z.string()),
+  healthcheck: SwarmHealthcheck.nullable(),
+  resources: SwarmResources,
+  /** How updates roll out, as the service has it now (Docker's own defaults when it never set one). */
+  policy: SwarmUpdatePolicy.required({ order: true }),
   /** The last rolling update: its state and what Docker said about it. */
   update: z.object({
     state: SwarmUpdateState.nullable(),
@@ -173,6 +198,10 @@ export const CreateSwarmService = z.object({
   placement: SwarmPlacement.default({}),
   /** Secrets by name; each one is mounted at /run/secrets/<name>. */
   secrets: z.array(z.string().min(1).max(128)).max(32).default([]),
+  /** Configs by name; each one is mounted at `/<name>`. */
+  configs: z.array(z.string().min(1).max(128)).max(32).default([]),
+  healthcheck: SwarmHealthcheck.optional(),
+  resources: SwarmResources.default({}),
   update: SwarmUpdatePolicy.default({
     failureAction: "rollback",
     parallelism: 1,
@@ -197,6 +226,32 @@ export const UpdateSwarmService = z.object({
     })
     .optional(),
   placement: SwarmPlacement.optional(),
+  /** The complete list of published ports (the engine keeps the rest of the spec). */
+  ports: z.array(SwarmPort).max(32).optional(),
+  mounts: z
+    .object({
+      add: z.array(SwarmMount).max(16).default([]),
+      /** Mount points (paths in the container) to take out. */
+      remove: z.array(z.string().min(1).max(255)).max(16).default([]),
+    })
+    .optional(),
+  secrets: z
+    .object({
+      add: z.array(z.string().min(1).max(128)).max(32).default([]),
+      remove: z.array(z.string().min(1).max(128)).max(32).default([]),
+    })
+    .optional(),
+  configs: z
+    .object({
+      add: z.array(z.string().min(1).max(128)).max(32).default([]),
+      remove: z.array(z.string().min(1).max(128)).max(32).default([]),
+    })
+    .optional(),
+  /** `null` takes the health check out. */
+  healthcheck: SwarmHealthcheck.nullable().optional(),
+  resources: SwarmResources.optional(),
+  /** Only changes how future updates roll out: no copy is replaced. */
+  policy: SwarmUpdatePolicy.optional(),
   /** Variables to set and to remove (a binding between services uses this). Values are never read back. */
   env: z
     .object({

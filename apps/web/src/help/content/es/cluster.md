@@ -21,7 +21,8 @@ Arrastrá una plantilla a una caja overlay (o hacé clic en ella). Nombre, image
 - **Dónde corre**: cualquier nodo, solo workers, solo managers, o **fijado a un nodo**; más un límite opcional de copias por nodo.
 - **Volúmenes**: volúmenes con nombre montados en el contenedor. Una plantilla que pide rutas de datos los trae. **Un volumen vive en el nodo donde corre una copia**: si el servicio puede pasar a otro nodo, la copia que cae ahí arranca con un volumen vacío. Por eso un servicio con volúmenes arranca **fijado a un nodo**, y el diálogo avisa cuando lo dejás libre.
 - **Puertos a publicar**: un puerto publicado se abre en todos los nodos, en todas las interfaces. Uno que no publicás igual es alcanzable por los demás servicios de la red.
-- **Secretos**: marcá los secretos de Swarm que debe recibir; cada uno aparece dentro del contenedor como el archivo `/run/secrets/<nombre>`. Se crean en **Swarm, Secretos**.
+- **Secretos y configs**: marcá los secretos de Swarm que debe recibir (cada uno aparece como el archivo `/run/secrets/<nombre>`) y las configs (cada una como el archivo `/<nombre>`). Se crean en **Swarm, Secretos** y **Swarm, Configs**.
+- **Health check, límites y actualizaciones** (en *Health check, límites y actualizaciones*): un comando que debe terminar en 0 para que una copia cuente como saludable, un límite o reserva de CPU y memoria, y cómo se despliegan las actualizaciones (orden, copias a la vez, qué hacer si una falla). Los valores por defecto son una copia a la vez, volver atrás si falla, y detener primero cuando el servicio tiene volúmenes.
 
 ### Cambiar un servicio existente
 
@@ -32,6 +33,10 @@ Seleccionalo: el inspector muestra qué es y qué podés cambiar.
 - **Mover al overlay**: elegí otro overlay de la lista, o **arrastrá el nodo a otra caja**. Sale del overlay viejo y se une al nuevo.
 - **Dónde corre**: cambiá el rol, fijalo a un nodo o limitá las copias por nodo.
 - **Volver a la versión anterior**: vuelve a la configuración que tenía antes de su última actualización (imagen, redes, ubicación). Este se hace al instante, después de confirmar.
+- **Configuración**: los **puertos** publicados, los **volúmenes**, los **secretos y configs**, el **entorno**, el **health check**, los **límites** y la **política de actualización** tienen cada uno su sección en el inspector. Una sección cambia solo cuando presionás su **Aplicar**, y varios cambios de un servicio viajan como una única actualización gradual. Los valores del entorno nunca se muestran: ves los nombres, y poner un nombre que existe reemplaza su valor.
+
+![El inspector con su configuración: entorno, secretos, health check y límites](img:cluster-settings)
+
 - **Eliminar del cluster**: el nodo se dibuja tachado. Las eliminaciones se aplican **al final** y no se pueden deshacer: los volúmenes y secretos del servicio quedan, pero su configuración no se puede reconstruir desde acá.
 
 ### Vincular dos servicios
@@ -45,6 +50,7 @@ Cada nodo tiene un punto chico a cada lado. **Arrastrá del punto de un servicio
 **Revisar y aplicar** lista cada cambio con su comando `docker service` (los valores del entorno nunca se muestran). **Descartar** los quita todos; **Quitar del plan** uno solo.
 
 - **Aplicar** va de a un cambio y espera el resultado: para un servicio nuevo, hasta que sus copias corran; para una actualización, un vínculo o un movimiento, hasta que termine la actualización gradual. Si un cambio falla, **se deshace todo lo que el plan ya hizo**: los servicios creados se eliminan, los escalados o actualizados vuelven a lo que eran, un vínculo se quita y uno que se había quitado se vuelve a poner. El diálogo dice qué falló y por qué.
+- Un cambio de **entorno** que es la única actualización de su servicio se deshace con el rollback del propio motor; si el plan actualiza dos veces el mismo servicio, los valores no se pueden restaurar solos y el diálogo lo dice.
 - Las eliminaciones van al final. Si una falla, las anteriores quedan eliminadas (y el diálogo lo dice); todo lo demás se deshace.
 - No se elimina nada que el plan no haya creado o que no hayas pedido eliminar.
 

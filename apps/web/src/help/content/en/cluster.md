@@ -21,7 +21,8 @@ Drag a template onto an overlay box (or click it). Name, image, copies (or one o
 - **Where it runs**: any node, worker nodes only, manager nodes only, or **pinned to one node**; plus an optional limit of copies per node.
 - **Volumes**: named volumes mounted in the container. A template that asks for data paths brings them. **A volume lives on the node where a copy runs**: if the service can move to another node, the copy that lands there starts with an empty volume. That is why a service with volumes starts **pinned to a node**, and the dialog warns when you leave it free.
 - **Ports to publish**: a published port opens on every node, on all interfaces. A port you do not publish is still reachable by the other services of the network.
-- **Secrets**: tick the Swarm secrets it should receive; each appears inside the container as the file `/run/secrets/<name>`. Create them in **Swarm, Secrets**.
+- **Secrets and configs**: tick the Swarm secrets it should receive (each appears as the file `/run/secrets/<name>`) and the configs (each as the file `/<name>`). Create them in **Swarm, Secrets** and **Swarm, Configs**.
+- **Health check, limits and updates** (under *Health check, limits and updates*): a command that must exit 0 for a copy to count as healthy, a CPU and memory limit or reservation, and how updates roll out (order, copies at a time, what to do when one fails). The defaults are one copy at a time, roll back on failure, and stop-first when the service has volumes.
 
 ### Change an existing service
 
@@ -32,6 +33,10 @@ Select it: the inspector shows what it is and what you can change.
 - **Move to overlay**: pick another overlay in the list, or **drag the node onto another box**. It leaves the old overlay and joins the new one.
 - **Where it runs**: change the role, pin it to a node or limit the copies per node.
 - **Roll back to the previous version**: goes back to the settings it had before its last update (image, networks, placement). This one is done at once, after you confirm.
+- **Settings**: published **ports**, **volumes**, **secrets and configs**, **environment**, **health check**, **limits** and the **update policy** each have their own section in the inspector. A section changes only when you press its **Set**, and several changes to one service travel as a single rolling update. Environment values are never shown: you see the names, and setting a name that exists replaces its value.
+
+![The inspector with its settings: environment, secrets, health check and limits](img:cluster-settings)
+
 - **Remove from the cluster**: the node is drawn crossed out. Removals are applied **last** and cannot be undone: the service's volumes and secrets stay, but its settings cannot be rebuilt from here.
 
 ### Bind two services
@@ -45,6 +50,7 @@ Each node has a small dot on both sides. **Drag from one service's dot to anothe
 **Review and apply** lists each change with its `docker service` command (environment values are never shown). **Discard** drops them all; **Remove from plan** drops one.
 
 - **Applying** goes one change at a time and waits for the result: for a new service, until its copies run; for an update, a binding or a move, until the rolling update finishes. If a change fails, **everything the plan already did is undone**: created services are removed, scaled or updated ones go back to what they were, a binding is taken out, and a binding that was removed is put back. The dialog says what failed and why.
+- An **environment** change that is the only update of its service is undone with the engine's own rollback; if the plan updates the same service twice, the values cannot be restored automatically and the dialog says so.
 - Removals come last. If a removal fails, the ones before it stay removed (and the dialog says so); everything else is undone.
 - Nothing is removed that the plan did not create or that you did not ask to remove.
 
@@ -107,6 +113,7 @@ The dialog lists the **overlay zones** that are left without a cluster and the *
 
 - **Standalone containers** of other servers: a manager only knows about services. To see them Nautix needs a connection to that server's Docker.
 - **Images and volumes** of other nodes.
+- **A cluster across several machines** is built with `docker swarm join` on each one: see [Swarm](help:swarm).
 - **Who talks to whom** beyond the bindings you made. Docker says which services belong to a network, not the traffic between them: the dashed lines are membership, only the labelled ones are bindings.
 - **Two swarms** are two separate clusters: a network never spans both.
 

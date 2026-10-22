@@ -14,6 +14,7 @@ import { ConflictError, NotFoundError, ValidationError } from "../../../shared/d
 import { setFakeSwarmRole } from "../../../shared/fake-swarm-role.js";
 import { SwarmEngine } from "../application/ports/swarm-engine.js";
 import { scheduleTasks } from "../domain/schedule.js";
+import { defaultOrder, rollsOutPatch } from "../domain/swarm-spec.js";
 
 const id = (): string => randomBytes(12).toString("hex");
 const now = (): string => new Date().toISOString();
@@ -245,6 +246,10 @@ export class FakeSwarmEngine extends SwarmEngine {
     for (const name of request.secrets)
       if (!known.has(name))
         throw new ValidationError(`secret ${name} does not exist`, "errors.secretNotFound");
+    const knownConfigs = new Set([...this.configList.values()].map((i) => i.name));
+    for (const name of request.configs)
+      if (!knownConfigs.has(name))
+        throw new ValidationError(`config ${name} does not exist`, "errors.configNotFound");
     const serviceId = id();
     const service: FakeService = {
       id: serviceId,
@@ -260,6 +265,16 @@ export class FakeSwarmEngine extends SwarmEngine {
       mounts: request.mounts,
       placement: request.placement,
       secrets: request.secrets,
+      configs: request.configs,
+      healthcheck: request.healthcheck ?? null,
+      resources: request.resources,
+      policy: {
+        order: request.update.order ?? defaultOrder(request.mounts.length > 0, request.placement),
+        failureAction: request.update.failureAction,
+        parallelism: request.update.parallelism,
+        delaySeconds: request.update.delaySeconds,
+        monitorSeconds: request.update.monitorSeconds,
+      },
       update: { state: null, message: "", startedAt: "" },
       updatedAt: now(),
       env: request.env,
@@ -272,11 +287,7 @@ export class FakeSwarmEngine extends SwarmEngine {
   async updateService(serviceId: string, patch: UpdateSwarmService): Promise<void> {
     this.manager();
     const s = this.service(serviceId);
-    const rollsOut =
-      patch.image !== undefined ||
-      patch.networks !== undefined ||
-      patch.placement !== undefined ||
-      patch.env !== undefined;
+    const rollsOut = rollsOutPatch(patch);
     if (rollsOut) {
       if (patch.image?.includes(FAILING_IMAGE)) {
         // Docker's own failure action: the new copies never start, so the update goes back by itself.
@@ -300,8 +311,46 @@ export class FakeSwarmEngine extends SwarmEngine {
         for (const key of patch.env.unset) delete s.env[key];
         Object.assign(s.env, patch.env.set);
       }
+      if (patch.ports) s.ports = patch.ports;
+      if (patch.mounts)
+        s.mounts = [
+          ...s.mounts.filter(
+            (m) =>
+              !patch.mounts?.remove.includes(m.target) &&
+              !patch.mounts?.add.some((a) => a.target === m.target),
+          ),
+          ...patch.mounts.add,
+        ];
+      const apply = (list: string[], change: { add: string[]; remove: string[] }): string[] => [
+        ...list.filter((n) => !change.remove.includes(n) && !change.add.includes(n)),
+        ...change.add,
+      ];
+      if (patch.secrets) {
+        const known = new Set([...this.secretList.values()].map((i) => i.name));
+        for (const n of patch.secrets.add)
+          if (!known.has(n))
+            throw new ValidationError(`secret ${n} does not exist`, "errors.secretNotFound");
+        s.secrets = apply(s.secrets, patch.secrets);
+      }
+      if (patch.configs) {
+        const known = new Set([...this.configList.values()].map((i) => i.name));
+        for (const n of patch.configs.add)
+          if (!known.has(n))
+            throw new ValidationError(`config ${n} does not exist`, "errors.configNotFound");
+        s.configs = apply(s.configs, patch.configs);
+      }
+      if (patch.healthcheck !== undefined) s.healthcheck = patch.healthcheck;
+      if (patch.resources) s.resources = patch.resources;
       s.update = { state: "completed", message: "update completed", startedAt: now() };
     }
+    if (patch.policy)
+      s.policy = {
+        order: patch.policy.order ?? defaultOrder(s.mounts.length > 0, s.placement),
+        failureAction: patch.policy.failureAction,
+        parallelism: patch.policy.parallelism,
+        delaySeconds: patch.policy.delaySeconds,
+        monitorSeconds: patch.policy.monitorSeconds,
+      };
     if (patch.replicas !== undefined && s.mode === "replicated") {
       s.replicas = patch.replicas;
       s.desired = patch.replicas;

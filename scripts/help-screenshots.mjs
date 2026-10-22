@@ -261,6 +261,13 @@ await canvasShot("cluster-canvas", async (page) => {
   await page.getByRole("button", { name: "More replicas" }).click();
   await planRedis(page);
 });
+await canvasShot("cluster-settings", async (page) => {
+  await page.getByText("orders-api").first().click();
+  const inspector = page.locator("aside[aria-label=Inspector]");
+  for (const name of ["Environment", "Health check", "Limits"])
+    await inspector.getByText(name, { exact: true }).first().click();
+  await inspector.getByText("Health check", { exact: true }).first().scrollIntoViewIfNeeded();
+});
 await canvasShot("cluster-service", async (page) => {
   await page
     .getByRole("button", { name: /PostgreSQL/ })

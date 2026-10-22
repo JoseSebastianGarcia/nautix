@@ -7,11 +7,18 @@ import {
   type PlanItem,
   type PlannedCreate,
   planCommands,
+  planConfigs,
+  planEnvForget,
+  planEnvSet,
+  planEnvUnset,
   planImage,
+  planMounts,
   planMove,
   planPlacement,
+  planPorts,
   planRemove,
   planScale,
+  planSecrets,
   undoPatch,
   updatePatch,
   upsertUpdate,
@@ -46,6 +53,16 @@ const svc = (update: SwarmService["update"]): SwarmService => ({
   mounts: [],
   placement: {},
   secrets: [],
+  configs: [],
+  healthcheck: null,
+  resources: {},
+  policy: {
+    order: "stop-first",
+    failureAction: "pause",
+    parallelism: 1,
+    delaySeconds: 0,
+    monitorSeconds: 5,
+  },
   update,
   updatedAt: "",
 });
@@ -98,6 +115,9 @@ const fakeIo = (over: Partial<PlanIo> = {}) => {
     },
     unbind: async (id) => {
       calls.push(`unbind ${id}`);
+    },
+    rollback: async (id) => {
+      calls.push(`rollback ${id}`);
     },
     tasks: async () => running3,
     service: async () => svc(finished),
@@ -390,6 +410,132 @@ describe("bindings in the plan", () => {
     expect(planCommands(unbind)).toEqual([
       "docker service update --env-rm ConnectionStrings__db web",
     ]);
+  });
+});
+
+describe("editing a service in place", () => {
+  const cur = { id: "s1", name: "db" };
+
+  it("computes what to add and what to take out", () => {
+    const m = (source: string, target: string) => ({ source, target, readOnly: false });
+    let plan = upsertUpdate(
+      [],
+      cur,
+      planMounts([m("a", "/a"), m("b", "/b")], [m("b", "/b"), m("c", "/c")]),
+    );
+    plan = upsertUpdate(plan, cur, planSecrets(["x", "y"], ["y", "z"]));
+    plan = upsertUpdate(plan, cur, planConfigs([], ["app.conf"]));
+    const changes = plan[0]?.kind === "update" ? plan[0].changes : {};
+    expect(changes.mounts).toEqual({ add: [m("c", "/c")], remove: [m("a", "/a")] });
+    expect(changes.secrets).toEqual({ add: ["z"], remove: ["x"] });
+    expect(changes.configs).toEqual({ add: ["app.conf"], remove: [] });
+    // Asking for what is already there is no change.
+    expect(upsertUpdate([], cur, planSecrets(["x"], ["x"]))).toEqual([]);
+    expect(
+      upsertUpdate(
+        [],
+        cur,
+        planPorts([{ target: 80, protocol: "tcp" }], [{ target: 80, protocol: "tcp" }]),
+      ),
+    ).toEqual([]);
+  });
+
+  it("environment changes accumulate, replace and cancel each other", () => {
+    let plan = upsertUpdate([], cur, planEnvSet("A", "1"));
+    plan = upsertUpdate(plan, cur, planEnvSet("B", "2"));
+    plan = upsertUpdate(plan, cur, planEnvUnset("A"));
+    expect(plan[0]?.kind === "update" && plan[0].changes.env).toEqual({
+      set: { B: "2" },
+      unset: ["A"],
+    });
+    plan = upsertUpdate(plan, cur, planEnvForget("A"));
+    plan = upsertUpdate(plan, cur, planEnvForget("B"));
+    expect(plan).toEqual([]);
+  });
+
+  it("a policy change alone does not wait for a rolling update", async () => {
+    const policy = {
+      order: "stop-first" as const,
+      failureAction: "pause" as const,
+      parallelism: 2,
+      delaySeconds: 0,
+      monitorSeconds: 5,
+    };
+    const calls: string[] = [];
+    const { io } = fakeIo({
+      update: async (id, patch) => {
+        calls.push(`update ${id} ${Object.keys(patch).join(",")}`);
+      },
+      service: async () => svc({ state: null, message: "", startedAt: "" }),
+    });
+    const r = await applyPlan(
+      [
+        {
+          kind: "update",
+          serviceId: "s1",
+          name: "db",
+          changes: { policy: { from: { ...policy, parallelism: 1 }, to: policy } },
+        },
+      ],
+      io,
+      OPTS,
+    );
+    expect(r.ok).toBe(true);
+    expect(calls).toEqual(["update s1 policy"]);
+  });
+
+  it("undoes an environment change with the engine's rollback when it is the only update of the service", async () => {
+    const calls: string[] = [];
+    const st = updating({ state: "completed", message: "" });
+    const { io } = fakeIo({
+      service: st.service,
+      update: async (id) => {
+        calls.push(`update ${id}`);
+        await st.update();
+      },
+      rollback: async (id) => {
+        calls.push(`rollback ${id}`);
+      },
+      create: async () => {
+        throw new Error("name taken");
+      },
+    });
+    const env: PlanItem = {
+      kind: "update",
+      serviceId: "s1",
+      name: "db",
+      changes: { env: { set: { A: "1" }, unset: [] } },
+    };
+    const r = await applyPlan([env, create("x")], io, OPTS);
+    expect(r.ok).toBe(false);
+    expect(calls).toEqual(["update s1", "rollback s1"]);
+    expect(r.rollbackErrors).toEqual([]);
+  });
+
+  it("says so when an environment change cannot be undone because the service was updated again", async () => {
+    const st = updating({ state: "completed", message: "" });
+    const { io, calls } = fakeIo({
+      service: st.service,
+      update: async () => {
+        await st.update();
+      },
+      create: async () => {
+        throw new Error("name taken");
+      },
+    });
+    const items: PlanItem[] = [
+      {
+        kind: "update",
+        serviceId: "s1",
+        name: "db",
+        changes: { env: { set: { A: "1" }, unset: [] } },
+      },
+      { kind: "scale", serviceId: "s1", name: "db", from: 1, to: 2 },
+      create("x"),
+    ];
+    const r = await applyPlan(items, io, OPTS);
+    expect(r.rollbackErrors[0]?.error).toContain("cannot be restored");
+    expect(calls).not.toContain("rollback s1");
   });
 });
 

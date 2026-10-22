@@ -23,6 +23,7 @@ import {
   type RawNode,
   type RawService,
   type RawTask,
+  type RefIds,
   toServiceSpec,
 } from "../domain/swarm-spec.js";
 
@@ -175,22 +176,37 @@ export class DockerSocketSwarmEngine extends SwarmEngine {
     return isMultiplexed(reply.body) ? demuxStdcopy(reply.body) : reply.body.toString("utf8");
   }
 
-  async createService(request: CreateSwarmService): Promise<{ id: string }> {
-    // Secrets are chosen by name; the engine wants their ids.
-    const secretIds: Record<string, string> = {};
-    if (request.secrets.length > 0) {
-      const known = new Map((await this.secrets()).map((s) => [s.name, s.id]));
-      for (const name of request.secrets) {
-        const found = known.get(name);
-        if (!found)
-          throw new ValidationError(`secret ${name} does not exist`, "errors.secretNotFound");
-        secretIds[name] = found;
-      }
+  /** Secrets and configs are chosen by name; the engine wants their ids. */
+  private async idsByName(
+    names: string[],
+    list: () => Promise<SwarmItem[]>,
+    hint: string,
+    what: string,
+  ): Promise<Record<string, string>> {
+    if (names.length === 0) return {};
+    const known = new Map((await list()).map((i) => [i.name, i.id]));
+    const out: Record<string, string> = {};
+    for (const name of names) {
+      const found = known.get(name);
+      if (!found) throw new ValidationError(`${what} ${name} does not exist`, hint);
+      out[name] = found;
     }
+    return out;
+  }
+
+  private refIds(secrets: string[], configs: string[]): Promise<RefIds> {
+    return Promise.all([
+      this.idsByName(secrets, () => this.secrets(), "errors.secretNotFound", "secret"),
+      this.idsByName(configs, () => this.configs(), "errors.configNotFound", "config"),
+    ]).then(([s, c]) => ({ secrets: s, configs: c }));
+  }
+
+  async createService(request: CreateSwarmService): Promise<{ id: string }> {
+    const ids = await this.refIds(request.secrets, request.configs);
     const created = await this.http.json<{ ID: string }>(
       "POST",
       "/services/create",
-      toServiceSpec(request, secretIds),
+      toServiceSpec(request, ids.secrets, ids.configs),
     );
     return { id: created.ID };
   }
@@ -211,10 +227,11 @@ export class DockerSocketSwarmEngine extends SwarmEngine {
     if (patch.networks)
       for (const n of await this.http.json<{ Id: string; Name: string }[]>("GET", "/networks"))
         networkIds[n.Name] = n.Id;
+    const refIds = await this.refIds(patch.secrets?.add ?? [], patch.configs?.add ?? []);
     await this.http.send(
       "POST",
       `/services/${encodeURIComponent(id)}/update?version=${service.Version?.Index ?? 0}`,
-      patchServiceSpec(service.Spec, patch, networkIds),
+      patchServiceSpec(service.Spec, patch, networkIds, refIds),
     );
   }
 

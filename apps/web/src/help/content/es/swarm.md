@@ -31,6 +31,17 @@ Swarm vale la pena cuando querés que los servicios sigan corriendo si cae una m
 
 Los contenedores creados con `docker run` no son servicios, así que la pestaña Swarm no los muestra. La topología, los vínculos, los documentos de zona y las guardas de puertos trabajan sobre un solo motor Docker a la vez; no siguen a un servicio entre nodos.
 
+
+## Sumar una segunda máquina
+
+Nautix corre en el manager; las otras máquinas solo necesitan Docker.
+
+1. Abrí solo entre las máquinas: `2377/tcp`, `7946/tcp` y `7946/udp`, `4789/udp` (y el protocolo IP 50 si cifrás un overlay). Nunca a internet: usá una red privada o una VPN.
+2. En Nautix iniciá el swarm con la dirección privada del manager como dirección anunciada, y copiá el **token de unión** de worker desde **Swarm, Cluster**.
+3. En la otra máquina: `docker swarm join --token <token> <dirección-del-manager>:2377`.
+
+El nodo aparece en **Nodos** y en la leyenda del lienzo. Si una máquina se cae, sus copias se vuelven a iniciar en las otras (salvo las fijadas a ella); **Drenar** las mueve a propósito.
+
 > Los nodos se hablan por los puertos 2377 (tcp), 7946 (tcp y udp) y 4789 (udp). Abrilos solo en una red privada o una VPN, nunca a internet.
 
 Si solo necesitás que dos servidores independientes se hablen, una VPN (WireGuard, Tailscale) entre ellos más un Nautix por servidor es más simple.

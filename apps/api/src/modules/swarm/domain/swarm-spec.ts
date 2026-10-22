@@ -1,9 +1,11 @@
 import type {
   ClusterTask,
   CreateSwarmService,
+  SwarmHealthcheck,
   SwarmMount,
   SwarmNode,
   SwarmPlacement,
+  SwarmResources,
   SwarmService,
   SwarmTask,
   SwarmUpdatePolicy,
@@ -27,7 +29,10 @@ export interface RawService {
         Args?: string[];
         Mounts?: RawMount[];
         Secrets?: RawSecretRef[];
+        Configs?: RawConfigRef[];
+        Healthcheck?: RawHealthcheck;
       };
+      Resources?: RawResources;
       Networks?: { Target: string }[];
       Placement?: RawPlacement;
     };
@@ -52,6 +57,26 @@ export interface RawSecretRef {
   SecretID: string;
   SecretName: string;
   File?: { Name: string; UID: string; GID: string; Mode: number };
+}
+
+export interface RawConfigRef {
+  ConfigID: string;
+  ConfigName: string;
+  File?: { Name: string; UID: string; GID: string; Mode: number };
+}
+
+export interface RawHealthcheck {
+  Test?: string[];
+  /** Nanoseconds. */
+  Interval?: number;
+  Timeout?: number;
+  StartPeriod?: number;
+  Retries?: number;
+}
+
+export interface RawResources {
+  Limits?: { NanoCPUs?: number; MemoryBytes?: number };
+  Reservations?: { NanoCPUs?: number; MemoryBytes?: number };
 }
 
 export interface RawPlacement {
@@ -167,9 +192,78 @@ export const toSecretRefs = (names: string[], idByName: Record<string, string>):
     File: { Name: name, UID: "0", GID: "0", Mode: 0o444 },
   }));
 
+export const toConfigRefs = (names: string[], idByName: Record<string, string>): RawConfigRef[] =>
+  names.map((name) => ({
+    ConfigID: idByName[name] ?? "",
+    ConfigName: name,
+    File: { Name: `/${name}`, UID: "0", GID: "0", Mode: 0o444 },
+  }));
+
+const MB = 1024 * 1024;
+
+export const toHealthcheck = (h: SwarmHealthcheck): RawHealthcheck => ({
+  Test: ["CMD-SHELL", h.command],
+  Interval: h.intervalSeconds * NS,
+  Timeout: h.timeoutSeconds * NS,
+  StartPeriod: h.startPeriodSeconds * NS,
+  Retries: h.retries,
+});
+
+export const fromHealthcheck = (raw: RawHealthcheck | undefined): SwarmHealthcheck | null => {
+  const test = raw?.Test ?? [];
+  if (test.length === 0 || test[0] === "NONE") return null;
+  return {
+    command: test[0] === "CMD-SHELL" ? (test[1] ?? "") : test.slice(1).join(" "),
+    intervalSeconds: Math.round((raw?.Interval ?? 30 * NS) / NS),
+    timeoutSeconds: Math.round((raw?.Timeout ?? 30 * NS) / NS),
+    retries: raw?.Retries ?? 3,
+    startPeriodSeconds: Math.round((raw?.StartPeriod ?? 0) / NS),
+  };
+};
+
+export const toResources = (r: SwarmResources): RawResources => ({
+  ...(r.cpuLimit || r.memoryLimitMb
+    ? {
+        Limits: {
+          ...(r.cpuLimit ? { NanoCPUs: Math.round(r.cpuLimit * NS) } : {}),
+          ...(r.memoryLimitMb ? { MemoryBytes: r.memoryLimitMb * MB } : {}),
+        },
+      }
+    : {}),
+  ...(r.cpuReserve || r.memoryReserveMb
+    ? {
+        Reservations: {
+          ...(r.cpuReserve ? { NanoCPUs: Math.round(r.cpuReserve * NS) } : {}),
+          ...(r.memoryReserveMb ? { MemoryBytes: r.memoryReserveMb * MB } : {}),
+        },
+      }
+    : {}),
+});
+
+export const fromResources = (raw: RawResources | undefined): SwarmResources => ({
+  ...(raw?.Limits?.NanoCPUs ? { cpuLimit: raw.Limits.NanoCPUs / NS } : {}),
+  ...(raw?.Limits?.MemoryBytes ? { memoryLimitMb: Math.round(raw.Limits.MemoryBytes / MB) } : {}),
+  ...(raw?.Reservations?.NanoCPUs ? { cpuReserve: raw.Reservations.NanoCPUs / NS } : {}),
+  ...(raw?.Reservations?.MemoryBytes
+    ? { memoryReserveMb: Math.round(raw.Reservations.MemoryBytes / MB) }
+    : {}),
+});
+
+/** What Docker applies when a service never set an update policy. */
+export const fromUpdateConfig = (
+  raw: RawUpdateConfig | undefined,
+): Required<SwarmUpdatePolicy> => ({
+  order: raw?.Order === "start-first" ? "start-first" : "stop-first",
+  failureAction: raw?.FailureAction === "rollback" ? "rollback" : "pause",
+  parallelism: raw?.Parallelism ?? 1,
+  delaySeconds: Math.round((raw?.Delay ?? 0) / NS),
+  monitorSeconds: Math.round((raw?.Monitor ?? 5 * NS) / NS),
+});
+
 export const toServiceSpec = (
   r: CreateSwarmService,
   secretIds: Record<string, string> = {},
+  configIds: Record<string, string> = {},
 ): RawService["Spec"] => ({
   Name: r.name,
   Labels: { "nautix.managed": "true" },
@@ -182,7 +276,12 @@ export const toServiceSpec = (
       ...(r.command?.length ? { Args: r.command } : {}),
       ...(r.mounts.length ? { Mounts: toMounts(r.mounts) } : {}),
       ...(r.secrets.length ? { Secrets: toSecretRefs(r.secrets, secretIds) } : {}),
+      ...(r.configs.length ? { Configs: toConfigRefs(r.configs, configIds) } : {}),
+      ...(r.healthcheck ? { Healthcheck: toHealthcheck(r.healthcheck) } : {}),
     },
+    ...(Object.keys(toResources(r.resources)).length > 0
+      ? { Resources: toResources(r.resources) }
+      : {}),
     ...(r.networks.length ? { Networks: r.networks.map((Target) => ({ Target })) } : {}),
     ...(r.placement.role || r.placement.nodeId || r.placement.maxPerNode
       ? { Placement: toPlacement(r.placement) }
@@ -244,44 +343,128 @@ export const envMap = (spec: RawService["Spec"]): Record<string, string> =>
     }),
   );
 
+/** Ids of the secrets and configs a patch adds, by name (the engine looks them up). */
+export interface RefIds {
+  secrets: Record<string, string>;
+  configs: Record<string, string>;
+}
+
+/** Everything but the update policy and the replica count changes what a copy is, so copies are replaced. */
+export const rollsOutPatch = (patch: UpdateSwarmService): boolean =>
+  patch.image !== undefined ||
+  patch.networks !== undefined ||
+  patch.placement !== undefined ||
+  patch.env !== undefined ||
+  patch.ports !== undefined ||
+  patch.mounts !== undefined ||
+  patch.secrets !== undefined ||
+  patch.configs !== undefined ||
+  patch.healthcheck !== undefined ||
+  patch.resources !== undefined;
+
 export const patchServiceSpec = (
   spec: RawService["Spec"],
   patch: UpdateSwarmService,
   networkIds: Record<string, string> = {},
+  refIds: RefIds = { secrets: {}, configs: {} },
 ): RawService["Spec"] => {
-  const rollsOut =
-    patch.image !== undefined ||
-    patch.networks !== undefined ||
-    patch.placement !== undefined ||
-    patch.env !== undefined;
-  const hasVolumes = (spec.TaskTemplate.ContainerSpec.Mounts ?? []).length > 0;
+  const rollsOut = rollsOutPatch(patch);
+  const container = spec.TaskTemplate.ContainerSpec;
+  const hasVolumes = (container.Mounts ?? []).length > 0;
+
+  let mounts = container.Mounts;
+  if (patch.mounts) {
+    const gone = new Set([...patch.mounts.remove, ...patch.mounts.add.map((m) => m.target)]);
+    mounts = [
+      ...(container.Mounts ?? []).filter((m) => !gone.has(m.Target ?? "")),
+      ...toMounts(patch.mounts.add),
+    ];
+  }
+  let secrets = container.Secrets;
+  if (patch.secrets) {
+    const gone = new Set([...patch.secrets.remove, ...patch.secrets.add]);
+    secrets = [
+      ...(container.Secrets ?? []).filter((x) => !gone.has(x.SecretName)),
+      ...toSecretRefs(patch.secrets.add, refIds.secrets),
+    ];
+  }
+  let configs = container.Configs;
+  if (patch.configs) {
+    const gone = new Set([...patch.configs.remove, ...patch.configs.add]);
+    configs = [
+      ...(container.Configs ?? []).filter((x) => !gone.has(x.ConfigName)),
+      ...toConfigRefs(patch.configs.add, refIds.configs),
+    ];
+  }
+
+  // A key left undefined is not sent (JSON drops it): an emptied list or a removed health check disappears.
+  const nonEmpty = <T>(list: T[] | undefined): T[] | undefined =>
+    list && list.length > 0 ? list : undefined;
+  const nextContainer: typeof container = {
+    ...container,
+    ...(patch.image ? { Image: patch.image } : {}),
+    ...(patch.env ? { Env: patchEnv(container.Env, patch.env) } : {}),
+    ...(patch.mounts ? { Mounts: nonEmpty(mounts) } : {}),
+    ...(patch.secrets ? { Secrets: nonEmpty(secrets) } : {}),
+    ...(patch.configs ? { Configs: nonEmpty(configs) } : {}),
+    ...(patch.healthcheck !== undefined
+      ? { Healthcheck: patch.healthcheck ? toHealthcheck(patch.healthcheck) : undefined }
+      : {}),
+  };
+
+  const resources = patch.resources ? toResources(patch.resources) : spec.TaskTemplate.Resources;
+  const placement = patch.placement
+    ? toPlacement(patch.placement, spec.TaskTemplate.Placement?.Constraints)
+    : spec.TaskTemplate.Placement;
+  const defaults = {
+    failureAction: "rollback" as const,
+    parallelism: 1,
+    delaySeconds: 5,
+    monitorSeconds: 10,
+  };
+
   return {
     ...spec,
     TaskTemplate: {
       ...spec.TaskTemplate,
-      ContainerSpec: {
-        ...spec.TaskTemplate.ContainerSpec,
-        ...(patch.image ? { Image: patch.image } : {}),
-        ...(patch.env ? { Env: patchEnv(spec.TaskTemplate.ContainerSpec.Env, patch.env) } : {}),
-      },
+      ContainerSpec: nextContainer,
       ...(patch.networks
         ? { Networks: patchNetworks(spec.TaskTemplate.Networks, patch.networks, networkIds) }
         : {}),
-      ...(patch.placement
-        ? { Placement: toPlacement(patch.placement, spec.TaskTemplate.Placement?.Constraints) }
-        : {}),
+      ...(placement ? { Placement: placement } : {}),
+      Resources: resources && Object.keys(resources).length > 0 ? resources : undefined,
     },
-    ...(rollsOut && !spec.UpdateConfig
+    ...(patch.policy
       ? {
           UpdateConfig: toUpdateConfig(
-            { failureAction: "rollback", parallelism: 1, delaySeconds: 5, monitorSeconds: 10 },
-            defaultOrder(hasVolumes, fromPlacement(spec.TaskTemplate.Placement)),
+            patch.policy,
+            defaultOrder((nextContainer.Mounts ?? []).length > 0, fromPlacement(placement)),
           ),
         }
-      : {}),
+      : rollsOut && !spec.UpdateConfig
+        ? {
+            UpdateConfig: toUpdateConfig(
+              defaults,
+              defaultOrder(hasVolumes, fromPlacement(placement)),
+            ),
+          }
+        : {}),
     ...(rollsOut && !spec.RollbackConfig ? { RollbackConfig: ROLLBACK_CONFIG } : {}),
     ...(patch.replicas !== undefined && spec.Mode?.Replicated
       ? { Mode: { Replicated: { Replicas: patch.replicas } } }
+      : {}),
+    ...(patch.ports
+      ? {
+          EndpointSpec: {
+            ...spec.EndpointSpec,
+            Ports: patch.ports.map((p) => ({
+              Protocol: p.protocol,
+              TargetPort: p.target,
+              ...(p.published ? { PublishedPort: p.published } : {}),
+              PublishMode: "ingress",
+            })),
+          },
+        }
       : {}),
   };
 };
@@ -322,6 +505,10 @@ export const fromService = (s: RawService): SwarmService => {
       })),
     placement: fromPlacement(s.Spec.TaskTemplate.Placement),
     secrets: (s.Spec.TaskTemplate.ContainerSpec.Secrets ?? []).map((x) => x.SecretName),
+    configs: (s.Spec.TaskTemplate.ContainerSpec.Configs ?? []).map((x) => x.ConfigName),
+    healthcheck: fromHealthcheck(s.Spec.TaskTemplate.ContainerSpec.Healthcheck),
+    resources: fromResources(s.Spec.TaskTemplate.Resources),
+    policy: fromUpdateConfig(s.Spec.UpdateConfig),
     update: {
       state: UPDATE_STATES.has(s.UpdateStatus?.State ?? "")
         ? (s.UpdateStatus?.State as SwarmUpdateState)

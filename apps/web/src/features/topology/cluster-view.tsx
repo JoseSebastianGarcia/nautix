@@ -378,6 +378,11 @@ export function ServiceDetails({
             <tr className="border-t border-line text-amber">
               <td className="py-1.5" colSpan={3}>
                 ◌ {t("cluster.looking", { count: svc.missing })}
+                {svc.waitingBecause.map((why) => (
+                  <div key={why} className="text-dim">
+                    {why}
+                  </div>
+                ))}
               </td>
             </tr>
           )}

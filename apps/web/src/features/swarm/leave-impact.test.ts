@@ -27,6 +27,16 @@ const svc = (name: string, networks: string[]): SwarmService => ({
   mounts: [],
   placement: {},
   secrets: [],
+  configs: [],
+  healthcheck: null,
+  resources: {},
+  policy: {
+    order: "stop-first",
+    failureAction: "pause",
+    parallelism: 1,
+    delaySeconds: 0,
+    monitorSeconds: 5,
+  },
   update: { state: null, message: "", startedAt: "" },
   updatedAt: "",
 });

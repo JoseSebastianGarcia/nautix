@@ -22,6 +22,8 @@ export interface ClusterService {
   health: Health;
   /** Copies that should exist but have no task yet (the cluster is looking for a place for them). */
   missing: number;
+  /** Why the copies that were given no node are waiting (Docker's own words, e.g. a constraint no node meets). */
+  waitingBecause: string[];
   /** Names of the overlay networks it is on. */
   networks: string[];
 }
@@ -72,20 +74,24 @@ export const buildCluster = (cluster: SwarmCluster, networks: Network[]): Cluste
   const overlays = networks.filter((n) => n.driver === "overlay" && !n.system);
 
   const services: ClusterService[] = cluster.services.map((service) => {
-    const placements = cluster.tasks
+    const current = cluster.tasks
       .filter((t) => t.serviceId === service.id && isCurrent(t))
-      .sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0))
-      .map((task) => ({
-        task,
-        node: nodeById.get(task.nodeId) ?? null,
-        state: placementState(task),
-      }));
+      .sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0));
+    // A copy nobody has taken yet has no server: it is waiting, not running somewhere unknown.
+    const assigned = current.filter((t) => t.nodeId !== "");
+    const unassigned = current.filter((t) => t.nodeId === "");
+    const placements = assigned.map((task) => ({
+      task,
+      node: nodeById.get(task.nodeId) ?? null,
+      state: placementState(task),
+    }));
     const running = placements.filter((p) => p.state === "ok").length;
     return {
       service,
       placements,
       health: healthOf(running, service.desired),
       missing: Math.max(0, service.desired - placements.length),
+      waitingBecause: [...new Set(unassigned.map((t) => t.error).filter((e) => e !== ""))],
       networks: overlays.filter((n) => onNetwork(service, n)).map((n) => n.name),
     };
   });

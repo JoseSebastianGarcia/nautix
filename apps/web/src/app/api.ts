@@ -244,6 +244,7 @@ export const api = {
   swarmCreateBinding: (b: CreateSwarmBindingInput) =>
     request<SwarmBinding>("POST", "/swarm/bindings", b),
   swarmDeleteBinding: (id: string) => request<void>("DELETE", `/swarm/bindings/${id}`),
+  swarmServiceEnv: (id: string) => request<{ names: string[] }>("GET", `/swarm/services/${id}/env`),
   swarmRollbackService: (id: string) => request<void>("POST", `/swarm/services/${id}/rollback`),
   swarmTasks: (id: string) => request<SwarmTask[]>("GET", `/swarm/services/${id}/tasks`),
   swarmServiceLogs: (id: string) =>

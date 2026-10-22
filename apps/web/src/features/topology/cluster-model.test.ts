@@ -37,6 +37,16 @@ const service = (
   mounts: [],
   placement: {},
   secrets: [],
+  configs: [],
+  healthcheck: null,
+  resources: {},
+  policy: {
+    order: "stop-first",
+    failureAction: "pause",
+    parallelism: 1,
+    delaySeconds: 0,
+    monitorSeconds: 5,
+  },
   update: { state: null, message: "", startedAt: "" },
   updatedAt: "",
 });
@@ -127,6 +137,28 @@ describe("buildCluster", () => {
   it("gives an empty cluster an empty drawing", () => {
     const empty = buildCluster({ status, nodes: [], services: [], tasks: [] }, []);
     expect(empty).toMatchObject({ zones: [], loose: [], servers: [], services: [] });
+  });
+});
+
+describe("copies nobody has taken", () => {
+  it("are waiting, not running on an unknown server, and keep Docker's reason", () => {
+    const waiting = {
+      ...task("api", "", "pending", "running", 2),
+      error: "no suitable node (scheduling constraints not satisfied on 1 node)",
+    };
+    const m = buildCluster(
+      {
+        status,
+        nodes: [node("m", "manager")],
+        services: [service("api", ["net-shop"], 2)],
+        tasks: [task("api", "m", "running", "running", 1), waiting],
+      },
+      [net("net-shop", "shop")],
+    );
+    const api = m.services[0];
+    expect(api?.placements).toHaveLength(1);
+    expect(api?.missing).toBe(1);
+    expect(api?.waitingBecause).toEqual([waiting.error]);
   });
 });
 
