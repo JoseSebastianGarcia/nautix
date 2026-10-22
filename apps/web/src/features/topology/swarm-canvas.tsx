@@ -35,11 +35,13 @@ import { useToasts } from "../../components/toast-store.js";
 import { Button, ConfirmDialog, Dialog, Field, Input, ShowCommand } from "../../components/ui.js";
 import type { ClusterModel, ClusterService } from "./cluster-model.js";
 import { ServiceDetails } from "./cluster-view.js";
+import { type Rect, sidesBetween } from "./edge-sides.js";
 import { EXTERNAL_ID, layoutTopology, NODE_H, NODE_W, type Placeable, zoneAt } from "./layout.js";
 import { LogoBadge } from "./logo-badge.js";
 import { NetworkDialog } from "./network-dialog.js";
 import { type ZoneFlowNode, ZoneNode } from "./nodes.js";
 import { CUSTOM_TEMPLATE_ID, DRAG_TYPE, Palette } from "./palette.js";
+import { SideHandles } from "./side-handles.js";
 import { type BindTarget, SwarmBindDialog } from "./swarm-bind-dialog.js";
 import {
   applyPlan,
@@ -136,13 +138,11 @@ function ServiceNode({ data, selected }: NodeProps<ServiceFlowNode>) {
       }}
       className={`relative flex items-center gap-3 rounded-xl border bg-bg1 px-3 ${removing ? "border-dashed border-danger" : pending ? "border-dashed border-accent" : "border-line"}`}
     >
-      <Handle
-        id="bind"
-        type="target"
-        position={Position.Left}
-        isConnectable={data.canBind}
-        style={data.canBind ? BIND_HANDLE : HIDDEN_HANDLE}
-        aria-label={t("swarmCanvas.bindDrag")}
+      <SideHandles
+        prefix="bind"
+        connectable={data.canBind}
+        visibleStyle={BIND_HANDLE}
+        label={t("swarmCanvas.bindDrag")}
       />
       <LogoBadge image={image} name={name} />
       {data.where.length > 0 && (
@@ -212,14 +212,6 @@ function ServiceNode({ data, selected }: NodeProps<ServiceFlowNode>) {
           </span>
         </div>
       </div>
-      <Handle
-        id="bind"
-        type="source"
-        position={Position.Right}
-        isConnectable={data.canBind}
-        style={data.canBind ? BIND_HANDLE : HIDDEN_HANDLE}
-        aria-label={t("swarmCanvas.bindDrag")}
-      />
     </div>
   );
 }
@@ -402,6 +394,19 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
       labelBgBorderRadius: 6,
     };
     const unbinding = new Set(plan.flatMap((p) => (p.kind === "unbind" ? [p.bindingId] : [])));
+    // Lines leave and arrive by the sides that face the other box.
+    const spot = new Map(
+      topology.placements.map(
+        (p) => [p.containerId, { x: p.x, y: p.y, w: NODE_W, h: NODE_H }] as const,
+      ),
+    );
+    const sidesOf = (a: string, b: string) => {
+      const from = spot.get(a);
+      const to = spot.get(b);
+      return from && to
+        ? sidesBetween(from, to)
+        : { source: "right" as const, target: "left" as const };
+    };
     const line = (
       id: string,
       from: string | undefined,
@@ -416,8 +421,8 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
               id,
               source: `s:${from}`,
               target: `s:${to}`,
-              sourceHandle: "bind",
-              targetHandle: "bind",
+              sourceHandle: `bind-${sidesOf(from, to).source}`,
+              targetHandle: `bind-${sidesOf(from, to).target}`,
               label: text,
               ...label,
               style: {
@@ -433,14 +438,21 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           ]
         : [];
     return [
-      ...topology.links.map((l) => ({
-        id: `l:${l.containerId}:${l.zoneId}`,
-        source: `s:${l.containerId}`,
-        target: `z:${l.zoneId}`,
-        sourceHandle: "bind",
-        animated: true,
-        style: { strokeDasharray: "6 4", stroke: "var(--nx-accent)" },
-      })),
+      ...topology.links.map((l) => {
+        const zone = topology.zones.find((z) => z.id === l.zoneId);
+        const from = spot.get(l.containerId);
+        const sides = zone && from ? sidesBetween(from, zone as Rect) : undefined;
+        return {
+          id: `l:${l.containerId}:${l.zoneId}`,
+          source: `s:${l.containerId}`,
+          target: `z:${l.zoneId}`,
+          ...(sides
+            ? { sourceHandle: `bind-${sides.source}`, targetHandle: `tunnel-${sides.target}` }
+            : {}),
+          animated: true,
+          style: { strokeDasharray: "6 4", stroke: "var(--nx-accent)" },
+        };
+      }),
       ...bindings.flatMap((b) =>
         line(
           `b:${b.id}`,
@@ -463,7 +475,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           : [],
       ),
     ];
-  }, [topology.links, model.services, bindings, plan, t]);
+  }, [topology.links, topology.placements, topology.zones, model.services, bindings, plan, t]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<FlowNode>[]) => setNodes((cur) => applyNodeChanges(changes, cur)),

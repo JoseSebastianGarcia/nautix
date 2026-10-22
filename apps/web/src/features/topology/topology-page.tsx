@@ -236,8 +236,13 @@ function Canvas() {
   const edges = useMemo(
     () => [
       ...toEdges(topology),
-      ...tunnelEdges(tunnels, networks, selection?.kind === "tunnel" ? selection.id : undefined),
-      ...bindingEdges(bindings, containers),
+      ...tunnelEdges(
+        tunnels,
+        networks,
+        topology.zones,
+        selection?.kind === "tunnel" ? selection.id : undefined,
+      ),
+      ...bindingEdges(bindings, containers, topology),
     ],
     [topology, tunnels, networks, selection, bindings, containers],
   );
@@ -384,15 +389,21 @@ function ConnectSwarmButton() {
   const { t } = useTranslation();
   const isAdmin = useIsAdmin();
   const [open, setOpen] = useState(false);
+  // A ring pops on click (see .nx-fab-pop); the dialog opens at once, the ring is only feedback.
+  const [pop, setPop] = useState(false);
   if (!isAdmin) return null;
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="nx-glass nx-lens-wide absolute right-[22rem] top-4 z-10 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-fg hover:opacity-90"
+        onClick={() => {
+          setPop(true);
+          setOpen(true);
+        }}
+        onAnimationEnd={() => setPop(false)}
+        className={`nx-fab nx-glass nx-lens-wide right-[22rem] top-4 z-10 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-fg ${pop ? "nx-fab-pop" : ""}`}
       >
-        <Hexagon size={15} className="text-accent" /> {t("swarm.connectFab")}
+        <Hexagon size={15} className="nx-fab-icon text-accent" /> {t("swarm.connectFab")}
       </button>
       <SwarmConnectDialog open={open} onClose={() => setOpen(false)} />
     </>
