@@ -306,7 +306,7 @@ function Canvas() {
           proOptions={{ hideAttribution: true }}
           deleteKeyCode={null}
         >
-          <Background variant={BackgroundVariant.Dots} gap={24} color="var(--nx-grid)" />
+          <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
         </ReactFlow>
         <div className="absolute left-4 top-4 flex gap-2">

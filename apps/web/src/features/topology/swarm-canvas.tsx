@@ -607,7 +607,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           proOptions={{ hideAttribution: true }}
           deleteKeyCode={null}
         >
-          <Background variant={BackgroundVariant.Dots} gap={24} color="var(--nx-grid)" />
+          <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
         </ReactFlow>
         {model.servers.length > 0 && (
