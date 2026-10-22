@@ -6,9 +6,10 @@
 export type Rgb = [number, number, number];
 
 export const ALLOWED_HUE: [number, number] = [165, 345];
-/** Aurora: blue that fades into teal (see companionHue). */
-export const DEFAULT_ACCENT = "#3b82f6";
+/** Aurora: teal that fades into emerald (see companionHue). */
+export const DEFAULT_ACCENT = "#15a9bc";
 export const PRESET_ACCENTS = [
+  "#15a9bc",
   "#3b82f6",
   "#8b7cf6",
   "#6366f1",
