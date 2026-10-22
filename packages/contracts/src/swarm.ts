@@ -33,6 +33,49 @@ export const SwarmPort = z.object({
 });
 export type SwarmPort = z.infer<typeof SwarmPort>;
 
+/** Where a service may run. Everything is optional: no field means "anywhere". */
+export const SwarmPlacement = z.object({
+  role: z.enum(["manager", "worker"]).optional(),
+  /** Pin to one node (its id): the way to keep a service next to its local volume. */
+  nodeId: z.string().min(1).max(64).optional(),
+  /** At most this many copies on each node. */
+  maxPerNode: z.number().int().min(1).max(1000).optional(),
+});
+export type SwarmPlacement = z.infer<typeof SwarmPlacement>;
+
+/** A named volume mounted in every copy. The volume lives on the node where the copy runs. */
+export const SwarmMount = z.object({
+  source: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/),
+  target: z.string().regex(/^\/[^\0]{0,255}$/),
+  readOnly: z.boolean().default(false),
+});
+export type SwarmMount = z.infer<typeof SwarmMount>;
+
+/** How a change of the service (image, networks, placement) rolls out, and what happens when it goes wrong. */
+export const SwarmUpdatePolicy = z.object({
+  /**
+   * start-first brings the new copy up before stopping the old one; stop-first needs no spare capacity.
+   * Left out, it is stop-first for a service with volumes or a limit per node (a second copy could not
+   * start beside the first) and start-first otherwise.
+   */
+  order: z.enum(["start-first", "stop-first"]).optional(),
+  failureAction: z.enum(["rollback", "pause"]).default("rollback"),
+  parallelism: z.number().int().min(1).max(100).default(1),
+  delaySeconds: z.number().int().min(0).max(3600).default(5),
+  monitorSeconds: z.number().int().min(0).max(3600).default(10),
+});
+export type SwarmUpdatePolicy = z.infer<typeof SwarmUpdatePolicy>;
+
+export const SwarmUpdateState = z.enum([
+  "updating",
+  "paused",
+  "completed",
+  "rollback_started",
+  "rollback_paused",
+  "rollback_completed",
+]);
+export type SwarmUpdateState = z.infer<typeof SwarmUpdateState>;
+
 export const SwarmService = z.object({
   id: z.string(),
   name: z.string(),
@@ -45,6 +88,17 @@ export const SwarmService = z.object({
   stack: z.string().nullable(),
   /** Ids of the networks the service is attached to. */
   networks: z.array(z.string()),
+  mounts: z.array(SwarmMount),
+  placement: SwarmPlacement,
+  /** Names of the secrets the service receives (files under /run/secrets). */
+  secrets: z.array(z.string()),
+  /** The last rolling update: its state and what Docker said about it. */
+  update: z.object({
+    state: SwarmUpdateState.nullable(),
+    message: z.string(),
+    /** When that update started: a new one is told from the previous by this. */
+    startedAt: z.string(),
+  }),
   updatedAt: z.string(),
 });
 export type SwarmService = z.infer<typeof SwarmService>;
@@ -114,6 +168,16 @@ export const CreateSwarmService = z.object({
   ports: z.array(SwarmPort).max(32).default([]),
   command: z.array(z.string()).optional(),
   networks: z.array(z.string().min(1).max(128)).max(16).default([]),
+  mounts: z.array(SwarmMount).max(16).default([]),
+  placement: SwarmPlacement.default({}),
+  /** Secrets by name; each one is mounted at /run/secrets/<name>. */
+  secrets: z.array(z.string().min(1).max(128)).max(32).default([]),
+  update: SwarmUpdatePolicy.default({
+    failureAction: "rollback",
+    parallelism: 1,
+    delaySeconds: 5,
+    monitorSeconds: 10,
+  }),
 });
 export type CreateSwarmService = z.infer<typeof CreateSwarmService>;
 export type CreateSwarmServiceInput = z.input<typeof CreateSwarmService>;
@@ -121,6 +185,17 @@ export type CreateSwarmServiceInput = z.input<typeof CreateSwarmService>;
 export const UpdateSwarmService = z.object({
   replicas: z.number().int().min(0).max(1000).optional(),
   image: z.string().min(1).max(255).optional(),
+  /**
+   * Networks to join and to leave, by name or id. Never a full list: the service also holds addresses on
+   * networks it did not ask for (the ingress one), and those must not be written back.
+   */
+  networks: z
+    .object({
+      add: z.array(z.string().min(1).max(128)).max(16).default([]),
+      remove: z.array(z.string().min(1).max(128)).max(16).default([]),
+    })
+    .optional(),
+  placement: SwarmPlacement.optional(),
 });
 export type UpdateSwarmService = z.infer<typeof UpdateSwarmService>;
 

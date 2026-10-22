@@ -1452,6 +1452,8 @@ services:
     expect(
       ((await call("GET", "/swarm/nodes")).json as { availability: string }[])[0]?.availability,
     ).toBe("drain");
+    // A drained node takes no new copies: put it back before creating services.
+    await call("PATCH", `/swarm/nodes/${nodes[0]?.id}`, { availability: "active" });
 
     const created = await call("POST", "/swarm/services", {
       name: "web",
@@ -2086,6 +2088,77 @@ describe("gateways and proxies of every supported type", () => {
     expect(
       (await trail("&q=%25")).every((r) => r.action.includes("%") || r.detail.includes("%")),
     ).toBe(true);
+  });
+
+  it("services with volumes, placement and secrets; a bad update rolls back; a manual rollback", async () => {
+    type Svc = {
+      id: string;
+      image: string;
+      running: number;
+      desired: number;
+      mounts: { source: string; target: string }[];
+      placement: { nodeId?: string; role?: string; maxPerNode?: number };
+      secrets: string[];
+      update: { state: string | null };
+    };
+    const read = async (id: string) =>
+      ((await call("GET", "/swarm/services")).json as Svc[]).find((x) => x.id === id) as Svc;
+    expect((await call("POST", "/swarm/init", {})).res.status).toBe(201);
+    const node = ((await call("GET", "/swarm/nodes")).json as { id: string }[])[0]?.id ?? "";
+    await call("POST", "/swarm/secrets", { name: "db-pass", value: "never-returned" });
+
+    const unknown = await call("POST", "/swarm/services", {
+      name: "db",
+      image: "postgres:16",
+      secrets: ["nope"],
+    });
+    expect(unknown.res.status).toBe(422);
+    expect(unknown.json.hintKey).toBe("errors.secretNotFound");
+
+    const created = await call("POST", "/swarm/services", {
+      name: "db",
+      image: "postgres:16",
+      mounts: [{ source: "db-data", target: "/var/lib/postgresql/data" }],
+      secrets: ["db-pass"],
+      placement: { nodeId: node, maxPerNode: 1 },
+    });
+    expect(created.res.status).toBe(201);
+    const id = (created.json as { id: string }).id;
+    const svc = await read(id);
+    expect(svc.mounts).toEqual([
+      { source: "db-data", target: "/var/lib/postgresql/data", readOnly: false },
+    ]);
+    expect(svc.secrets).toEqual(["db-pass"]);
+    expect(svc.placement).toEqual({ nodeId: node, maxPerNode: 1 });
+    expect(JSON.stringify((await call("GET", "/swarm/services")).json)).not.toContain(
+      "never-returned",
+    );
+
+    // More copies than the node may hold stay pending, with the reason.
+    await call("PATCH", `/swarm/services/${id}`, { replicas: 3 });
+    expect((await read(id)).running).toBe(1);
+    const tasks = (await call("GET", `/swarm/services/${id}/tasks`)).json as {
+      state: string;
+      error: string;
+    }[];
+    expect(tasks.filter((t) => t.state === "pending")).toHaveLength(2);
+    expect(tasks.find((t) => t.state === "pending")?.error).toContain("max replicas");
+
+    // A good update goes through; a bad image is undone by the engine and the image stays.
+    await call("PATCH", `/swarm/services/${id}`, { replicas: 1, image: "postgres:17" });
+    expect(await read(id)).toMatchObject({ image: "postgres:17", update: { state: "completed" } });
+    await call("PATCH", `/swarm/services/${id}`, { image: "nautix/demo-fail:1" });
+    expect(await read(id)).toMatchObject({
+      image: "postgres:17",
+      update: { state: "rollback_completed" },
+    });
+
+    // Manual rollback goes back to what the last update replaced.
+    expect((await call("POST", `/swarm/services/${id}/rollback`)).res.status).toBe(204);
+    expect((await read(id)).image).toBe("postgres:16");
+    expect((await call("POST", `/swarm/services/${id}/rollback`)).res.status).toBe(409);
+
+    await call("POST", "/swarm/leave", { force: true });
   });
 
   it("creates overlay networks only on a swarm manager and reads the whole cluster in one call", async () => {

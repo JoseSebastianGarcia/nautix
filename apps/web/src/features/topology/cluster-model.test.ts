@@ -34,6 +34,10 @@ const service = (
   ports: [],
   stack: null,
   networks,
+  mounts: [],
+  placement: {},
+  secrets: [],
+  update: { state: null, message: "", startedAt: "" },
   updatedAt: "",
 });
 const task = (

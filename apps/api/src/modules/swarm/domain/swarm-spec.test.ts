@@ -31,6 +31,12 @@ describe("swarm spec", () => {
     expect(spec.Labels?.["nautix.managed"]).toBe("true");
   });
 
+  it("a stateless service updates start-first", () => {
+    expect(
+      toServiceSpec(CreateSwarmService.parse({ name: "w", image: "x" })).UpdateConfig?.Order,
+    ).toBe("start-first");
+  });
+
   it("global services have no replica count", () => {
     const spec = toServiceSpec(
       CreateSwarmService.parse({ name: "agent", image: "x", global: true }),
@@ -85,5 +91,109 @@ describe("swarm spec", () => {
     expect(stacksOf([svc, { ...svc, id: "s2" }, { ...svc, id: "s3", stack: null }])).toEqual([
       { name: "shop", services: 2 },
     ]);
+  });
+
+  it("builds volumes, secrets, placement and an update policy that rolls back", () => {
+    const spec = toServiceSpec(
+      CreateSwarmService.parse({
+        name: "db",
+        image: "postgres:16",
+        mounts: [{ source: "db-data", target: "/var/lib/postgresql/data" }],
+        secrets: ["db-password"],
+        placement: { role: "worker", nodeId: "n1", maxPerNode: 1 },
+      }),
+      { "db-password": "sid" },
+    );
+    expect(spec.TaskTemplate.ContainerSpec.Mounts).toEqual([
+      { Type: "volume", Source: "db-data", Target: "/var/lib/postgresql/data", ReadOnly: false },
+    ]);
+    expect(spec.TaskTemplate.ContainerSpec.Secrets?.[0]).toMatchObject({
+      SecretID: "sid",
+      SecretName: "db-password",
+      File: { Name: "db-password" },
+    });
+    expect(spec.TaskTemplate.Placement).toEqual({
+      Constraints: ["node.role==worker", "node.id==n1"],
+      MaxReplicas: 1,
+    });
+    // A volume and a per-node limit mean the old copy must stop before the new one starts.
+    expect(spec.UpdateConfig).toMatchObject({ FailureAction: "rollback", Order: "stop-first" });
+    expect(spec.UpdateConfig?.Monitor).toBe(10_000_000_000);
+  });
+
+  it("an update keeps what it does not touch and gives the service a rollback policy", () => {
+    const spec = toServiceSpec(
+      CreateSwarmService.parse({
+        name: "db",
+        image: "postgres:16",
+        env: { A: "1" },
+        mounts: [{ source: "d", target: "/d" }],
+        placement: { role: "worker" },
+      }),
+    );
+    const { UpdateConfig: _drop, ...bare } = spec;
+    const next = patchServiceSpec(
+      {
+        ...bare,
+        TaskTemplate: {
+          ...bare.TaskTemplate,
+          Placement: { Constraints: ["node.labels.zone==a", "node.role==worker"] },
+        },
+      },
+      { image: "postgres:17", placement: { nodeId: "n2" } },
+    );
+    expect(next.TaskTemplate.ContainerSpec.Env).toEqual(["A=1"]);
+    expect(next.TaskTemplate.ContainerSpec.Mounts).toHaveLength(1);
+    // The constraint Nautix does not manage stays; the managed ones are replaced.
+    expect(next.TaskTemplate.Placement?.Constraints).toEqual([
+      "node.labels.zone==a",
+      "node.id==n2",
+    ]);
+    // Volumes mean two copies cannot share the volume: stop first.
+    expect(next.UpdateConfig).toMatchObject({ FailureAction: "rollback", Order: "stop-first" });
+  });
+
+  it("an update joins and leaves networks without writing back the ones it did not ask for", () => {
+    const spec = toServiceSpec(
+      CreateSwarmService.parse({ name: "a", image: "x", networks: ["one", "id-two"] }),
+    );
+    const next = patchServiceSpec(
+      spec,
+      { networks: { add: ["three", "one"], remove: ["two"] } },
+      { two: "id-two", three: "id-three" },
+    );
+    // "two" is removed through its id, "one" is not added twice, "three" joins.
+    expect(next.TaskTemplate.Networks).toEqual([{ Target: "one" }, { Target: "three" }]);
+  });
+
+  it("reads mounts, placement, secrets and the update state back", () => {
+    const spec = toServiceSpec(
+      CreateSwarmService.parse({
+        name: "db",
+        image: "postgres:16",
+        mounts: [{ source: "d", target: "/d", readOnly: true }],
+        secrets: ["s"],
+        placement: { role: "manager", maxPerNode: 2 },
+      }),
+      { s: "sid" },
+    );
+    const svc = fromService({
+      ID: "x",
+      Spec: spec,
+      UpdateStatus: {
+        State: "rollback_completed",
+        Message: "update rolled back",
+        StartedAt: "2026-01-01T00:00:00Z",
+      },
+    });
+    expect(svc.mounts).toEqual([{ source: "d", target: "/d", readOnly: true }]);
+    expect(svc.placement).toEqual({ role: "manager", maxPerNode: 2 });
+    expect(svc.secrets).toEqual(["s"]);
+    expect(svc.update).toEqual({
+      state: "rollback_completed",
+      message: "update rolled back",
+      startedAt: "2026-01-01T00:00:00Z",
+    });
+    expect(fromService({ ID: "y", Spec: spec }).update.state).toBeNull();
   });
 });

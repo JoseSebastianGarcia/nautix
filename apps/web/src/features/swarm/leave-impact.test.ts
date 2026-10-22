@@ -24,6 +24,10 @@ const svc = (name: string, networks: string[]): SwarmService => ({
   ports: [],
   stack: null,
   networks,
+  mounts: [],
+  placement: {},
+  secrets: [],
+  update: { state: null, message: "", startedAt: "" },
   updatedAt: "",
 });
 const overlay = (name: string): Network => ({

@@ -284,8 +284,17 @@ function NodesPanel({
 }
 
 /** What the cluster knows about one service: mode, copies, networks and where each task runs. */
-export function ServiceDetails({ svc }: { svc: ClusterService }) {
+export function ServiceDetails({
+  svc,
+  nodes = [],
+}: {
+  svc: ClusterService;
+  /** To name the node a service is pinned to. */
+  nodes?: SwarmNode[];
+}) {
   const { t } = useTranslation();
+  const nodeName = (id: string): string =>
+    nodes.find((n) => n.id === id)?.hostname ?? id.slice(0, 8);
   return (
     <>
       <div className="flex items-center gap-3">
@@ -308,6 +317,38 @@ export function ServiceDetails({ svc }: { svc: ClusterService }) {
           <>
             <dt className="text-dim">{t("cluster.stack")}</dt>
             <dd>{svc.service.stack}</dd>
+          </>
+        )}
+        {(svc.service.placement.role ||
+          svc.service.placement.nodeId ||
+          svc.service.placement.maxPerNode) && (
+          <>
+            <dt className="text-dim">{t("swarmCanvas.placement")}</dt>
+            <dd>
+              {[
+                svc.service.placement.role && t(`swarmCanvas.mode.${svc.service.placement.role}s`),
+                svc.service.placement.nodeId &&
+                  `${t("swarmCanvas.pinnedTo")} ${nodeName(svc.service.placement.nodeId)}`,
+                svc.service.placement.maxPerNode &&
+                  t("swarmCanvas.maxShort", { count: svc.service.placement.maxPerNode }),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </dd>
+          </>
+        )}
+        {svc.service.mounts.length > 0 && (
+          <>
+            <dt className="text-dim">{t("swarmCanvas.volumes")}</dt>
+            <dd className="font-mono text-xs">
+              {svc.service.mounts.map((m) => `${m.source}:${m.target}`).join(", ")}
+            </dd>
+          </>
+        )}
+        {svc.service.secrets.length > 0 && (
+          <>
+            <dt className="text-dim">{t("swarmCanvas.secrets")}</dt>
+            <dd className="font-mono text-xs">{svc.service.secrets.join(", ")}</dd>
           </>
         )}
       </dl>
@@ -347,7 +388,7 @@ export function ServiceDetails({ svc }: { svc: ClusterService }) {
   );
 }
 
-function ServiceInspector({ svc }: { svc: ClusterService | null }) {
+function ServiceInspector({ svc, nodes }: { svc: ClusterService | null; nodes: SwarmNode[] }) {
   const { t } = useTranslation();
   return (
     <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-line bg-bg1 p-4">
@@ -358,7 +399,7 @@ function ServiceInspector({ svc }: { svc: ClusterService | null }) {
         <p className="text-sm text-dim">{t("cluster.inspectorEmpty")}</p>
       ) : (
         <>
-          <ServiceDetails svc={svc} />
+          <ServiceDetails svc={svc} nodes={nodes} />
           <Link
             to="/swarm"
             className="mt-auto inline-flex w-fit items-center rounded-lg border border-line bg-bg1 px-3 py-1.5 text-sm font-medium hover:bg-bg2"
@@ -532,7 +573,7 @@ export function ClusterView() {
           </div>
         )}
       </div>
-      {by !== "canvas" && <ServiceInspector svc={svc} />}
+      {by !== "canvas" && <ServiceInspector svc={svc} nodes={model.servers.map((c) => c.node)} />}
     </div>
   );
 }

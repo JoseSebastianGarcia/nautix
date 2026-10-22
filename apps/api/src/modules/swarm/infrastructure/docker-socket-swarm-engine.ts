@@ -9,6 +9,7 @@ import type {
   UpdateSwarmNode,
   UpdateSwarmService,
 } from "@nautix/contracts";
+import { ValidationError } from "../../../shared/domain-error.js";
 import { EngineHttp } from "../../../shared/engine-http.js";
 import { demuxStdcopy, isMultiplexed } from "../../docker/infrastructure/stdcopy.js";
 import { SwarmEngine } from "../application/ports/swarm-engine.js";
@@ -169,20 +170,45 @@ export class DockerSocketSwarmEngine extends SwarmEngine {
   }
 
   async createService(request: CreateSwarmService): Promise<{ id: string }> {
+    // Secrets are chosen by name; the engine wants their ids.
+    const secretIds: Record<string, string> = {};
+    if (request.secrets.length > 0) {
+      const known = new Map((await this.secrets()).map((s) => [s.name, s.id]));
+      for (const name of request.secrets) {
+        const found = known.get(name);
+        if (!found)
+          throw new ValidationError(`secret ${name} does not exist`, "errors.secretNotFound");
+        secretIds[name] = found;
+      }
+    }
     const created = await this.http.json<{ ID: string }>(
       "POST",
       "/services/create",
-      toServiceSpec(request),
+      toServiceSpec(request, secretIds),
     );
     return { id: created.ID };
   }
 
-  async updateService(id: string, patch: UpdateSwarmService): Promise<void> {
+  async rollbackService(id: string): Promise<void> {
     const service = await this.http.json<RawService>("GET", `/services/${encodeURIComponent(id)}`);
     await this.http.send(
       "POST",
+      `/services/${encodeURIComponent(id)}/update?version=${service.Version?.Index ?? 0}&rollback=previous`,
+      service.Spec,
+    );
+  }
+
+  async updateService(id: string, patch: UpdateSwarmService): Promise<void> {
+    const service = await this.http.json<RawService>("GET", `/services/${encodeURIComponent(id)}`);
+    // A service may name a network by id (the CLI does) or by name (Nautix does): resolve both ways.
+    const networkIds: Record<string, string> = {};
+    if (patch.networks)
+      for (const n of await this.http.json<{ Id: string; Name: string }[]>("GET", "/networks"))
+        networkIds[n.Name] = n.Id;
+    await this.http.send(
+      "POST",
       `/services/${encodeURIComponent(id)}/update?version=${service.Version?.Index ?? 0}`,
-      patchServiceSpec(service.Spec, patch),
+      patchServiceSpec(service.Spec, patch, networkIds),
     );
   }
 

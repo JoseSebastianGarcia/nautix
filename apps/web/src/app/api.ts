@@ -227,6 +227,7 @@ export const api = {
   swarmUpdateService: (id: string, b: UpdateSwarmService) =>
     request<void>("PATCH", `/swarm/services/${id}`, b),
   swarmRemoveService: (id: string) => request<void>("DELETE", `/swarm/services/${id}`),
+  swarmRollbackService: (id: string) => request<void>("POST", `/swarm/services/${id}/rollback`),
   swarmTasks: (id: string) => request<SwarmTask[]>("GET", `/swarm/services/${id}/tasks`),
   swarmServiceLogs: (id: string) =>
     request<{ logs: string }>("GET", `/swarm/services/${id}/logs?tail=300`),

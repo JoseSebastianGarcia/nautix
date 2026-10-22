@@ -380,7 +380,9 @@
     "selfVolume": "This volume holds Nautix's own data (its database and encryption key), so files cannot be uploaded into it from here",
     "overlayNeedsSwarm": "An overlay network needs a swarm. Create one in the Swarm tab first",
     "overlayNeedsManager": "This engine is a swarm worker. Connect Nautix to a manager to create overlay networks",
-    "overlayLocked": "The swarm is locked. Unlock it in the Swarm tab first"
+    "overlayLocked": "The swarm is locked. Unlock it in the Swarm tab first",
+    "nothingToRollBack": "There is nothing to roll back to: the service has not been updated yet",
+    "secretNotFound": "That secret does not exist. Create it in Swarm, Secrets first"
   },
   "terminal": {
     "title": "Terminal",
@@ -1317,7 +1319,8 @@
     "tasks": "Tasks",
     "node": "Node",
     "state": "State",
-    "whereHint": "Automatic placement: Swarm spreads the copies over the active nodes. To pin or spread them, edit the service in the Swarm tab."
+    "whereHint": "Swarm spreads the copies over the active nodes unless the service is pinned or limited under Where it runs.",
+    "worker": "worker"
   },
   "appearance": {
     "title": "Appearance",
@@ -1346,7 +1349,6 @@
     "publishAs": "Publish port",
     "publishedWarn": "A published port opens on every node of the swarm, on all interfaces.",
     "envHint": "One KEY=value per line. Values are sent to the cluster and never shown again.",
-    "volumesDropped": "This template asks for volumes. A service created here has no volume yet, so its data will not survive a restart on another node.",
     "addToPlan": "Add to plan",
     "new": "new",
     "changed": "changed",
@@ -1379,6 +1381,52 @@
     "publishedShort": "{{count}} open",
     "pending": "{{count}} change(s) pending",
     "rolledBack": "{{count}} change(s) undone: the cluster is as it was.",
-    "copies": "Copies"
+    "copies": "Copies",
+    "removing": "removing",
+    "placement": "Where it runs",
+    "node": "Node",
+    "maxPerNode": "At most per node",
+    "maxShort": "max {{count}} per node",
+    "pinnedTo": "pinned to",
+    "mode": {
+      "anywhere": "Any node",
+      "workers": "Worker nodes only",
+      "managers": "Manager nodes only",
+      "pin": "Pinned to one node",
+      "worker": "worker",
+      "manager": "manager"
+    },
+    "placementHint": "Pinning keeps a service on one node: the only way to keep it next to its volume. The limit per node spreads copies.",
+    "volumes": "Volumes",
+    "volumeName": "Volume name",
+    "mountPath": "Path in the container",
+    "addVolume": "Add a volume",
+    "volumesPinned": "The volume is created on that node and the data stays there. Back it up from Volumes.",
+    "volumesNeedPin": "A volume lives on the node where a copy runs. Without pinning, a copy that moves to another node starts with an empty volume: pin the service to a node.",
+    "secrets": "Secrets",
+    "noSecrets": "There are no secrets yet. Create them in Swarm, Secrets: each one appears inside the container as a file.",
+    "keepService": "Keep the service",
+    "change": "Change",
+    "set": "Set",
+    "imageHint": "A new image rolls out one copy at a time. If it does not start, the engine puts the previous one back.",
+    "moveTo": "Move to overlay",
+    "lastUpdate": "Last update",
+    "updateState": {
+      "updating": "in progress",
+      "paused": "paused",
+      "completed": "completed",
+      "rollback_started": "rolling back",
+      "rollback_paused": "rollback paused",
+      "rollback_completed": "rolled back"
+    },
+    "rollback": "Roll back to the previous version",
+    "rollbackTitle": "Roll back {{name}}?",
+    "rollbackBody": "The service goes back to the settings it had before its last update (image, networks, placement). Copies are replaced one at a time.",
+    "rolledBackToast": "{{name}} rolled back",
+    "removeService": "Remove from the cluster",
+    "stepUpdate": "Update {{name}}",
+    "stepRemove": "Remove service {{name}}",
+    "removeWarn": "Removed last and not undoable: {{names}}. Its volumes and secrets stay, but its settings cannot be rebuilt from here.",
+    "alreadyRemoved": "Already removed and not restored: {{names}}."
   }
 }

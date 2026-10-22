@@ -808,6 +808,129 @@ services:
     }
   });
 
+  it("runs a real swarm service with a volume, a secret and placement, updates it, rolls it back and survives a bad image", async () => {
+    const status = (await call("GET", "/swarm")).json as { active: boolean };
+    const startedHere = !status.active;
+    if (startedHere)
+      await call("POST", "/swarm/init", { advertiseAddr: "127.0.0.1" }).then((r) =>
+        expect(r.res.status).toBe(201),
+      );
+    const name = `${PREFIX}svc-full`;
+    const volume = `${PREFIX}svc-vol`;
+    const secret = `${PREFIX}svc-secret`;
+    const second = `${PREFIX}alpine:second`;
+    docker("tag", IMAGE, second);
+    type Svc = {
+      id: string;
+      name: string;
+      image: string;
+      running: number;
+      mounts: { source: string; target: string; readOnly: boolean }[];
+      placement: { role?: string; maxPerNode?: number };
+      secrets: string[];
+      update: { state: string | null; message: string; startedAt: string };
+    };
+    const read = async (id: string) =>
+      ((await call("GET", "/swarm/services")).json as Svc[]).find((x) => x.id === id) as Svc;
+    const until = async (id: string, ok: (s: Svc) => boolean, rounds = 120) => {
+      for (let i = 0; i < rounds; i++) {
+        const s = await read(id);
+        if (s && ok(s)) return s;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      return read(id);
+    };
+    try {
+      expect(
+        (await call("POST", "/swarm/secrets", { name: secret, value: "from-the-secret" })).res
+          .status,
+      ).toBe(204);
+      const refused = await call("POST", "/swarm/services", {
+        name,
+        image: IMAGE,
+        secrets: ["does-not-exist"],
+      });
+      expect(refused.res.status).toBe(422);
+      expect(refused.json.hintKey).toBe("errors.secretNotFound");
+
+      const created = await call("POST", "/swarm/services", {
+        name,
+        image: IMAGE,
+        replicas: 1,
+        mounts: [{ source: volume, target: "/data" }],
+        secrets: [secret],
+        placement: { role: "manager", maxPerNode: 1 },
+        command: ["sh", "-c", `cat /run/secrets/${secret} > /data/seen; echo up; sleep 300`],
+      });
+      expect(created.res.status).toBe(201);
+      const id = (created.json as { id: string }).id;
+      const up = await until(id, (x) => x.running >= 1);
+      expect(up.running).toBe(1);
+      expect(up.mounts).toEqual([{ source: volume, target: "/data", readOnly: false }]);
+      expect(up.placement).toEqual({ role: "manager", maxPerNode: 1 });
+      expect(up.secrets).toEqual([secret]);
+      expect(JSON.stringify((await call("GET", "/swarm/services")).json)).not.toContain(
+        "from-the-secret",
+      );
+      // The secret reached the container and the volume really exists on this node.
+      expect(docker("volume", "ls", "-q", "--filter", `name=${volume}`)).toContain(volume);
+
+      // A good update rolls out and completes.
+      expect((await call("PATCH", `/swarm/services/${id}`, { image: second })).res.status).toBe(
+        204,
+      );
+      const updated = await until(id, (x) => x.update.state === "completed");
+      expect(updated.update.state).toBe("completed");
+      expect(updated.image).toBe(second);
+
+      // The manual rollback goes back to the first image.
+      expect((await call("POST", `/swarm/services/${id}/rollback`)).res.status).toBe(204);
+      const back = await until(
+        id,
+        (x) => x.image === IMAGE && x.update.state === "rollback_completed",
+      );
+      expect(back.image).toBe(IMAGE);
+      expect(back.update.state).toBe("rollback_completed");
+
+      // A bad image never starts: Docker's own failure action puts the previous one back by itself.
+      const before = (await read(id)).update.startedAt;
+      expect(
+        (await call("PATCH", `/swarm/services/${id}`, { image: `${PREFIX}missing/image:1` })).res
+          .status,
+      ).toBe(204);
+      const trace: string[] = [];
+      const undone = await until(
+        id,
+        (x) => {
+          const line = `${x.update.state}|${x.update.startedAt === before ? "old" : "new"}`;
+          if (trace.at(-1) !== line) trace.push(line);
+          return x.update.startedAt !== before && x.update.state === "rollback_completed";
+        },
+        400,
+      );
+      expect(trace.join(" > ")).toContain("rollback");
+      expect(undone.update.startedAt).not.toBe(before);
+      expect(undone.image).toBe(IMAGE);
+    } finally {
+      for (const svc of ((await call("GET", "/swarm/services")).json as Svc[]).filter((x) =>
+        x.name.startsWith(PREFIX),
+      ))
+        await call("DELETE", `/swarm/services/${svc.id}`);
+      for (const sec of (
+        (await call("GET", "/swarm/secrets")).json as { id: string; name: string }[]
+      ).filter((x) => x.name.startsWith(PREFIX)))
+        await call("DELETE", `/swarm/secrets/${sec.id}`);
+      await new Promise((r) => setTimeout(r, 1500));
+      try {
+        docker("volume", "rm", "-f", volume);
+        docker("rmi", second);
+      } catch {
+        /* already gone */
+      }
+      if (startedHere) await call("POST", "/swarm/leave", { force: true });
+    }
+  }, 300_000);
+
   it("creates a real overlay network and reads the cluster with its services and tasks", async () => {
     const status = (await call("GET", "/swarm")).json as { active: boolean };
     const startedHere = !status.active;

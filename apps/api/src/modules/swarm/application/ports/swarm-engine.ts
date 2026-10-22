@@ -38,6 +38,8 @@ export abstract class SwarmEngine {
   abstract createService(request: CreateSwarmService): Promise<{ id: string }>;
   abstract updateService(id: string, patch: UpdateSwarmService): Promise<void>;
   abstract removeService(id: string): Promise<void>;
+  /** Goes back to the spec the service had before its last update (Docker keeps it). */
+  abstract rollbackService(id: string): Promise<void>;
 
   abstract secrets(): Promise<SwarmItem[]>;
   abstract createSecret(name: string, value: string): Promise<void>;

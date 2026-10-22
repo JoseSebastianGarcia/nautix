@@ -40,6 +40,7 @@ import { RemoveSwarmConfigCommand } from "../application/commands/remove-swarm-c
 import { RemoveSwarmNodeCommand } from "../application/commands/remove-swarm-node.command.js";
 import { RemoveSwarmSecretCommand } from "../application/commands/remove-swarm-secret.command.js";
 import { RemoveSwarmServiceCommand } from "../application/commands/remove-swarm-service.command.js";
+import { RollbackSwarmServiceCommand } from "../application/commands/rollback-swarm-service.command.js";
 import { RotateJoinTokenCommand } from "../application/commands/rotate-join-token.command.js";
 import { SetSwarmAutolockCommand } from "../application/commands/set-swarm-autolock.command.js";
 import { UnlockSwarmCommand } from "../application/commands/unlock-swarm.command.js";
@@ -168,6 +169,13 @@ export class SwarmController {
     await this.commands.execute(
       new UpdateSwarmServiceSpecCommand(id, parse(UpdateSwarmService, body)),
     );
+  }
+
+  /** Back to the spec the service had before its last update. */
+  @Post("services/:id/rollback")
+  @HttpCode(204)
+  async rollbackService(@Param("id") id: string) {
+    await this.commands.execute(new RollbackSwarmServiceCommand(id));
   }
 
   @Delete("services/:id")

@@ -380,7 +380,9 @@
     "selfVolume": "Este volumen guarda los datos propios de Nautix (su base de datos y su clave de cifrado), así que no se pueden subir archivos desde acá",
     "overlayNeedsSwarm": "Una red overlay necesita un swarm. Creá uno primero en la pestaña Swarm",
     "overlayNeedsManager": "Este motor es un worker de swarm. Conectá Nautix a un manager para crear redes overlay",
-    "overlayLocked": "El swarm está bloqueado. Desbloquealo primero en la pestaña Swarm"
+    "overlayLocked": "El swarm está bloqueado. Desbloquealo primero en la pestaña Swarm",
+    "nothingToRollBack": "No hay a qué volver: el servicio todavía no se actualizó",
+    "secretNotFound": "Ese secreto no existe. Creálo antes en Swarm, Secretos"
   },
   "terminal": {
     "title": "Terminal",
@@ -1317,7 +1319,8 @@
     "tasks": "Tareas",
     "node": "Nodo",
     "state": "Estado",
-    "whereHint": "Ubicación automática: Swarm reparte las copias entre los nodos activos. Para fijarlas o repartirlas, editá el servicio en la pestaña Swarm."
+    "whereHint": "Swarm reparte las copias entre los nodos activos, salvo que el servicio esté fijado o limitado en Dónde corre.",
+    "worker": "worker"
   },
   "appearance": {
     "title": "Apariencia",
@@ -1346,7 +1349,6 @@
     "publishAs": "Publicar puerto",
     "publishedWarn": "Un puerto publicado se abre en todos los nodos del swarm, en todas las interfaces.",
     "envHint": "Un CLAVE=valor por línea. Los valores se envían al cluster y no se vuelven a mostrar.",
-    "volumesDropped": "Esta plantilla pide volúmenes. Un servicio creado desde acá todavía no tiene volumen, así que sus datos no sobreviven a un reinicio en otro nodo.",
     "addToPlan": "Agregar al plan",
     "new": "nuevo",
     "changed": "cambiado",
@@ -1379,6 +1381,52 @@
     "publishedShort": "{{count}} abierto(s)",
     "pending": "{{count}} cambio(s) pendiente(s)",
     "rolledBack": "{{count}} cambio(s) deshecho(s): el cluster quedó como estaba.",
-    "copies": "Copias"
+    "copies": "Copias",
+    "removing": "se elimina",
+    "placement": "Dónde corre",
+    "node": "Nodo",
+    "maxPerNode": "Máximo por nodo",
+    "maxShort": "máx. {{count}} por nodo",
+    "pinnedTo": "fijado a",
+    "mode": {
+      "anywhere": "Cualquier nodo",
+      "workers": "Solo nodos worker",
+      "managers": "Solo nodos manager",
+      "pin": "Fijado a un nodo",
+      "worker": "worker",
+      "manager": "manager"
+    },
+    "placementHint": "Fijarlo mantiene el servicio en un nodo: es la única forma de dejarlo junto a su volumen. El límite por nodo reparte las copias.",
+    "volumes": "Volúmenes",
+    "volumeName": "Nombre del volumen",
+    "mountPath": "Ruta en el contenedor",
+    "addVolume": "Agregar un volumen",
+    "volumesPinned": "El volumen se crea en ese nodo y los datos quedan ahí. Respaldalo desde Volúmenes.",
+    "volumesNeedPin": "Un volumen vive en el nodo donde corre una copia. Sin fijarlo, una copia que pase a otro nodo arranca con un volumen vacío: fijá el servicio a un nodo.",
+    "secrets": "Secretos",
+    "noSecrets": "Todavía no hay secretos. Creálos en Swarm, Secretos: cada uno aparece dentro del contenedor como un archivo.",
+    "keepService": "Conservar el servicio",
+    "change": "Cambiar",
+    "set": "Aplicar",
+    "imageHint": "Una imagen nueva se despliega de a una copia. Si no arranca, el motor vuelve a la anterior.",
+    "moveTo": "Mover al overlay",
+    "lastUpdate": "Última actualización",
+    "updateState": {
+      "updating": "en curso",
+      "paused": "en pausa",
+      "completed": "completada",
+      "rollback_started": "volviendo atrás",
+      "rollback_paused": "vuelta atrás en pausa",
+      "rollback_completed": "revertida"
+    },
+    "rollback": "Volver a la versión anterior",
+    "rollbackTitle": "¿Volver {{name}} a la versión anterior?",
+    "rollbackBody": "El servicio vuelve a la configuración que tenía antes de su última actualización (imagen, redes, ubicación). Las copias se reemplazan de a una.",
+    "rolledBackToast": "{{name}} volvió a la versión anterior",
+    "removeService": "Eliminar del cluster",
+    "stepUpdate": "Actualizar {{name}}",
+    "stepRemove": "Eliminar el servicio {{name}}",
+    "removeWarn": "Se elimina al final y no se puede deshacer: {{names}}. Sus volúmenes y secretos quedan, pero su configuración no se puede reconstruir desde acá.",
+    "alreadyRemoved": "Ya se eliminó y no se restaura: {{names}}."
   }
 }

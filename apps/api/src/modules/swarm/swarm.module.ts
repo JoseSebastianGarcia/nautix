@@ -13,6 +13,7 @@ import { RemoveSwarmConfigHandler } from "./application/commands/remove-swarm-co
 import { RemoveSwarmNodeHandler } from "./application/commands/remove-swarm-node.handler.js";
 import { RemoveSwarmSecretHandler } from "./application/commands/remove-swarm-secret.handler.js";
 import { RemoveSwarmServiceHandler } from "./application/commands/remove-swarm-service.handler.js";
+import { RollbackSwarmServiceHandler } from "./application/commands/rollback-swarm-service.handler.js";
 import { RotateJoinTokenHandler } from "./application/commands/rotate-join-token.handler.js";
 import { SetSwarmAutolockHandler } from "./application/commands/set-swarm-autolock.handler.js";
 import { UnlockSwarmHandler } from "./application/commands/unlock-swarm.handler.js";
@@ -58,6 +59,7 @@ const HANDLERS = [
   CreateSwarmServiceSpecHandler,
   UpdateSwarmServiceSpecHandler,
   RemoveSwarmServiceHandler,
+  RollbackSwarmServiceHandler,
   ListSwarmSecretsHandler,
   CreateSwarmSecretValueHandler,
   RemoveSwarmSecretHandler,

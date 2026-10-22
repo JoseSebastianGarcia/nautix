@@ -1,4 +1,4 @@
-import type { Layout, Network, Template } from "@nautix/contracts";
+import type { Layout, Network, SwarmNode, SwarmPlacement, Template } from "@nautix/contracts";
 import {
   applyNodeChanges,
   Background,
@@ -15,8 +15,8 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useQueryClient } from "@tanstack/react-query";
-import { Minus, Plus, Undo2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { HardDrive, KeyRound, Minus, Pin, Plus, Trash2, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -24,7 +24,7 @@ import { api } from "../../app/api.js";
 import { keys, useCatalog, useIsAdmin, useLayout, useNetworks } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { useToasts } from "../../components/toast-store.js";
-import { Button, Dialog, ShowCommand } from "../../components/ui.js";
+import { Button, ConfirmDialog, Dialog, Field, Input, ShowCommand } from "../../components/ui.js";
 import type { ClusterModel, ClusterService } from "./cluster-model.js";
 import { ServiceDetails } from "./cluster-view.js";
 import { EXTERNAL_ID, layoutTopology, NODE_H, NODE_W, type Placeable, zoneAt } from "./layout.js";
@@ -34,17 +34,30 @@ import { type ZoneFlowNode, ZoneNode } from "./nodes.js";
 import { CUSTOM_TEMPLATE_ID, DRAG_TYPE, Palette } from "./palette.js";
 import {
   applyPlan,
+  effectiveNetworks,
   type PlanItem,
   type PlannedCreate,
   type PlanResult,
-  planCommand,
+  planCommands,
+  planImage,
+  planMove,
   plannedNames,
+  planPlacement,
+  planRemove,
+  planScale,
+  upsertUpdate,
 } from "./swarm-plan.js";
-import { type ServiceTarget, SwarmServiceDialog } from "./swarm-service-dialog.js";
+import {
+  type PlacementMode,
+  placementOf,
+  type ServiceTarget,
+  SwarmServiceDialog,
+} from "./swarm-service-dialog.js";
 
 const EMPTY_LAYOUT: Layout = { zones: {}, nodes: {} };
 const NO_TEMPLATES: Template[] = [];
 const NO_NETWORKS: Network[] = [];
+const NO_NAMES: { id: string; name: string }[] = [];
 
 /** Services are saved in the layout under their own prefix so they never clash with container names. */
 const nodeKey = (name: string): string => `svc:${name}`;
@@ -54,6 +67,9 @@ interface ServiceNodeData extends Record<string, unknown> {
   planned: PlannedCreate | null;
   /** Replicas the plan will leave, when it changes them. */
   scaleTo: number | null;
+  /** Any other change waiting in the plan (image, placement, networks). */
+  changed: boolean;
+  removing: boolean;
 }
 type ServiceFlowNode = Node<ServiceNodeData, "service">;
 
@@ -61,7 +77,7 @@ const HEALTH_TEXT = { ok: "text-ok", degraded: "text-amber", down: "text-danger"
 
 function ServiceNode({ data, selected }: NodeProps<ServiceFlowNode>) {
   const { t } = useTranslation();
-  const { existing, planned, scaleTo } = data;
+  const { existing, planned, scaleTo, changed, removing } = data;
   const name = planned?.spec.name ?? existing?.service.name ?? "";
   const image = planned?.spec.image ?? existing?.service.image ?? "";
   const running = existing?.placements.filter((p) => p.state === "ok").length ?? 0;
@@ -73,11 +89,20 @@ function ServiceNode({ data, selected }: NodeProps<ServiceFlowNode>) {
       ? t("cluster.global")
       : String(existing?.service.desired ?? 0);
   const published = planned?.spec.ports?.length ?? existing?.service.ports.length ?? 0;
-  const changed = planned !== null || scaleTo !== null;
+  const placement: SwarmPlacement = planned?.spec.placement ?? existing?.service.placement ?? {};
+  const mounts = planned?.spec.mounts?.length ?? existing?.service.mounts.length ?? 0;
+  const secrets = planned?.spec.secrets?.length ?? existing?.service.secrets.length ?? 0;
+  const rolledBack = existing?.service.update.state?.startsWith("rollback") === true;
+  const pending = planned !== null || scaleTo !== null || changed || removing;
   return (
     <div
-      style={{ width: NODE_W, height: NODE_H, boxShadow: selected ? "var(--nx-glow)" : undefined }}
-      className={`flex items-center gap-3 rounded-xl border bg-bg1 px-3 ${changed ? "border-dashed border-accent" : "border-line"}`}
+      style={{
+        width: NODE_W,
+        height: NODE_H,
+        boxShadow: selected ? "var(--nx-glow)" : undefined,
+        opacity: removing ? 0.55 : 1,
+      }}
+      className={`flex items-center gap-3 rounded-xl border bg-bg1 px-3 ${removing ? "border-dashed border-danger" : pending ? "border-dashed border-accent" : "border-line"}`}
     >
       <Handle
         type="target"
@@ -87,10 +112,18 @@ function ServiceNode({ data, selected }: NodeProps<ServiceFlowNode>) {
       <LogoBadge image={image} name={name} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold">{name}</span>
-          {changed && (
-            <span className="rounded bg-accent-soft px-1 text-[10px] font-semibold text-accent">
-              {planned ? t("swarmCanvas.new") : t("swarmCanvas.changed")}
+          <span className={`truncate text-sm font-semibold ${removing ? "line-through" : ""}`}>
+            {name}
+          </span>
+          {pending && (
+            <span
+              className={`rounded px-1 text-[10px] font-semibold ${removing ? "bg-danger/20 text-danger" : "bg-accent-soft text-accent"}`}
+            >
+              {removing
+                ? t("swarmCanvas.removing")
+                : planned
+                  ? t("swarmCanvas.new")
+                  : t("swarmCanvas.changed")}
             </span>
           )}
         </div>
@@ -109,6 +142,24 @@ function ServiceNode({ data, selected }: NodeProps<ServiceFlowNode>) {
               {t("swarmCanvas.publishedShort", { count: published })}
             </span>
           )}
+          <span className="ml-auto flex items-center gap-1.5 text-dim">
+            {(placement.nodeId || placement.role) && (
+              <Pin size={11} aria-label={t("swarmCanvas.placement")}>
+                <title>{t("swarmCanvas.placement")}</title>
+              </Pin>
+            )}
+            {mounts > 0 && (
+              <HardDrive size={11} aria-label={t("swarmCanvas.volumes")}>
+                <title>{t("swarmCanvas.volumes")}</title>
+              </HardDrive>
+            )}
+            {secrets > 0 && (
+              <KeyRound size={11} aria-label={t("swarmCanvas.secrets")}>
+                <title>{t("swarmCanvas.secrets")}</title>
+              </KeyRound>
+            )}
+            {rolledBack && <span className="text-amber">↺</span>}
+          </span>
         </div>
       </div>
       <Handle
@@ -130,12 +181,12 @@ interface Item extends Placeable {
   planned: PlannedCreate | null;
 }
 
-/** Services as the layout sees them: the real ones plus the ones the plan will create. */
+/** Services as the layout sees them: the real ones, where the plan will leave them, plus the ones it creates. */
 const toItems = (model: ClusterModel, plan: PlanItem[]): Item[] => [
   ...model.services.map((s) => ({
     id: s.service.id,
     name: nodeKey(s.service.name),
-    networks: s.networks,
+    networks: effectiveNetworks(s.networks, plan, s.service.id),
     existing: s,
     planned: null,
   })),
@@ -163,6 +214,10 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
   const { data: networks = NO_NETWORKS } = useNetworks();
   const { data: catalog = NO_TEMPLATES } = useCatalog();
   const { data: saved = EMPTY_LAYOUT } = useLayout();
+  const { data: secrets = NO_NAMES } = useQuery({
+    queryKey: ["swarm-secrets"],
+    queryFn: api.swarmSecrets,
+  });
   const saveLayout = useApiMutation((layout: Layout) => api.saveLayout(layout), []);
   const persist = useCallback(
     (next: Layout) => {
@@ -179,6 +234,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
   const [reviewing, setReviewing] = useState(false);
   const [nodes, setNodes] = useState<FlowNode[]>([]);
 
+  const swarmNodes = useMemo(() => model.servers.map((s) => s.node), [model.servers]);
   const overlays = useMemo(
     () => networks.filter((n) => n.driver === "overlay" && !n.system),
     [networks],
@@ -187,6 +243,14 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
   const topology = useMemo(() => layoutTopology(items, overlays, saved), [items, overlays, saved]);
   const scaleOf = useMemo(
     () => new Map(plan.flatMap((p) => (p.kind === "scale" ? [[p.serviceId, p.to] as const] : []))),
+    [plan],
+  );
+  const changedIds = useMemo(
+    () => new Set(plan.flatMap((p) => (p.kind === "update" ? [p.serviceId] : []))),
+    [plan],
+  );
+  const removingIds = useMemo(
+    () => new Set(plan.flatMap((p) => (p.kind === "remove" ? [p.serviceId] : []))),
     [plan],
   );
 
@@ -227,6 +291,8 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
             existing: item.existing,
             planned: item.planned,
             scaleTo: item.existing ? (scaleOf.get(item.existing.service.id) ?? null) : null,
+            changed: item.existing ? changedIds.has(item.existing.service.id) : false,
+            removing: item.existing ? removingIds.has(item.existing.service.id) : false,
           },
           zIndex: 1,
           draggable: isAdmin,
@@ -236,7 +302,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
       ];
     });
     return [...zones, ...svc];
-  }, [items, topology, isAdmin, scaleOf, t]);
+  }, [items, topology, isAdmin, scaleOf, changedIds, removingIds, t]);
 
   const fitted = useRef(false);
   useEffect(() => {
@@ -253,7 +319,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
     }
   }, [build, model.services.length, overlays.length, flow]);
 
-  // A service on two overlays is drawn in the first one and linked to the other.
+  // A service on two overlays is drawn in the first and linked to the other.
   const edges = useMemo<Edge[]>(
     () =>
       topology.links.map((l) => ({
@@ -283,14 +349,42 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
         return;
       }
       const item = items.find((i) => `s:${i.id}` === node.id);
-      if (!item) return;
-      // Moving a service to another box would change its networks: that is not drawn yet.
+      const placed = topology.placements.find((p) => p.containerId === item?.id);
+      const home = topology.zones.find((z) => z.id === placed?.zoneId);
+      if (!item || !home) return;
+      // Dropped on another box: the service moves to that overlay (a change in the plan, not done yet).
+      const target = zoneAt(
+        topology.zones,
+        home.x + node.position.x + NODE_W / 2,
+        home.y + node.position.y + NODE_H / 2,
+      );
+      if (target && target.id !== home.id) {
+        const from = home.network?.name ?? null;
+        const to = target.network?.name ?? null;
+        if (item.existing) {
+          const svc = item.existing.service;
+          setPlan((cur) => upsertUpdate(cur, svc, planMove(from, to)));
+        } else if (item.planned) {
+          const planned = item.planned;
+          setPlan((cur) =>
+            cur.map((p) =>
+              p === planned
+                ? { ...planned, network: to, spec: { ...planned.spec, networks: to ? [to] : [] } }
+                : p,
+            ),
+          );
+        }
+        // Forget the spot it had in the old box so it lands in the free place of the new one.
+        const { [item.name]: _gone, ...rest } = saved.nodes;
+        persist({ ...saved, nodes: rest });
+        return;
+      }
       persist({
         ...saved,
         nodes: { ...saved.nodes, [item.name]: { x: node.position.x, y: node.position.y } },
       });
     },
-    [topology.zones, items, persist, saved],
+    [topology.zones, topology.placements, items, persist, saved],
   );
 
   const onDrop = useCallback(
@@ -306,16 +400,6 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
     },
     [flow, topology.zones, catalog],
   );
-
-  const setReplicas = (svc: ClusterService, to: number) => {
-    const from = svc.service.desired;
-    setPlan((cur) => {
-      const rest = cur.filter((p) => !(p.kind === "scale" && p.serviceId === svc.service.id));
-      return to === from
-        ? rest
-        : [...rest, { kind: "scale", serviceId: svc.service.id, name: svc.service.name, from, to }];
-    });
-  };
 
   const selectedService =
     selection?.kind === "service"
@@ -391,20 +475,14 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           {t("topology.inspector")}
         </h2>
         {selectedService && (
-          <>
-            <ServiceDetails svc={selectedService} />
-            <ReplicasEditor
-              svc={selectedService}
-              to={scaleOf.get(selectedService.service.id) ?? selectedService.service.desired}
-              onChange={(n) => setReplicas(selectedService, n)}
-            />
-            <Link
-              to="/swarm"
-              className="mt-auto inline-flex w-fit items-center rounded-lg border border-line bg-bg1 px-3 py-1.5 text-sm font-medium hover:bg-bg2"
-            >
-              {t("cluster.openSwarm")} →
-            </Link>
-          </>
+          <ServiceInspector
+            svc={selectedService}
+            plan={plan}
+            overlays={overlays}
+            nodes={swarmNodes}
+            onPlan={(change) => setPlan(change)}
+            onRolledBack={() => void qc.invalidateQueries({ queryKey: keys.cluster })}
+          />
         )}
         {selectedPlanned && (
           <>
@@ -428,6 +506,8 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
       <SwarmServiceDialog
         target={target}
         overlays={overlays}
+        nodes={swarmNodes}
+        secretNames={secrets.map((s) => s.name)}
         taken={[...model.services.map((s) => s.service.name), ...plannedNames(plan)]}
         onAdd={(item) => {
           setPlan((cur) => [...cur, item]);
@@ -452,49 +532,211 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
   );
 }
 
-function ReplicasEditor({
+/** What can be done to a real service from the canvas: every change goes into the plan, except the rollback. */
+function ServiceInspector({
   svc,
-  to,
-  onChange,
+  plan,
+  overlays,
+  nodes,
+  onPlan,
+  onRolledBack,
 }: {
   svc: ClusterService;
-  to: number;
-  onChange: (n: number) => void;
+  plan: PlanItem[];
+  overlays: Network[];
+  nodes: SwarmNode[];
+  onPlan: (next: PlanItem[]) => void;
+  onRolledBack: () => void;
 }) {
   const { t } = useTranslation();
   const isAdmin = useIsAdmin();
-  if (svc.service.mode === "global")
-    return <p className="text-xs text-dim">{t("swarmCanvas.globalNoScale")}</p>;
+  const s = svc.service;
+  const handle = { id: s.id, name: s.name };
+  const scaled = plan.find((p) => p.kind === "scale" && p.serviceId === s.id);
+  const copies = scaled?.kind === "scale" ? scaled.to : s.desired;
+  const removing = plan.some((p) => p.kind === "remove" && p.serviceId === s.id);
+  const pendingUpdate = plan.find((p) => p.kind === "update" && p.serviceId === s.id);
+  const [image, setImage] = useState(s.image);
+  const initial = s.placement.nodeId
+    ? "pin"
+    : s.placement.role === "worker"
+      ? "workers"
+      : s.placement.role === "manager"
+        ? "managers"
+        : "anywhere";
+  const [mode, setMode] = useState<PlacementMode>(initial);
+  const [nodeId, setNodeId] = useState(s.placement.nodeId ?? nodes[0]?.id ?? "");
+  const [maxPerNode, setMaxPerNode] = useState(String(s.placement.maxPerNode ?? ""));
+  const [confirmRollback, setConfirmRollback] = useState(false);
+  const rollback = useApiMutation(
+    () => api.swarmRollbackService(s.id),
+    [keys.cluster],
+    () => t("swarmCanvas.rolledBackToast", { name: s.name }),
+  );
+  const select = "rounded-lg border border-line bg-bg0 px-2 py-1.5 text-sm";
+  const here = svc.networks[0] ?? null;
+  const targets = overlays.filter((n) => !svc.networks.includes(n.name));
+  const wantedPlacement = placementOf(mode, nodeId, maxPerNode);
+  const placementChanged = JSON.stringify(wantedPlacement) !== JSON.stringify(s.placement);
+
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <span className="text-dim">{t("cluster.replicas")}</span>
-      <Button
-        aria-label={t("swarmCanvas.fewer")}
-        disabled={!isAdmin || to <= 0}
-        onClick={() => onChange(to - 1)}
-      >
-        <Minus size={14} />
-      </Button>
-      <span className="w-8 text-center font-mono">{to}</span>
-      <Button
-        aria-label={t("swarmCanvas.more")}
-        disabled={!isAdmin}
-        onClick={() => onChange(to + 1)}
-      >
-        <Plus size={14} />
-      </Button>
-      {to !== svc.service.desired && (
-        <span className="text-xs text-accent">
-          {svc.service.desired} → {to}
-        </span>
+    <>
+      <ServiceDetails svc={svc} nodes={nodes} />
+      {!isAdmin ? null : removing ? (
+        <Button
+          onClick={() => onPlan(plan.filter((p) => !(p.kind === "remove" && p.serviceId === s.id)))}
+        >
+          <Undo2 size={14} /> {t("swarmCanvas.keepService")}
+        </Button>
+      ) : (
+        <>
+          <h3 className="font-mono text-xs uppercase tracking-wider text-dim">
+            {t("swarmCanvas.change")}
+          </h3>
+          {s.mode === "replicated" && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-dim">{t("cluster.replicas")}</span>
+              <Button
+                aria-label={t("swarmCanvas.fewer")}
+                disabled={copies <= 0}
+                onClick={() =>
+                  onPlan(planScale(plan, { ...handle, desired: s.desired }, copies - 1))
+                }
+              >
+                <Minus size={14} />
+              </Button>
+              <span className="w-8 text-center font-mono">{copies}</span>
+              <Button
+                aria-label={t("swarmCanvas.more")}
+                onClick={() =>
+                  onPlan(planScale(plan, { ...handle, desired: s.desired }, copies + 1))
+                }
+              >
+                <Plus size={14} />
+              </Button>
+              {copies !== s.desired && (
+                <span className="text-xs text-accent">
+                  {s.desired} → {copies}
+                </span>
+              )}
+            </div>
+          )}
+          <Field label={t("common.image")}>
+            <div className="flex gap-2">
+              <Input value={image} onChange={(e) => setImage(e.target.value)} />
+              <Button
+                disabled={image.trim() === s.image && !pendingUpdate}
+                onClick={() => onPlan(upsertUpdate(plan, handle, planImage(s.image, image.trim())))}
+              >
+                {t("swarmCanvas.set")}
+              </Button>
+            </div>
+          </Field>
+          <p className="text-xs text-dim">{t("swarmCanvas.imageHint")}</p>
+          <Field label={t("swarmCanvas.moveTo")}>
+            <select
+              className={select}
+              value=""
+              onChange={(e) => {
+                if (e.target.value)
+                  onPlan(upsertUpdate(plan, handle, planMove(here, e.target.value)));
+              }}
+            >
+              <option value="">{here ?? t("cluster.loose")}</option>
+              {targets.map((n) => (
+                <option key={n.id} value={n.name}>
+                  → {n.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-sm text-dim">{t("swarmCanvas.placement")}</legend>
+            <select
+              aria-label={t("swarmCanvas.placement")}
+              className={select}
+              value={mode}
+              onChange={(e) => setMode(e.target.value as PlacementMode)}
+            >
+              {(["anywhere", "workers", "managers", "pin"] as const).map((m) => (
+                <option key={m} value={m}>
+                  {t(`swarmCanvas.mode.${m}`)}
+                </option>
+              ))}
+            </select>
+            {mode === "pin" && (
+              <select
+                aria-label={t("swarmCanvas.node")}
+                className={select}
+                value={nodeId}
+                onChange={(e) => setNodeId(e.target.value)}
+              >
+                {nodes.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {n.hostname}
+                  </option>
+                ))}
+              </select>
+            )}
+            <Input
+              type="number"
+              min={1}
+              placeholder={t("swarmCanvas.maxPerNode")}
+              aria-label={t("swarmCanvas.maxPerNode")}
+              value={maxPerNode}
+              onChange={(e) => setMaxPerNode(e.target.value)}
+            />
+            {s.mounts.length > 0 && mode !== "pin" && (
+              <p className="text-xs text-amber">{t("swarmCanvas.volumesNeedPin")}</p>
+            )}
+            <Button
+              disabled={!placementChanged && !pendingUpdate}
+              onClick={() =>
+                onPlan(upsertUpdate(plan, handle, planPlacement(s.placement, wantedPlacement)))
+              }
+            >
+              {t("swarmCanvas.set")}
+            </Button>
+          </fieldset>
+          {s.update.state !== null && (
+            <>
+              <p className="text-xs text-dim">
+                {t("swarmCanvas.lastUpdate")}: {t(`swarmCanvas.updateState.${s.update.state}`)}
+                {s.update.message ? ` · ${s.update.message}` : ""}
+              </p>
+              <Button onClick={() => setConfirmRollback(true)}>
+                <Undo2 size={14} /> {t("swarmCanvas.rollback")}
+              </Button>
+            </>
+          )}
+          <Button variant="danger" onClick={() => onPlan(planRemove(plan, handle))}>
+            <Trash2 size={14} /> {t("swarmCanvas.removeService")}
+          </Button>
+        </>
       )}
-    </div>
+      <Link
+        to="/swarm"
+        className="mt-auto inline-flex w-fit items-center rounded-lg border border-line bg-bg1 px-3 py-1.5 text-sm font-medium hover:bg-bg2"
+      >
+        {t("cluster.openSwarm")} →
+      </Link>
+      <ConfirmDialog
+        open={confirmRollback}
+        title={t("swarmCanvas.rollbackTitle", { name: s.name })}
+        body={t("swarmCanvas.rollbackBody")}
+        command={`docker service rollback ${s.name}`}
+        onConfirm={() => rollback.mutate(undefined, { onSuccess: onRolledBack })}
+        onClose={() => setConfirmRollback(false)}
+      />
+    </>
   );
 }
 
 type StepState = "pending" | "running" | "waiting" | "done" | "undone";
 
-const itemKey = (p: PlanItem): string => (p.kind === "create" ? `c:${p.key}` : `s:${p.serviceId}`);
+const itemKey = (p: PlanItem): string =>
+  p.kind === "create" ? `c:${p.key}` : `${p.kind}:${p.serviceId}`;
+const itemName = (p: PlanItem): string => (p.kind === "create" ? p.spec.name : p.name);
 
 function PlanDialog({
   open,
@@ -529,13 +771,14 @@ function PlanDialog({
       plan,
       {
         create: async (spec) => (await api.swarmCreateService(spec)).id,
-        scale: (id, n) => api.swarmUpdateService(id, { replicas: n }),
+        update: (id, patch) => api.swarmUpdateService(id, patch),
         remove: (id) => api.swarmRemoveService(id),
         tasks: (id) => api.swarmTasks(id),
+        service: async (id) => (await api.swarmServices()).find((s) => s.id === id),
         sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
       },
       {
-        timeoutMs: 90_000,
+        timeoutMs: 180_000,
         intervalMs: 1500,
         onStep: (item, phase) =>
           setSteps((cur) => ({
@@ -561,8 +804,21 @@ function PlanDialog({
     }
   };
 
-  const droppedVolumes = plan.some((p) => p.kind === "create" && p.droppedVolumes);
-  const publishes = plan.some((p) => p.kind === "create" && (p.spec.ports?.length ?? 0) > 0);
+  const creates = plan.filter((p): p is PlannedCreate => p.kind === "create");
+  const publishes = creates.some((p) => (p.spec.ports?.length ?? 0) > 0);
+  const unpinned = creates.some(
+    (p) => (p.spec.mounts?.length ?? 0) > 0 && !p.spec.placement?.nodeId,
+  );
+  const removes = plan.filter((p) => p.kind === "remove");
+
+  const label = (p: PlanItem): string =>
+    p.kind === "create"
+      ? t("swarmCanvas.stepCreate", { name: p.spec.name })
+      : p.kind === "scale"
+        ? t("swarmCanvas.stepScale", { name: p.name, from: p.from, to: p.to })
+        : p.kind === "remove"
+          ? t("swarmCanvas.stepRemove", { name: p.name })
+          : t("swarmCanvas.stepUpdate", { name: p.name });
 
   return (
     <Dialog open={open} onClose={close} title={t("swarmCanvas.reviewTitle")}>
@@ -571,43 +827,46 @@ function PlanDialog({
         {plan.map((p) => (
           <li key={itemKey(p)} className="rounded-lg border border-line p-2 text-sm">
             <div className="flex items-center gap-2">
-              <span className="font-semibold">
-                {p.kind === "create"
-                  ? t("swarmCanvas.stepCreate", { name: p.spec.name })
-                  : t("swarmCanvas.stepScale", { name: p.name, from: p.from, to: p.to })}
-              </span>
+              <span className="font-semibold">{label(p)}</span>
               {steps[itemKey(p)] && (
                 <span className="ml-auto text-xs text-dim">
                   {t(`swarmCanvas.state.${steps[itemKey(p)]}`)}
                 </span>
               )}
             </div>
-            <code className="block break-words font-mono text-[11px] text-dim">
-              {planCommand(p)}
-            </code>
+            {planCommands(p).map((line) => (
+              <code key={line} className="block break-words font-mono text-[11px] text-dim">
+                {line}
+              </code>
+            ))}
           </li>
         ))}
       </ul>
       {publishes && <p className="text-xs text-amber">{t("swarmCanvas.publishedWarn")}</p>}
-      {droppedVolumes && <p className="text-xs text-amber">{t("swarmCanvas.volumesDropped")}</p>}
-      <ShowCommand command={plan.map(planCommand).join("\n")} />
+      {unpinned && <p className="text-xs text-amber">{t("swarmCanvas.volumesNeedPin")}</p>}
+      {removes.length > 0 && (
+        <p className="rounded-lg border border-danger p-2 text-xs text-danger">
+          {t("swarmCanvas.removeWarn", { names: removes.map(itemName).join(", ") })}
+        </p>
+      )}
+      <ShowCommand command={plan.flatMap(planCommands).join("\n")} />
       {result && !result.ok && result.failed && (
         <div role="alert" className="rounded-lg border border-danger p-3 text-sm">
           <p className="font-semibold text-danger">
-            {t("swarmCanvas.failed", {
-              step:
-                result.failed.item.kind === "create"
-                  ? result.failed.item.spec.name
-                  : result.failed.item.name,
-            })}
+            {t("swarmCanvas.failed", { step: itemName(result.failed.item) })}
           </p>
           <p className="mt-1 break-words text-dim">{result.failed.error}</p>
           <p className="mt-2">{t("swarmCanvas.rolledBack", { count: result.rolledBack.length })}</p>
+          {result.removed.length > 0 && (
+            <p className="mt-1 text-amber">
+              {t("swarmCanvas.alreadyRemoved", { names: result.removed.map(itemName).join(", ") })}
+            </p>
+          )}
           {result.rollbackErrors.length > 0 && (
             <p className="mt-1 text-danger">
               {t("swarmCanvas.rollbackFailed", {
                 steps: result.rollbackErrors
-                  .map((e) => `${itemKey(e.item)}: ${e.error}`)
+                  .map((e) => `${itemName(e.item)}: ${e.error}`)
                   .join("; "),
               })}
             </p>

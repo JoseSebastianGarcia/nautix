@@ -13,12 +13,19 @@ import type {
 import { ConflictError, NotFoundError, ValidationError } from "../../../shared/domain-error.js";
 import { setFakeSwarmRole } from "../../../shared/fake-swarm-role.js";
 import { SwarmEngine } from "../application/ports/swarm-engine.js";
+import { scheduleTasks } from "../domain/schedule.js";
 
 const id = (): string => randomBytes(12).toString("hex");
 const now = (): string => new Date().toISOString();
 
 interface FakeItem extends SwarmItem {
   value: string;
+}
+
+interface FakeService extends SwarmService {
+  env: Record<string, string>;
+  /** What an update replaced, so a rollback can put it back. */
+  previous?: Pick<SwarmService, "image" | "networks" | "placement">;
 }
 
 /** In-memory swarm for the demo engine and tests. */
@@ -30,7 +37,7 @@ export class FakeSwarmEngine extends SwarmEngine {
   private locked = false;
   private autolock = false;
   private nodeList: SwarmNode[] = [];
-  private serviceList = new Map<string, SwarmService & { env: Record<string, string> }>();
+  private serviceList = new Map<string, FakeService>();
   private secretList = new Map<string, FakeItem>();
   private configList = new Map<string, FakeItem>();
   private tokens = { worker: `SWMTKN-1-worker-${id()}`, manager: `SWMTKN-1-manager-${id()}` };
@@ -149,7 +156,7 @@ export class FakeSwarmEngine extends SwarmEngine {
 
   async services(): Promise<SwarmService[]> {
     this.manager();
-    return [...this.serviceList.values()].map(({ env: _env, ...s }) => s);
+    return [...this.serviceList.values()].map(({ env: _env, previous: _previous, ...s }) => s);
   }
 
   private service(serviceId: string) {
@@ -166,8 +173,20 @@ export class FakeSwarmEngine extends SwarmEngine {
     return this.tasksOf(s);
   }
 
-  /** Spreads the running copies over the nodes, like Swarm does by default; a global service has one per node. */
-  private tasksOf(s: SwarmService): ClusterTask[] {
+  /** Where the copies go (see `scheduleTasks`); a copy that finds no node stays pending. */
+  private place(s: FakeService) {
+    return scheduleTasks(this.nodeList, s.placement, s.mode, s.desired);
+  }
+
+  /** Keeps the numbers the UI reads (copies running) in step with the placement. */
+  private refresh(s: FakeService): void {
+    const failing = s.image.includes(FAILING_IMAGE);
+    const sched = this.place(s);
+    s.running = failing ? 0 : sched.nodeIds.length;
+    if (s.mode === "global") s.desired = sched.nodeIds.length;
+  }
+
+  private tasksOf(s: FakeService): ClusterTask[] {
     // Demo: an image named like this never starts, to show the plan undoing a failed change.
     if (s.image.includes(FAILING_IMAGE))
       return [1, 2].map((slot) => ({
@@ -181,18 +200,26 @@ export class FakeSwarmEngine extends SwarmEngine {
         updatedAt: now(),
         serviceId: s.id,
       }));
-    const count = s.mode === "global" ? this.nodeList.length : s.running;
-    return Array.from({ length: count }, (_, i) => ({
-      id: id(),
-      slot: i + 1,
-      nodeId: this.nodeList[i % Math.max(1, this.nodeList.length)]?.id ?? "",
-      state: "running",
-      desiredState: "running",
-      error: "",
-      image: s.image,
-      updatedAt: now(),
-      serviceId: s.id,
-    }));
+    const sched = this.place(s);
+    const base = { desiredState: "running", image: s.image, updatedAt: now(), serviceId: s.id };
+    return [
+      ...sched.nodeIds.map((nodeId, i) => ({
+        ...base,
+        id: id(),
+        slot: i + 1,
+        nodeId,
+        state: "running",
+        error: "",
+      })),
+      ...Array.from({ length: sched.unplaced }, (_, i) => ({
+        ...base,
+        id: id(),
+        slot: sched.nodeIds.length + i + 1,
+        nodeId: "",
+        state: "pending",
+        error: sched.reason,
+      })),
+    ];
   }
 
   async allTasks(): Promise<ClusterTask[]> {
@@ -209,34 +236,77 @@ export class FakeSwarmEngine extends SwarmEngine {
     this.manager();
     if ([...this.serviceList.values()].some((s) => s.name === request.name))
       throw new ConflictError(`name ${request.name} is already in use`, "errors.nameInUse");
+    const known = new Set([...this.secretList.values()].map((i) => i.name));
+    for (const name of request.secrets)
+      if (!known.has(name))
+        throw new ValidationError(`secret ${name} does not exist`, "errors.secretNotFound");
     const serviceId = id();
-    const replicas = request.global ? 1 : request.replicas;
-    this.serviceList.set(serviceId, {
+    const service: FakeService = {
       id: serviceId,
       name: request.name,
       image: request.image,
       mode: request.global ? "global" : "replicated",
       replicas: request.global ? null : request.replicas,
-      running: request.image.includes(FAILING_IMAGE) ? 0 : replicas,
-      desired: replicas,
+      running: 0,
+      desired: request.global ? 0 : request.replicas,
       ports: request.ports,
       stack: null,
       networks: request.networks,
+      mounts: request.mounts,
+      placement: request.placement,
+      secrets: request.secrets,
+      update: { state: null, message: "", startedAt: "" },
       updatedAt: now(),
       env: request.env,
-    });
+    };
+    this.refresh(service);
+    this.serviceList.set(serviceId, service);
     return { id: serviceId };
   }
 
   async updateService(serviceId: string, patch: UpdateSwarmService): Promise<void> {
     this.manager();
     const s = this.service(serviceId);
-    if (patch.image) s.image = patch.image;
+    const rollsOut =
+      patch.image !== undefined || patch.networks !== undefined || patch.placement !== undefined;
+    if (rollsOut) {
+      if (patch.image?.includes(FAILING_IMAGE)) {
+        // Docker's own failure action: the new copies never start, so the update goes back by itself.
+        s.update = {
+          state: "rollback_completed",
+          message: `update rolled back: No such image: ${patch.image}`,
+          startedAt: now(),
+        };
+        s.updatedAt = now();
+        return;
+      }
+      s.previous = { image: s.image, networks: s.networks, placement: s.placement };
+      if (patch.image) s.image = patch.image;
+      if (patch.networks)
+        s.networks = [
+          ...s.networks.filter((n) => !patch.networks?.remove.includes(n)),
+          ...patch.networks.add.filter((n) => !s.networks.includes(n)),
+        ];
+      if (patch.placement) s.placement = patch.placement;
+      s.update = { state: "completed", message: "update completed", startedAt: now() };
+    }
     if (patch.replicas !== undefined && s.mode === "replicated") {
       s.replicas = patch.replicas;
-      s.running = patch.replicas;
       s.desired = patch.replicas;
     }
+    this.refresh(s);
+    s.updatedAt = now();
+  }
+
+  async rollbackService(serviceId: string): Promise<void> {
+    this.manager();
+    const s = this.service(serviceId);
+    if (!s.previous)
+      throw new ConflictError("there is nothing to roll back to", "errors.nothingToRollBack");
+    Object.assign(s, s.previous);
+    s.previous = undefined;
+    s.update = { state: "rollback_completed", message: "rollback completed", startedAt: now() };
+    this.refresh(s);
     s.updatedAt = now();
   }
 
