@@ -31,7 +31,7 @@ function Emblem({ size, theme }: { size: number; theme: "light" | "dark" }) {
   );
 }
 
-/** Header brand: the emblem of the brand image for the current theme (vector fallback) + name. */
+/** Header brand: the emblem of the brand image for the current theme (vector fallback); the name is only for screen readers. */
 export function Logo({ size = 28 }: { size?: number }) {
   return (
     <span className="inline-flex items-center gap-2 font-semibold tracking-tight">
@@ -41,7 +41,7 @@ export function Logo({ size = 28 }: { size?: number }) {
       <span className="nx-logo-dark">
         <Emblem size={size} theme="dark" />
       </span>
-      Nautix
+      <span className="sr-only">Nautix</span>
     </span>
   );
 }
