@@ -43,7 +43,7 @@ export function Shell() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line bg-bg1 px-4">
+      <header className="nx-glass nx-lens-wide relative z-20 mx-3 mt-3 flex h-14 shrink-0 items-center gap-4 rounded-full px-5">
         <Logo />
         <nav className="flex gap-1" aria-label="Main">
           {NAV.map(({ to, key, icon: Icon }) => (
@@ -51,7 +51,7 @@ export function Shell() {
               key={to}
               to={to}
               aria-current={isActivePath(to, pathname) ? "page" : undefined}
-              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm ${isActivePath(to, pathname) ? "bg-accent-soft text-accent" : "text-dim hover:text-fg"}`}
+              className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition-colors ${isActivePath(to, pathname) ? "bg-primary text-primary-fg" : "text-dim hover:text-fg"}`}
             >
               <Icon size={15} /> {t(key)}
             </NavLink>

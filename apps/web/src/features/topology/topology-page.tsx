@@ -141,7 +141,13 @@ function Canvas() {
     setNodes(toNodes(topology, services, isAdmin, isAdmin, isAdmin, drift));
     if (!fitted.current && containers.length > 0) {
       fitted.current = true;
-      requestAnimationFrame(() => void flow.fitView({ padding: 0.1, maxZoom: 1 }));
+      requestAnimationFrame(
+        () =>
+          void flow.fitView({
+            padding: { top: 0.1, left: 0.1, bottom: 0.1, right: "344px" },
+            maxZoom: 1,
+          }),
+      );
     }
   }, [topology, services, containers.length, flow, isAdmin, drift]);
 
@@ -256,7 +262,7 @@ function Canvas() {
   const label = (n: Network | null) => n?.name ?? t("topology.external");
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="relative flex h-full min-h-0">
       <Palette
         onNewNetwork={() => setNewNetwork(true)}
         onPick={(template) => setDeploy({ template, network: null })}
@@ -294,7 +300,7 @@ function Canvas() {
           proOptions={{ hideAttribution: true }}
           deleteKeyCode={null}
         >
-          <Background variant={BackgroundVariant.Lines} gap={24} color="var(--nx-grid)" />
+          <Background variant={BackgroundVariant.Dots} gap={24} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
         </ReactFlow>
         <div className="absolute left-4 top-4 flex gap-2">

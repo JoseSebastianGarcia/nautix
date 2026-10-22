@@ -2,44 +2,58 @@
 
 /* Every color comes from these tokens; dark and light define the same set (tests enforce parity). */
 :root[data-theme="dark"] {
-  --nx-bg-0: #0a0912;
-  --nx-bg-1: #100f1b;
-  --nx-bg-2: #171526;
-  --nx-line: #272440;
-  --nx-text: #e9e7f7;
-  --nx-text-dim: #9a98b5;
+  --nx-bg-0: #09090b;
+  --nx-bg-1: #111113;
+  --nx-bg-2: #18181b;
+  --nx-line: #27272a;
+  --nx-text: #fafafa;
+  --nx-text-dim: #a1a1aa;
+  --nx-primary: #fafafa;
+  --nx-primary-fg: #09090b;
   --nx-accent: #8b7cf6;
-  --nx-accent-fg: #0a0912;
+  --nx-accent-fg: #09090b;
   --nx-accent-soft: #8b7cf622;
   --nx-ok: #4ade80;
-  --nx-cyan: #38d5ff;
-  --nx-amber: #ffb020;
-  --nx-danger: #ff4d6a;
-  --nx-grid: #1d1a33;
+  --nx-cyan: #38bdf8;
+  --nx-amber: #fbbf24;
+  --nx-danger: #ef4444;
+  --nx-grid: #27272a;
   --nx-zone: #8b7cf60d;
   --nx-zone-line: #8b7cf666;
-  --nx-ext-line: #38d5ff66;
-  --nx-glow: 0 0 0 1px var(--nx-accent), 0 0 18px #8b7cf655;
+  --nx-ext-line: #38bdf866;
+  --nx-glow: 0 0 0 1px var(--nx-accent);
+  --nx-glass-bg: #14141788;
+  --nx-glass-edge:
+    inset 0 0 0 1px #ffffff29, inset 1.5px 2px 0 -0.5px #ffffff8c,
+    inset -1.5px -2px 0 -0.5px #ffffff38, inset 0 14px 22px -14px #ffffff29;
+  --nx-glass-shadow: 0 18px 50px -8px #000000a6;
 }
 :root[data-theme="light"] {
-  --nx-bg-0: #f4f5fb;
-  --nx-bg-1: #ffffff;
-  --nx-bg-2: #eceef8;
-  --nx-line: #d6d9ec;
-  --nx-text: #14122b;
-  --nx-text-dim: #565a78;
+  --nx-bg-0: #ffffff;
+  --nx-bg-1: #fafafa;
+  --nx-bg-2: #f4f4f5;
+  --nx-line: #e4e4e7;
+  --nx-text: #09090b;
+  --nx-text-dim: #52525b;
+  --nx-primary: #09090b;
+  --nx-primary-fg: #fafafa;
   --nx-accent: #5b46d8;
   --nx-accent-fg: #ffffff;
   --nx-accent-soft: #5b46d818;
   --nx-ok: #15803d;
-  --nx-cyan: #0089b8;
+  --nx-cyan: #0369a1;
   --nx-amber: #a15c00;
-  --nx-danger: #c81e44;
-  --nx-grid: #dfe2f2;
+  --nx-danger: #dc2626;
+  --nx-grid: #e4e4e7;
   --nx-zone: #5b46d80a;
   --nx-zone-line: #5b46d877;
-  --nx-ext-line: #0089b877;
-  --nx-glow: 0 0 0 1px var(--nx-accent), 0 0 14px #5b46d833;
+  --nx-ext-line: #0369a177;
+  --nx-glow: 0 0 0 1px var(--nx-accent);
+  --nx-glass-bg: #ffffff9e;
+  --nx-glass-edge:
+    inset 0 0 0 1px #ffffffb3, inset 1.5px 2px 0 -0.5px #ffffff, inset -1.5px -2px 0 -0.5px #ffffffe6,
+    inset 0 14px 22px -14px #ffffffb3, 0 0 0 1px #0000000f;
+  --nx-glass-shadow: 0 18px 50px -8px #141e3c38;
 }
 
 @theme inline {
@@ -49,6 +63,8 @@
   --color-line: var(--nx-line);
   --color-fg: var(--nx-text);
   --color-dim: var(--nx-text-dim);
+  --color-primary: var(--nx-primary);
+  --color-primary-fg: var(--nx-primary-fg);
   --color-accent: var(--nx-accent);
   --color-accent-fg: var(--nx-accent-fg);
   --color-accent-soft: var(--nx-accent-soft);
@@ -130,6 +146,46 @@ button:disabled {
 }
 :root[data-theme="dark"] .nx-logo-dark {
   display: inline-flex;
+}
+
+/*
+ * Glass only on the layers that float (header, inspector, toasts, dialogs). Content stays solid.
+ * data-lens="on" (Chromium) adds edge refraction through the SVG filters in glass-defs.tsx;
+ * data-glass="off" (setting or prefers-reduced-transparency) makes every glass layer solid.
+ */
+.nx-glass {
+  background: var(--nx-glass-bg);
+  backdrop-filter: blur(14px) saturate(1.7);
+  box-shadow: var(--nx-glass-edge), var(--nx-glass-shadow);
+}
+/* Panels that carry text and forms: more body, so what is behind never competes with it. */
+.nx-glass.nx-glass-dense {
+  background: color-mix(in srgb, var(--nx-bg-1) 82%, transparent);
+}
+:root[data-lens="on"] .nx-lens-wide {
+  backdrop-filter: blur(2px) url(#nx-lens-wide) saturate(1.7) brightness(1.08);
+}
+:root[data-lens="on"] .nx-lens-tall {
+  backdrop-filter: blur(3px) url(#nx-lens-tall) saturate(1.7) brightness(1.08);
+}
+:root[data-glass="off"] .nx-glass {
+  background: var(--nx-bg-1);
+  backdrop-filter: none;
+  box-shadow: 0 0 0 1px var(--nx-line);
+}
+.nx-glass dialog::backdrop,
+dialog.nx-glass::backdrop {
+  background: #00000066;
+  backdrop-filter: none;
+}
+@keyframes nx-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+}
+dialog[open].nx-glass {
+  animation: nx-pop 260ms cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {

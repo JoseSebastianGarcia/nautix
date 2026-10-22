@@ -10,7 +10,7 @@ import { useToasts } from "./toast-store.js";
 type Variant = "primary" | "ghost" | "danger";
 
 const VARIANT: Record<Variant, string> = {
-  primary: "bg-accent text-accent-fg hover:opacity-90",
+  primary: "bg-primary text-primary-fg hover:opacity-90",
   ghost: "border border-line bg-bg1 text-fg hover:bg-bg2",
   danger: "bg-danger text-white hover:opacity-90",
 };
@@ -91,7 +91,7 @@ export function Dialog({
         if (e.target === e.currentTarget) onClose();
       }}
       aria-label={title}
-      className="m-auto max-h-[92vh] w-[min(32rem,92vw)] overflow-y-auto rounded-2xl border border-line bg-bg1 p-0 text-fg backdrop:bg-black/60"
+      className="nx-glass nx-glass-dense nx-lens-tall m-auto max-h-[92vh] w-[min(32rem,92vw)] overflow-y-auto rounded-3xl border-0 p-0 text-fg backdrop:bg-black/50"
     >
       {open && (
         <div className="flex flex-col gap-4 p-6">
@@ -182,14 +182,14 @@ export function Toaster() {
           key={toast.id}
           type="button"
           onClick={() => dismiss(toast.id)}
-          className={`pointer-events-auto flex items-center gap-2 rounded-lg border bg-bg1 px-4 py-2 text-left text-sm text-fg shadow-lg ${
-            toast.kind === "ok"
-              ? "border-ok"
-              : toast.kind === "error"
-                ? "border-danger"
-                : "border-accent"
-          }`}
+          className="nx-glass nx-lens-wide pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2 text-left text-sm text-fg"
         >
+          <span
+            className={`h-2 w-2 shrink-0 rounded-full ${
+              toast.kind === "ok" ? "bg-ok" : toast.kind === "error" ? "bg-danger" : "bg-accent"
+            }`}
+            aria-hidden="true"
+          />
           {toast.kind === "pending" && <Loader2 size={14} className="animate-spin text-accent" />}
           {toast.text}
         </button>

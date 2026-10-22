@@ -1315,5 +1315,17 @@
     "node": "Nodo",
     "state": "Estado",
     "whereHint": "Ubicación automática: Swarm reparte las copias entre los nodos activos. Para fijarlas o repartirlas, editá el servicio en la pestaña Swarm."
+  },
+  "appearance": {
+    "title": "Apariencia",
+    "accent": "Color de acento",
+    "accentHint": "Un detalle fino para selección, enlaces, zonas y foco. Los botones siguen blancos (oscuro) o negros (claro). Rojo, verde y amarillo no están disponibles porque significan error, correcto y aviso.",
+    "custom": "Otro",
+    "reset": "Restablecer",
+    "contrast": "contraste {{ratio}}:1",
+    "hueMoved": "alejado de rojo, verde o amarillo",
+    "adjusted": "luminosidad ajustada para que se lea",
+    "reduceTransparency": "Reducir transparencia",
+    "reduceTransparencyHint": "Paneles sólidos, sin desenfoque ni vidrio. También se aplica solo cuando tu sistema lo pide."
   }
 }

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { GlassDefs } from "../components/glass-defs.js";
 import { Toaster } from "../components/ui.js";
 import { AuthPage } from "../features/auth/auth-page.js";
 import { BuildsPage } from "../features/builds/builds-page.js";
@@ -88,6 +89,7 @@ export function App() {
         </Routes>
       )}
       <Toaster />
+      <GlassDefs />
     </>
   );
 }

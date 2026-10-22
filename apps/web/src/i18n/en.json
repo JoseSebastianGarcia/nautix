@@ -1315,5 +1315,17 @@
     "node": "Node",
     "state": "State",
     "whereHint": "Automatic placement: Swarm spreads the copies over the active nodes. To pin or spread them, edit the service in the Swarm tab."
+  },
+  "appearance": {
+    "title": "Appearance",
+    "accent": "Accent color",
+    "accentHint": "A fine detail for selection, links, zones and focus. Buttons stay white (dark) or black (light). Red, green and yellow are not available because they mean error, ok and warning.",
+    "custom": "Custom",
+    "reset": "Reset",
+    "contrast": "contrast {{ratio}}:1",
+    "hueMoved": "moved away from red, green or yellow",
+    "adjusted": "lightness adjusted to stay readable",
+    "reduceTransparency": "Reduce transparency",
+    "reduceTransparencyHint": "Solid panels, no blur or glass. Also applied automatically when your system asks for it."
   }
 }

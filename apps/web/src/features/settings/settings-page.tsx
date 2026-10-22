@@ -9,6 +9,9 @@ import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Select } from "../../components/select.js";
 import { useToasts } from "../../components/toast-store.js";
 import { Button, ConfirmDialog, Dialog, Field, Input } from "../../components/ui.js";
+import { PRESET_ACCENTS, resolveAccent } from "../../theme/accent.js";
+import { resolveTheme } from "../../theme/resolve-theme.js";
+import { useTheme } from "../../theme/theme-store.js";
 import { AuditTable } from "../audit/audit-table.js";
 import { useDebounced } from "../audit/use-debounced.js";
 import { ResetPasswordDialog } from "../auth/password-dialogs.js";
@@ -19,6 +22,7 @@ const ROLES: Role[] = ["admin", "viewer"];
 export function SettingsPage() {
   return (
     <div className="flex flex-col gap-10 p-6">
+      <AppearanceSection />
       <UsersSection />
       <TokensSection />
       <RegistriesSection />
@@ -26,6 +30,69 @@ export function SettingsPage() {
       <BackupSection />
       <AuditSection />
     </div>
+  );
+}
+
+function AppearanceSection() {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const resolved = resolveTheme(theme.choice, dark);
+  const result = resolveAccent(theme.accent, resolved);
+  return (
+    <section>
+      <PageHeader title={t("appearance.title")} />
+      <div className="flex flex-col gap-5 rounded-2xl border border-line bg-bg1 p-5">
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-medium">{t("appearance.accent")}</h3>
+          <p className="text-xs text-dim">{t("appearance.accentHint")}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            {PRESET_ACCENTS.map((hex) => (
+              <button
+                key={hex}
+                type="button"
+                aria-label={hex}
+                aria-pressed={hex === theme.accent}
+                onClick={() => theme.setAccent(hex)}
+                style={{ background: hex }}
+                className={`h-8 w-8 rounded-full ring-offset-2 ring-offset-bg1 ${hex === theme.accent ? "ring-2 ring-fg" : ""}`}
+              />
+            ))}
+            <label className="flex items-center gap-2 text-xs text-dim">
+              {t("appearance.custom")}
+              <input
+                type="color"
+                value={result.accent}
+                onChange={(e) => theme.setAccent(e.target.value)}
+                className="h-8 w-10 cursor-pointer rounded border border-line bg-transparent"
+              />
+            </label>
+            <Button onClick={() => theme.setAccent(PRESET_ACCENTS[0])}>
+              {t("appearance.reset")}
+            </Button>
+          </div>
+          <p className="text-xs text-dim">
+            <span className="font-mono text-accent">{result.accent.toUpperCase()}</span>
+            {" · "}
+            {t("appearance.contrast", { ratio: result.ratio.toFixed(1) })}
+            {result.hueMoved && ` · ${t("appearance.hueMoved")}`}
+            {result.adjusted && ` · ${t("appearance.adjusted")}`}
+          </p>
+        </div>
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={theme.reduceTransparency}
+            onChange={(e) => theme.setReduceTransparency(e.target.checked)}
+          />
+          <span>
+            <span className="font-medium">{t("appearance.reduceTransparency")}</span>
+            <span className="block text-xs text-dim">{t("appearance.reduceTransparencyHint")}</span>
+          </span>
+        </label>
+      </div>
+    </section>
   );
 }
 

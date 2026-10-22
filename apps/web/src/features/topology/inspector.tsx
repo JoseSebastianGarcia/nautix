@@ -65,7 +65,7 @@ export function Inspector({
 
   return (
     <aside
-      className="flex w-80 shrink-0 flex-col gap-4 overflow-y-auto border-l border-line bg-bg1 p-4"
+      className="nx-glass nx-glass-dense nx-lens-tall absolute bottom-3 right-3 top-3 z-10 flex w-80 flex-col gap-4 overflow-y-auto rounded-3xl p-5"
       aria-label={t("topology.inspector")}
     >
       <h2 className="font-mono text-xs uppercase tracking-wider text-dim">

@@ -7,7 +7,7 @@
 
 # Nautix
 
-Self-hosted web app to manage Docker: containers, images, volumes and networks, with a visual canvas where **networks are boxes** and containers (with their logo) live inside them. SSPL-1.0 · UI in English and Spanish · dark and light themes.
+Self-hosted web app to manage Docker: containers, images, volumes and networks, with a visual canvas where **networks are boxes** and containers (with their logo) live inside them. SSPL-1.0 · UI in English and Spanish · dark (black, white buttons) and light (white, black buttons) themes with a configurable accent.
 
 > Nautix controls the Docker socket, which is **root-equivalent on the host**. It binds to `127.0.0.1` by default; keep it that way or put a TLS reverse proxy with auth in front.
 
@@ -101,6 +101,7 @@ pnpm test:integration   # needs a Docker daemon: runs the API against the real e
 - **Swarm** (Resources → Swarm): init/join/leave, nodes, services (scale, update, logs, tasks), stacks, secrets and configs, join tokens and autolock.
 - **Settings**: users and roles, API tokens, saved registry logins (passwords encrypted with AES-256-GCM), the HTTPS certificate, backup/restore and an audit log of every change.
 - **Gateways and proxies** (Resources → Gateways): Kong (gateway) and Nginx, Caddy, Traefik, HAProxy (proxies) are configured from one table, with no config files or curl. Map paths and domains to services in a table (pick a service on a shared network or a tunnel); Nautix saves them and applies them with no config files or curl.
+- **Appearance**: flat black or white base with liquid glass only on what floats (top bar, inspector, messages, dialogs). **Settings, Appearance** sets the accent color (red, green and yellow are not offered, contrast is adjusted automatically) and **Reduce transparency**, which also follows the system.
 - **Brand logos**: files live in `apps/web/public/brand/` (full logo, header emblem) plus the favicon; light and dark variants follow the theme.
 - **Nautix is locked**: its own container can't be stopped, restarted, removed or edited from the UI or API.
 - Where things are stored: everything lives in the data directory (`/data`, volume `nautix-data` with Docker): `nautix.db` (SQLite) holds users, sessions, API tokens, canvas layout, saved templates, Compose projects, gateway routes, registry logins (encrypted) and the audit log; `.key` is the encryption key and `tls/` the certificates. Back them up together (Settings → Backup).

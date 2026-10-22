@@ -14,6 +14,7 @@ export const TOPIC_IDS = [
   "templates-builds",
   "swarm",
   "cluster",
+  "appearance",
   "troubleshooting",
 ] as const;
 
@@ -72,6 +73,7 @@ export const topicForPath = (pathname: string): TopicId => {
   if (pathname.startsWith("/guard")) return "guards";
   if (pathname.startsWith("/swarm")) return "swarm";
   if (pathname.startsWith("/builds")) return "templates-builds";
+  if (pathname.startsWith("/settings")) return "appearance";
   if (pathname.startsWith("/system")) return "troubleshooting";
   return "getting-started";
 };
