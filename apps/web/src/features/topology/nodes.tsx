@@ -65,7 +65,7 @@ export function ContainerNode({ data, selected }: NodeProps<ContainerFlowNode>) 
   return (
     <div
       style={{ width: NODE_W, height: NODE_H, boxShadow: selected ? "var(--nx-glow)" : undefined }}
-      className="flex items-center gap-3 rounded-xl border border-line bg-bg1 px-3"
+      className={`flex items-center gap-3 rounded-xl border border-line bg-bg1 px-3 ${selected ? "nx-selected" : ""}`}
     >
       <SideHandles
         prefix="bind"
@@ -119,8 +119,12 @@ export function ZoneNode({ data, selected }: NodeProps<ZoneFlowNode>) {
       style={{
         width: data.w,
         height: data.h,
-        background: external ? "transparent" : "var(--nx-zone)",
-        borderColor: external ? "var(--nx-ext-line)" : "var(--nx-zone-line)",
+        background: external ? "transparent" : overlay ? "var(--nx-zone-2)" : "var(--nx-zone)",
+        borderColor: external
+          ? "var(--nx-ext-line)"
+          : overlay
+            ? "var(--nx-zone-line-2)"
+            : "var(--nx-zone-line)",
         boxShadow: selected ? "var(--nx-glow)" : undefined,
       }}
       // A double line tells an overlay (one network over several servers) from a local one at a glance.
@@ -129,7 +133,13 @@ export function ZoneNode({ data, selected }: NodeProps<ZoneFlowNode>) {
       <div className="flex items-center justify-between px-4 pt-3 text-xs">
         <span
           className="truncate font-mono uppercase tracking-wider"
-          style={{ color: external ? "var(--nx-cyan)" : "var(--nx-accent)" }}
+          style={{
+            color: external
+              ? "var(--nx-text-dim)"
+              : overlay
+                ? "var(--nx-accent-2)"
+                : "var(--nx-accent)",
+          }}
         >
           {data.label
             ? data.label

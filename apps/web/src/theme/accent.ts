@@ -6,11 +6,12 @@
 export type Rgb = [number, number, number];
 
 export const ALLOWED_HUE: [number, number] = [165, 345];
-export const DEFAULT_ACCENT = "#8b7cf6";
+/** Aurora: blue that fades into teal (see companionHue). */
+export const DEFAULT_ACCENT = "#3b82f6";
 export const PRESET_ACCENTS = [
+  "#3b82f6",
   "#8b7cf6",
   "#6366f1",
-  "#3b82f6",
   "#38bdf8",
   "#14b8a6",
   "#d946ef",
@@ -118,14 +119,33 @@ export const resolveAccent = (hex: string, theme: "dark" | "light"): AccentResul
   };
 };
 
+/** How far the second color sits from the accent on the hue wheel (blue 217° -> teal 177°). */
+const COMPANION_SHIFT = 40;
+
+/**
+ * The second color of the aurora: the accent's hue moved toward teal, kept inside the allowed range
+ * (never red, green or yellow) and readable like the accent itself.
+ */
+export const resolveCompanion = (hex: string, theme: "dark" | "light"): AccentResult => {
+  const rgb = parseHex(hex) ?? (parseHex(DEFAULT_ACCENT) as Rgb);
+  const [h, s, l] = rgbToHsl(rgb);
+  const shifted = snapHue((h - COMPANION_SHIFT + 360) % 360);
+  return resolveAccent(toHex(hslToRgb(shifted, Math.max(s, 0.5), l)), theme);
+};
+
 /** CSS variables the accent drives; set on the root element, they override the stylesheet defaults. */
 export const accentVars = (hex: string, theme: "dark" | "light"): Record<string, string> => {
   const { accent, fg } = resolveAccent(hex, theme);
+  const second = resolveCompanion(hex, theme).accent;
   return {
     "--nx-accent": accent,
     "--nx-accent-fg": fg,
     "--nx-accent-soft": `${accent}22`,
+    "--nx-accent-2": second,
     "--nx-zone": `${accent}0d`,
     "--nx-zone-line": `${accent}66`,
+    "--nx-zone-2": `${second}0f`,
+    "--nx-zone-line-2": `${second}77`,
+    "--nx-aurora-glow": `${second}${theme === "dark" ? "3d" : "30"}`,
   };
 };

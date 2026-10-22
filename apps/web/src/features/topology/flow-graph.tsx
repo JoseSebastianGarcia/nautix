@@ -110,10 +110,10 @@ export const tunnelEdges = (
         labelBgPadding: [6, 3] as [number, number],
         labelBgBorderRadius: 6,
         style: {
-          stroke: "var(--nx-cyan)",
+          stroke: "var(--nx-accent-2)",
           strokeWidth: selectedId === t.containerId ? 4 : 2.5,
         },
-        markerEnd: { type: "arrowclosed" as const, color: "var(--nx-cyan)" },
+        markerEnd: { type: "arrowclosed" as const, color: "var(--nx-accent-2)" },
       },
     ];
   });

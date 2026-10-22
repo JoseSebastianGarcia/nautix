@@ -19,3 +19,5 @@ Only the layers that float have a glass look: the top bar, the inspector, messag
 Turn on **Reduce transparency** for solid panels without blur. It switches on by itself when your system asks for less transparency. With **Reduce motion** on your system the dialogs also open without animation.
 
 The settings are saved in this browser only.
+
+The default is **Aurora**: blue that fades into teal, like the logo. The second color is the accent's hue shifted toward teal (never red, green or yellow); it colors the overlay boxes and tunnels, and together with the accent it forms a gradient on the selected node, the active tab dot, the top edge of the inspector and a soft glow behind the header. Pick another accent and the pair follows.

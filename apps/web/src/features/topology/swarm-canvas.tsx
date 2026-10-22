@@ -43,6 +43,7 @@ import { NetworkDialog } from "./network-dialog.js";
 import { type ZoneFlowNode, ZoneNode } from "./nodes.js";
 import { CUSTOM_TEMPLATE_ID, DRAG_TYPE, Palette } from "./palette.js";
 import { PanelTab } from "./panel-tab.js";
+import { ShortcutHints } from "./shortcut-hints.js";
 import { SideHandles } from "./side-handles.js";
 import { type BindTarget, SwarmBindDialog } from "./swarm-bind-dialog.js";
 import {
@@ -140,7 +141,7 @@ function ServiceNode({ data, selected }: NodeProps<ServiceFlowNode>) {
         boxShadow: selected ? "var(--nx-glow)" : undefined,
         opacity: removing ? 0.55 : 1,
       }}
-      className={`relative flex items-center gap-3 rounded-xl border bg-bg1 px-3 ${removing ? "border-dashed border-danger" : pending ? "border-dashed border-accent" : "border-line"}`}
+      className={`relative flex items-center gap-3 rounded-xl border bg-bg1 px-3 ${removing ? "border-dashed border-danger" : pending ? "border-dashed border-accent" : "border-line"} ${selected && !removing && !pending ? "nx-selected" : ""}`}
     >
       <SideHandles
         prefix="bind"
@@ -689,7 +690,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
       {panels.inspectorOpen && (
         <aside
           aria-label={t("topology.inspector")}
-          className="nx-glass nx-glass-dense nx-lens-tall absolute bottom-3 right-3 top-3 z-10 flex w-80 flex-col gap-3 overflow-y-auto rounded-3xl p-5"
+          className="nx-glass nx-glass-dense nx-hairline nx-lens-tall absolute bottom-3 right-3 top-3 z-10 flex w-80 flex-col gap-3 overflow-y-auto rounded-3xl p-5"
         >
           <h2 className="font-mono text-xs uppercase tracking-wider text-dim">
             {t("topology.inspector")}
@@ -732,7 +733,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           {!selectedService && !selectedPlanned && !selectedOverlay && (
             <p className="text-sm text-dim">{t("cluster.inspectorEmpty")}</p>
           )}
-          <p className="mt-auto text-[11px] text-dim">{t("topology.shortcuts")}</p>
+          <ShortcutHints />
         </aside>
       )}
       <SwarmServiceDialog

@@ -10,18 +10,22 @@
   --nx-text-dim: #a1a1aa;
   --nx-primary: #fafafa;
   --nx-primary-fg: #09090b;
-  --nx-accent: #8b7cf6;
+  --nx-accent: #5b9bff;
   --nx-accent-fg: #09090b;
-  --nx-accent-soft: #8b7cf622;
+  --nx-accent-soft: #5b9bff22;
+  --nx-accent-2: #2dd4bf;
   --nx-ok: #4ade80;
   --nx-cyan: #38bdf8;
   --nx-amber: #fbbf24;
   --nx-danger: #ef4444;
   --nx-grid: #3f3f46;
-  --nx-zone: #8b7cf60d;
-  --nx-zone-line: #8b7cf666;
-  --nx-ext-line: #38bdf866;
-  --nx-glow: 0 0 0 1px var(--nx-accent);
+  --nx-zone: #5b9bff0d;
+  --nx-zone-line: #5b9bff66;
+  --nx-zone-2: #2dd4bf0f;
+  --nx-zone-line-2: #2dd4bf77;
+  --nx-aurora-glow: #2dd4bf3d;
+  --nx-ext-line: #a1a1aa55;
+  --nx-glow: 0 0 0 4px var(--nx-accent-soft);
   --nx-glass-bg: #14141788;
   --nx-glass-edge:
     inset 0 0 0 1px #ffffff29, inset 1.5px 2px 0 -0.5px #ffffff8c,
@@ -37,23 +41,32 @@
   --nx-text-dim: #52525b;
   --nx-primary: #09090b;
   --nx-primary-fg: #fafafa;
-  --nx-accent: #5b46d8;
+  --nx-accent: #2563eb;
   --nx-accent-fg: #ffffff;
-  --nx-accent-soft: #5b46d818;
+  --nx-accent-soft: #2563eb18;
+  --nx-accent-2: #0d9488;
   --nx-ok: #15803d;
   --nx-cyan: #0369a1;
   --nx-amber: #a15c00;
   --nx-danger: #dc2626;
   --nx-grid: #c4c4cc;
-  --nx-zone: #5b46d80a;
-  --nx-zone-line: #5b46d877;
-  --nx-ext-line: #0369a177;
-  --nx-glow: 0 0 0 1px var(--nx-accent);
+  --nx-zone: #2563eb0a;
+  --nx-zone-line: #2563eb77;
+  --nx-zone-2: #0d94880f;
+  --nx-zone-line-2: #0d948888;
+  --nx-aurora-glow: #2dd4bf30;
+  --nx-ext-line: #52525b55;
+  --nx-glow: 0 0 0 4px var(--nx-accent-soft);
   --nx-glass-bg: #ffffff9e;
   --nx-glass-edge:
     inset 0 0 0 1px #ffffffb3, inset 1.5px 2px 0 -0.5px #ffffff, inset -1.5px -2px 0 -0.5px #ffffffe6,
     inset 0 14px 22px -14px #ffffffb3, 0 0 0 1px #0000000f;
   --nx-glass-shadow: 0 18px 50px -8px #141e3c38;
+}
+
+/* Aurora: the accent fading into its companion. Used only on a few details (see the .nx-aurora-* rules). */
+:root {
+  --nx-aurora: linear-gradient(135deg, var(--nx-accent), var(--nx-accent-2));
 }
 
 @theme inline {
@@ -263,4 +276,53 @@ dialog[open].nx-glass {
 ::placeholder {
   color: color-mix(in srgb, var(--nx-text-dim) 60%, transparent);
   opacity: 1;
+}
+
+/* A soft aurora behind the top of the page; it shows through the glass header and nowhere else. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20% -10% auto -10%;
+  height: 420px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 45% 70% at 25% 0%,
+      color-mix(in srgb, var(--nx-accent) 28%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(ellipse 40% 65% at 70% 0%, var(--nx-aurora-glow), transparent 70%);
+  filter: blur(30px);
+}
+.nx-aurora-bg {
+  background: var(--nx-aurora);
+}
+/* Selected node: a gradient border instead of a flat ring. */
+.nx-selected {
+  border-width: 1.5px;
+  border-color: transparent;
+  background:
+    linear-gradient(var(--nx-bg-1), var(--nx-bg-1)) padding-box,
+    var(--nx-aurora) border-box;
+}
+/* Hairline of aurora along the top edge of the inspector. */
+.nx-hairline::before {
+  content: "";
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: 0;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--nx-accent),
+    var(--nx-accent-2),
+    transparent
+  );
+  pointer-events: none;
+}
+.nx-fab-icon {
+  stroke: url(#nx-aurora);
 }
