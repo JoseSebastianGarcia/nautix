@@ -108,7 +108,13 @@ export class ZoneApplier {
     switch (action.kind) {
       case "create-network": {
         const created = await this.commands.execute<CreateNetworkCommand, { id: string }>(
-          new CreateNetworkCommand({ name: action.name, internal: action.internal }),
+          new CreateNetworkCommand({
+            name: action.name,
+            internal: action.internal,
+            driver: "bridge",
+            encrypted: false,
+            attachable: false,
+          }),
         );
         return created.id;
       }

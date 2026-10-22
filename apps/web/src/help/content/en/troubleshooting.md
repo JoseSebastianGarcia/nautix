@@ -16,6 +16,14 @@ The app and the service are not on a shared user-defined network. Create a [bind
 
 Published ports are bound to `127.0.0.1` by default. Change the exposure to one address or to everyone from the container's page, then check any [guard](help:guards) rule on that port.
 
+## An overlay network cannot be created
+
+- **"An overlay network needs a swarm"**: this engine is not in a swarm. Create one in **Resources, Swarm** first.
+- **"This engine is a swarm worker"**: only a manager can create overlay networks. Connect Nautix to a manager.
+- **"The swarm is locked"**: unlock it in the Swarm tab.
+
+See [Cluster view and overlay networks](help:cluster).
+
 ## The port is already allocated
 
 Another container or program uses that host port. Pick another one, or stop the other.

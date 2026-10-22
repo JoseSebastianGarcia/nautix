@@ -20,12 +20,14 @@ import type {
   PruneKind,
   PruneResult,
   RegistryAuth,
+  SwarmRole,
   UpdateContainer,
   Volume,
   WaitResult,
 } from "@nautix/contracts";
 import { Injectable } from "@nestjs/common";
 import { ConflictError, NotFoundError, ValidationError } from "../../../shared/domain-error.js";
+import { getFakeSwarmRole } from "../../../shared/fake-swarm-role.js";
 import {
   type ActionOptions,
   type BuildOptions,
@@ -95,15 +97,16 @@ export class FakeDockerEngine extends DockerEngine {
     internal: boolean,
     subnet: string | null,
     system: boolean,
+    extra: Pick<FakeNetwork, "driver" | "encrypted" | "attachable"> = { driver: "bridge" },
   ): FakeNetwork {
     const net: FakeNetwork = {
       id: newId(),
       name,
-      driver: "bridge",
       internal,
       subnet,
       system,
       members: new Set(),
+      ...extra,
     };
     this.networks.set(net.id, net);
     return net;
@@ -490,8 +493,20 @@ export class FakeDockerEngine extends DockerEngine {
       throw new ConflictError("network name in use", "errors.nameInUse");
     }
     return {
-      id: this.addNetwork(request.name, request.internal, request.subnet ?? null, false).id,
+      id: this.addNetwork(
+        request.name,
+        request.internal,
+        request.subnet ?? null,
+        false,
+        request.driver === "overlay"
+          ? { driver: "overlay", encrypted: request.encrypted, attachable: request.attachable }
+          : { driver: "bridge" },
+      ).id,
     };
+  }
+
+  async swarmRole(): Promise<SwarmRole> {
+    return getFakeSwarmRole();
   }
 
   async removeNetwork(id: string): Promise<void> {

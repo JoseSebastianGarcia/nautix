@@ -190,4 +190,64 @@ await shoot("volumes", async (page) => {
   await page.getByLabel("Browse files app-data").click();
 });
 
+// Cluster screens need a demo swarm: start the demo engine with NAUTIX_FAKE_SWARM_NODES=3 to get three nodes.
+const seedCluster = async () => {
+  await call("POST", "/swarm/init", {}).catch(() => {});
+  await call("POST", "/networks", {
+    name: "shop",
+    internal: false,
+    driver: "overlay",
+    encrypted: true,
+    subnet: "10.0.1.0/24",
+  }).catch(() => {});
+  await call("POST", "/networks", { name: "public", internal: false, driver: "overlay" }).catch(
+    () => {},
+  );
+  for (const svc of [
+    { name: "orders-api", image: "myorg/orders-api:1.4", replicas: 3, networks: ["shop"] },
+    { name: "orders-db", image: "postgres:16-alpine", replicas: 1, networks: ["shop"] },
+    {
+      name: "traefik",
+      image: "traefik:v3.1",
+      global: true,
+      networks: ["public", "shop"],
+      ports: [{ target: 443, published: 443 }],
+    },
+  ])
+    await call("POST", "/swarm/services", svc).catch(() => {});
+};
+
+const clusterShot = (name, by) =>
+  shoot(name, async (page) => {
+    await seedCluster();
+    await page.goto("/");
+    await settle(page);
+    await page.getByRole("tab", { name: "Cluster" }).click();
+    await settle(page);
+    if (by === "server") await page.getByRole("tab", { name: "By server" }).click();
+    else await page.getByRole("tab", { name: "By network" }).click();
+    await page.getByText("orders-api").first().click();
+  });
+await clusterShot("cluster-network", "network");
+await clusterShot("cluster-server", "server");
+
+await shoot("cluster-overlay", async (page) => {
+  await seedCluster();
+  await page.goto("/");
+  await settle(page);
+  await page.getByRole("tab", { name: "Local server" }).click();
+  await settle(page);
+  await page.getByRole("button", { name: "New network" }).click();
+  await page.getByLabel(/Overlay/).check();
+  await page.getByLabel("Network name").fill("shop");
+});
+
+await shoot("cluster-leave", async (page) => {
+  await seedCluster();
+  await page.goto("/swarm");
+  await settle(page);
+  await page.getByRole("tab", { name: "Cluster" }).click();
+  await page.getByRole("button", { name: "Leave swarm" }).first().click();
+});
+
 await browser.close();

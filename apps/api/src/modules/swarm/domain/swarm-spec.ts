@@ -1,4 +1,5 @@
 import type {
+  ClusterTask,
   CreateSwarmService,
   SwarmNode,
   SwarmService,
@@ -21,7 +22,7 @@ export interface RawService {
     Mode?: { Replicated?: { Replicas?: number }; Global?: object };
     EndpointSpec?: { Ports?: RawPort[] };
   };
-  Endpoint?: { Ports?: RawPort[] };
+  Endpoint?: { Ports?: RawPort[]; VirtualIPs?: { NetworkID: string }[] };
   ServiceStatus?: { RunningTasks: number; DesiredTasks: number };
 }
 
@@ -43,6 +44,7 @@ export interface RawNode {
 
 export interface RawTask {
   ID: string;
+  ServiceID?: string;
   NodeID?: string;
   Slot?: number;
   DesiredState: string;
@@ -115,9 +117,18 @@ export const fromService = (s: RawService): SwarmService => {
       protocol: p.Protocol === "udp" ? ("udp" as const) : ("tcp" as const),
     })),
     stack: s.Spec.Labels?.[STACK_LABEL] ?? null,
+    networks: serviceNetworks(s),
     updatedAt: s.UpdatedAt ?? "",
   };
 };
+
+/** The networks a service is on: the ones its spec asks for plus the ones it got a virtual address on (no duplicates). */
+export const serviceNetworks = (s: RawService): string[] => [
+  ...new Set([
+    ...(s.Spec.TaskTemplate.Networks ?? []).map((n) => n.Target),
+    ...(s.Endpoint?.VirtualIPs ?? []).map((v) => v.NetworkID),
+  ]),
+];
 
 export const fromNode = (n: RawNode): SwarmNode => ({
   id: n.ID,
@@ -144,6 +155,11 @@ export const fromTask = (t: RawTask): SwarmTask => ({
   error: t.Status?.Err ?? "",
   image: plainImage(t.Spec?.ContainerSpec?.Image ?? ""),
   updatedAt: t.UpdatedAt ?? "",
+});
+
+export const fromClusterTask = (t: RawTask): ClusterTask => ({
+  ...fromTask(t),
+  serviceId: t.ServiceID ?? "",
 });
 
 /** Stacks are the services that share the `com.docker.stack.namespace` label. */

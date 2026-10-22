@@ -16,6 +16,14 @@ La app y el servicio no están en una red definida por el usuario en común. Cre
 
 Los puertos publicados están enlazados a `127.0.0.1` por defecto. Cambiá la exposición a una dirección o a todos desde la página del contenedor y después revisá cualquier regla de [guarda](help:guards) sobre ese puerto.
 
+## No se puede crear una red overlay
+
+- **"Una red overlay necesita un swarm"**: este motor no está en un swarm. Creá uno primero en **Recursos, Swarm**.
+- **"Este motor es un worker de swarm"**: solo un manager puede crear redes overlay. Conectá Nautix a un manager.
+- **"El swarm está bloqueado"**: desbloquealo en la pestaña Swarm.
+
+Mirá [Vista de cluster y redes overlay](help:cluster).
+
 ## El puerto ya está asignado
 
 Otro contenedor o programa usa ese puerto del host. Elegí otro, o detené el otro.

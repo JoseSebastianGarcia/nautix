@@ -50,6 +50,7 @@ import type {
   Session,
   SetEnvInput,
   StackInfo,
+  SwarmCluster,
   SwarmItem,
   SwarmNode,
   SwarmService,
@@ -204,6 +205,7 @@ export const api = {
       `/volumes/${encodeURIComponent(name)}/browse?path=${encodeURIComponent(path)}&view=${view}`,
     ),
   swarm: () => request<SwarmStatus>("GET", "/swarm"),
+  swarmCluster: () => request<SwarmCluster>("GET", "/swarm/cluster"),
   swarmInit: (advertiseAddr?: string) =>
     request<{ nodeId: string }>("POST", "/swarm/init", advertiseAddr ? { advertiseAddr } : {}),
   swarmJoin: (b: JoinSwarm) => request<void>("POST", "/swarm/join", b),
@@ -343,8 +345,10 @@ export const api = {
     ),
   createTunnel: (b: CreateTunnel) => request<{ id: string }>("POST", "/tunnels", b),
   networks: () => request<Network[]>("GET", "/networks"),
-  createNetwork: (b: Pick<CreateNetwork, "name" | "internal" | "subnet">) =>
-    request<{ id: string }>("POST", "/networks", b),
+  createNetwork: (
+    b: Pick<CreateNetwork, "name" | "internal" | "subnet"> &
+      Partial<Pick<CreateNetwork, "driver" | "encrypted" | "attachable">>,
+  ) => request<{ id: string }>("POST", "/networks", b),
   removeNetwork: (id: string) => request<void>("DELETE", `/networks/${id}`),
   connect: (networkId: string, containerId: string) =>
     request<void>("POST", `/networks/${networkId}/connect`, { containerId }),

@@ -1,4 +1,5 @@
 import type {
+  ClusterTask,
   CreateSwarmService,
   SwarmItem,
   SwarmNode,
@@ -12,6 +13,7 @@ import { EngineHttp } from "../../../shared/engine-http.js";
 import { demuxStdcopy, isMultiplexed } from "../../docker/infrastructure/stdcopy.js";
 import { SwarmEngine } from "../application/ports/swarm-engine.js";
 import {
+  fromClusterTask,
   fromNode,
   fromService,
   fromTask,
@@ -150,6 +152,11 @@ export class DockerSocketSwarmEngine extends SwarmEngine {
     const filters = encodeURIComponent(JSON.stringify({ service: [serviceId] }));
     const rows = await this.http.json<RawTask[]>("GET", `/tasks?filters=${filters}`);
     return rows.map(fromTask).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  async allTasks(): Promise<ClusterTask[]> {
+    const rows = await this.http.json<RawTask[]>("GET", "/tasks");
+    return rows.map(fromClusterTask);
   }
 
   async serviceLogs(serviceId: string, tail: number): Promise<string> {

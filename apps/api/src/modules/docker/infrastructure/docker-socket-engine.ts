@@ -20,6 +20,7 @@ import type {
   PruneKind,
   PruneResult,
   RegistryAuth,
+  SwarmRole,
   UpdateContainer,
   Volume,
   WaitResult,
@@ -669,6 +670,8 @@ export class DockerSocketEngine extends DockerEngine {
         Name: string;
         Driver: string;
         Internal: boolean;
+        Attachable?: boolean;
+        Options?: Record<string, string>;
         IPAM?: { Config?: { Subnet?: string }[] };
         Containers?: Record<string, unknown>;
       }[]
@@ -680,19 +683,39 @@ export class DockerSocketEngine extends DockerEngine {
       internal: n.Internal,
       subnet: n.IPAM?.Config?.[0]?.Subnet ?? null,
       containerIds: Object.keys(n.Containers ?? {}),
-      system: ["bridge", "host", "none"].includes(n.Name),
+      // `ingress` and `docker_gwbridge` are Swarm's own plumbing, not zones anyone drew.
+      system: ["bridge", "host", "none", "ingress", "docker_gwbridge"].includes(n.Name),
+      ...(n.Driver === "overlay"
+        ? { encrypted: n.Options?.encrypted !== undefined, attachable: n.Attachable === true }
+        : {}),
     }));
   }
 
   async createNetwork(request: CreateNetwork): Promise<{ id: string }> {
     const created = await this.json<{ Id: string }>("POST", "/networks/create", {
       Name: request.name,
-      Driver: "bridge",
+      Driver: request.driver,
       Internal: request.internal,
       Labels: { "nautix.managed": "true" },
+      ...(request.driver === "overlay"
+        ? {
+            Attachable: request.attachable,
+            ...(request.encrypted ? { Options: { encrypted: "true" } } : {}),
+          }
+        : {}),
       ...(request.subnet ? { IPAM: { Config: [{ Subnet: request.subnet }] } } : {}),
     });
     return { id: created.Id };
+  }
+
+  async swarmRole(): Promise<SwarmRole> {
+    const info = await this.json<{
+      Swarm?: { LocalNodeState?: string; ControlAvailable?: boolean };
+    }>("GET", "/info");
+    const state = info.Swarm?.LocalNodeState;
+    if (state === "locked") return "locked";
+    if (state !== "active") return "none";
+    return info.Swarm?.ControlAvailable ? "manager" : "worker";
   }
 
   removeNetwork(id: string): Promise<void> {

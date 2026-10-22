@@ -24,6 +24,9 @@ describe("cli", () => {
   });
 
   it("builds an isolated network command", () => {
+    expect(cli.createNetwork("shop", false, undefined, { encrypted: true, attachable: true })).toBe(
+      "docker network create -d overlay --opt encrypted --attachable shop",
+    );
     expect(cli.createNetwork("backend", true, "10.0.0.0/24")).toBe(
       "docker network create --internal --subnet 10.0.0.0/24 backend",
     );

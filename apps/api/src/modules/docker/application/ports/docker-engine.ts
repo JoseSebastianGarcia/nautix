@@ -18,6 +18,7 @@ import type {
   PruneKind,
   PruneResult,
   RegistryAuth,
+  SwarmRole,
   UpdateContainer,
   Volume,
   WaitResult,
@@ -96,6 +97,8 @@ export abstract class DockerEngine {
 
   abstract listNetworks(): Promise<Network[]>;
   abstract createNetwork(request: CreateNetwork): Promise<{ id: string }>;
+  /** What this engine is in a swarm; overlay networks need a manager. */
+  abstract swarmRole(): Promise<SwarmRole>;
   abstract removeNetwork(id: string): Promise<void>;
   /** `ipv4Address` pins the container's address on that network. */
   abstract connectNetwork(

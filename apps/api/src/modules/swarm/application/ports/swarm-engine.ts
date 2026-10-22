@@ -1,4 +1,5 @@
 import type {
+  ClusterTask,
   CreateSwarmService,
   SwarmItem,
   SwarmNode,
@@ -31,6 +32,8 @@ export abstract class SwarmEngine {
 
   abstract services(): Promise<SwarmService[]>;
   abstract tasks(serviceId: string): Promise<SwarmTask[]>;
+  /** Every task of the cluster, whatever node it runs on. */
+  abstract allTasks(): Promise<ClusterTask[]>;
   abstract serviceLogs(serviceId: string, tail: number): Promise<string>;
   abstract createService(request: CreateSwarmService): Promise<{ id: string }>;
   abstract updateService(id: string, patch: UpdateSwarmService): Promise<void>;

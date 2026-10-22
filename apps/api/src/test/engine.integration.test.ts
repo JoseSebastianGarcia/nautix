@@ -808,6 +808,86 @@ services:
     }
   });
 
+  it("creates a real overlay network and reads the cluster with its services and tasks", async () => {
+    const status = (await call("GET", "/swarm")).json as { active: boolean };
+    const startedHere = !status.active;
+    if (startedHere) {
+      expect((await call("POST", "/swarm/init", { advertiseAddr: "127.0.0.1" })).res.status).toBe(
+        201,
+      );
+    }
+    const netName = `${PREFIX}overlay`;
+    try {
+      const made = await call("POST", "/networks", {
+        name: netName,
+        internal: false,
+        driver: "overlay",
+        encrypted: true,
+        attachable: true,
+      });
+      expect(made.res.status, JSON.stringify(made.json)).toBe(201);
+      const net = (
+        (await call("GET", "/networks")).json as {
+          id: string;
+          name: string;
+          driver: string;
+          encrypted?: boolean;
+          attachable?: boolean;
+        }[]
+      ).find((n) => n.name === netName);
+      expect(net).toMatchObject({ driver: "overlay", encrypted: true, attachable: true });
+
+      const svc = await call("POST", "/swarm/services", {
+        name: `${PREFIX}ov-svc`,
+        image: IMAGE,
+        command: ["sleep", "300"],
+        networks: [netName],
+      });
+      expect(svc.res.status, JSON.stringify(svc.json)).toBe(201);
+      const serviceId = (svc.json as { id: string }).id;
+
+      let cluster = (await call("GET", "/swarm/cluster")).json as {
+        status: { isManager: boolean };
+        nodes: { id: string }[];
+        services: { id: string; networks: string[] }[];
+        tasks: { serviceId: string; nodeId: string; state: string }[];
+      };
+      for (
+        let i = 0;
+        i < 40 && !cluster.tasks.some((t) => t.serviceId === serviceId && t.state === "running");
+        i++
+      ) {
+        await new Promise((r) => setTimeout(r, 500));
+        cluster = (await call("GET", "/swarm/cluster")).json as typeof cluster;
+      }
+      expect(cluster.status.isManager).toBe(true);
+      // The service says which network it is on (by id or by the name it was given), and its task which node runs it.
+      const mine = cluster.services.find((s) => s.id === serviceId);
+      expect(mine?.networks.some((n) => n === net?.id || n === netName)).toBe(true);
+      const task = cluster.tasks.find((t) => t.serviceId === serviceId);
+      expect(cluster.nodes.map((n) => n.id)).toContain(task?.nodeId);
+      expect(task?.state).toBe("running");
+
+      expect((await call("DELETE", `/swarm/services/${serviceId}`)).res.status).toBe(204);
+    } finally {
+      for (const _ of [0, 1, 2, 3, 4]) {
+        const left = ((await call("GET", "/networks")).json as { id: string; name: string }[]).find(
+          (n) => n.name === netName,
+        );
+        if (!left) break;
+        await call("DELETE", `/networks/${left.id}`);
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      if (startedHere) await call("POST", "/swarm/leave", { force: true });
+    }
+    // Outside a swarm the same request is refused with the reason, not with Docker's own message.
+    if (startedHere) {
+      const refused = await call("POST", "/networks", { name: `${PREFIX}ov2`, driver: "overlay" });
+      expect(refused.res.status).toBe(409);
+      expect(refused.json.hintKey).toBe("errors.overlayNeedsSwarm");
+    }
+  });
+
   it("browses a real volume without leaving helpers behind", async () => {
     docker("volume", "create", `${PREFIX}vol`);
     docker(

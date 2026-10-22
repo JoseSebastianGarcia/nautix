@@ -48,6 +48,7 @@ import { UpdateSwarmServiceSpecCommand } from "../application/commands/update-sw
 import { GetJoinTokensQuery } from "../application/queries/get-join-tokens.query.js";
 import { GetServiceLogsQuery } from "../application/queries/get-service-logs.query.js";
 import { GetSwarmQuery } from "../application/queries/get-swarm.query.js";
+import { GetSwarmClusterQuery } from "../application/queries/get-swarm-cluster.query.js";
 import { GetSwarmConfigDataQuery } from "../application/queries/get-swarm-config-data.query.js";
 import { GetSwarmUnlockKeyQuery } from "../application/queries/get-swarm-unlock-key.query.js";
 import { ListServiceTasksQuery } from "../application/queries/list-service-tasks.query.js";
@@ -122,6 +123,12 @@ export class SwarmController {
   @HttpCode(204)
   async unlock(@Body() body: unknown) {
     await this.commands.execute(new UnlockSwarmCommand(parse(UnlockSwarm, body).key));
+  }
+
+  /** Status, nodes, services and tasks in one read (empty lists unless this engine is an unlocked manager). */
+  @Get("cluster")
+  cluster() {
+    return this.queries.execute(new GetSwarmClusterQuery());
   }
 
   @Get("nodes")

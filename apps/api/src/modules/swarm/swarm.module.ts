@@ -23,6 +23,7 @@ import { SwarmEngine } from "./application/ports/swarm-engine.js";
 import { GetJoinTokensHandler } from "./application/queries/get-join-tokens.handler.js";
 import { GetServiceLogsHandler } from "./application/queries/get-service-logs.handler.js";
 import { GetSwarmHandler } from "./application/queries/get-swarm.handler.js";
+import { GetSwarmClusterHandler } from "./application/queries/get-swarm-cluster.handler.js";
 import { GetSwarmConfigDataHandler } from "./application/queries/get-swarm-config-data.handler.js";
 import { GetSwarmUnlockKeyHandler } from "./application/queries/get-swarm-unlock-key.handler.js";
 import { ListServiceTasksHandler } from "./application/queries/list-service-tasks.handler.js";
@@ -39,6 +40,7 @@ import { SwarmController } from "./presentation/swarm.controller.js";
 
 const HANDLERS = [
   GetSwarmHandler,
+  GetSwarmClusterHandler,
   InitSwarmHandler,
   JoinSwarmHandler,
   LeaveSwarmHandler,

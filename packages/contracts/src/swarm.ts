@@ -43,6 +43,8 @@ export const SwarmService = z.object({
   desired: z.number(),
   ports: z.array(SwarmPort),
   stack: z.string().nullable(),
+  /** Ids of the networks the service is attached to. */
+  networks: z.array(z.string()),
   updatedAt: z.string(),
 });
 export type SwarmService = z.infer<typeof SwarmService>;
@@ -58,6 +60,18 @@ export const SwarmTask = z.object({
   updatedAt: z.string(),
 });
 export type SwarmTask = z.infer<typeof SwarmTask>;
+
+/** A task together with the service it belongs to, so the whole cluster can be read in one call. */
+export const ClusterTask = SwarmTask.extend({ serviceId: z.string() });
+export type ClusterTask = z.infer<typeof ClusterTask>;
+
+/** Everything a manager knows about the cluster. A node that is not a manager gets empty lists. */
+export interface SwarmCluster {
+  status: SwarmStatus;
+  nodes: SwarmNode[];
+  services: SwarmService[];
+  tasks: ClusterTask[];
+}
 
 export const SwarmItem = z.object({ id: z.string(), name: z.string(), createdAt: z.string() });
 export type SwarmItem = z.infer<typeof SwarmItem>;

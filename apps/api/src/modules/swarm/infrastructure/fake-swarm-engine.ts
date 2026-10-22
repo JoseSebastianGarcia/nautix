@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type {
+  ClusterTask,
   CreateSwarmService,
   SwarmItem,
   SwarmNode,
@@ -10,6 +11,7 @@ import type {
   UpdateSwarmService,
 } from "@nautix/contracts";
 import { ConflictError, NotFoundError, ValidationError } from "../../../shared/domain-error.js";
+import { setFakeSwarmRole } from "../../../shared/fake-swarm-role.js";
 import { SwarmEngine } from "../application/ports/swarm-engine.js";
 
 const id = (): string => randomBytes(12).toString("hex");
@@ -63,6 +65,18 @@ export class FakeSwarmEngine extends SwarmEngine {
       engineVersion: "demo",
     };
     this.nodeList = [node];
+    // Demo only: more nodes make the cluster view worth looking at (default is the single node).
+    const extra = Math.max(0, Math.min(8, Number(process.env.NAUTIX_FAKE_SWARM_NODES ?? 1) - 1));
+    for (let i = 0; i < extra; i++)
+      this.nodeList.push({
+        ...node,
+        id: id(),
+        hostname: `demo-node-${i + 2}`,
+        role: "worker",
+        leader: false,
+        address: `127.0.0.${i + 2}`,
+      });
+    setFakeSwarmRole("manager");
     return node.id;
   }
 
@@ -80,6 +94,7 @@ export class FakeSwarmEngine extends SwarmEngine {
     this.active = false;
     this.nodeList = [];
     this.serviceList.clear();
+    setFakeSwarmRole("none");
   }
 
   async joinTokens(): Promise<{ worker: string; manager: string }> {
@@ -145,16 +160,28 @@ export class FakeSwarmEngine extends SwarmEngine {
   async tasks(serviceId: string): Promise<SwarmTask[]> {
     this.manager();
     const s = this.service(serviceId);
-    return Array.from({ length: s.running }, (_, i) => ({
+    return this.tasksOf(s);
+  }
+
+  /** Spreads the running copies over the nodes, like Swarm does by default; a global service has one per node. */
+  private tasksOf(s: SwarmService): ClusterTask[] {
+    const count = s.mode === "global" ? this.nodeList.length : s.running;
+    return Array.from({ length: count }, (_, i) => ({
       id: id(),
       slot: i + 1,
-      nodeId: this.nodeList[0]?.id ?? "",
+      nodeId: this.nodeList[i % Math.max(1, this.nodeList.length)]?.id ?? "",
       state: "running",
       desiredState: "running",
       error: "",
       image: s.image,
       updatedAt: now(),
+      serviceId: s.id,
     }));
+  }
+
+  async allTasks(): Promise<ClusterTask[]> {
+    this.manager();
+    return [...this.serviceList.values()].flatMap((s) => this.tasksOf(s));
   }
 
   async serviceLogs(serviceId: string): Promise<string> {
@@ -178,6 +205,7 @@ export class FakeSwarmEngine extends SwarmEngine {
       desired: replicas,
       ports: request.ports,
       stack: null,
+      networks: request.networks,
       updatedAt: now(),
       env: request.env,
     });

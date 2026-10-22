@@ -32,3 +32,5 @@ Los contenedores creados con `docker run` no son servicios, así que la pestaña
 > Los nodos se hablan por los puertos 2377 (tcp), 7946 (tcp y udp) y 4789 (udp). Abrilos solo en una red privada o una VPN, nunca a internet.
 
 Si solo necesitás que dos servidores independientes se hablen, una VPN (WireGuard, Tailscale) entre ellos más un Nautix por servidor es más simple.
+
+Con un swarm activo, la Topología también muestra el cluster completo (servicios, copias y dónde corren) en una vista de solo lectura: mirá [Vista de cluster y redes overlay](help:cluster).

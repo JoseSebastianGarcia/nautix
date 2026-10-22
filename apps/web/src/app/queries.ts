@@ -13,6 +13,8 @@ export const keys = {
   composeProjects: ["compose-projects"],
   bindings: ["bindings"],
   zones: ["zones"],
+  swarm: ["swarm"],
+  cluster: ["cluster"],
 } as const;
 
 /** Live updates come from the SSE stream; polling is only a slow safety net. */
@@ -26,6 +28,17 @@ export const useCatalog = () =>
   useQuery({ queryKey: keys.catalog, queryFn: api.catalog, staleTime: Infinity });
 export const useContainers = () =>
   useQuery({ queryKey: keys.containers, queryFn: api.containers, refetchInterval: LIVE });
+/** Whether this engine is in a swarm, and as what. Cheap and slow-moving: it decides which views exist. */
+export const useSwarmStatus = () =>
+  useQuery({ queryKey: keys.swarm, queryFn: api.swarm, refetchInterval: 15_000 });
+/** The whole cluster as the manager sees it; only polled while a view that shows it is open. */
+export const useCluster = (enabled: boolean) =>
+  useQuery({
+    queryKey: keys.cluster,
+    queryFn: api.swarmCluster,
+    enabled,
+    refetchInterval: 5_000,
+  });
 export const useNetworks = () =>
   useQuery({ queryKey: keys.networks, queryFn: api.networks, refetchInterval: LIVE });
 export const useImages = () =>

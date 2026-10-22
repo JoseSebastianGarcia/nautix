@@ -183,7 +183,20 @@
     "fixedIpAuto": "Automatic",
     "customizeTemplate": "Customize template",
     "copyOf": "{{name}} (copy)",
-    "copyHint": "Built-in templates cannot be changed. This saves your own version under \"My images\" with the values below; the original stays as it is."
+    "copyHint": "Built-in templates cannot be changed. This saves your own version under \"My images\" with the values below; the original stays as it is.",
+    "networkKind": "Kind of network",
+    "kindLocal": "Local",
+    "kindLocalHint": "Only this server (bridge).",
+    "kindOverlay": "Overlay",
+    "kindOverlayHint": "One network over every server of the swarm: services find each other by name wherever they run.",
+    "goToSwarm": "Open the Swarm tab",
+    "overlayEncrypted": "Encrypt the traffic between servers",
+    "overlayEncryptedHint": "Recommended. Docker leaves it off by default and the traffic then travels in the clear.",
+    "overlayAttachable": "Attachable",
+    "overlayAttachableHint": "Also lets standalone containers (docker run) join, not only services.",
+    "overlayZone": "Overlay",
+    "overlayShort": "overlay",
+    "overlayEncryptedShort": "overlay, encrypted"
   },
   "containers": {
     "title": "Containers",
@@ -364,7 +377,10 @@
     "zoneNameMismatch": "This document is for another zone",
     "zonePlanHasErrors": "The plan has errors: fix them first",
     "zoneChanged": "The zone changed since the plan was shown: review the new plan",
-    "selfVolume": "This volume holds Nautix's own data (its database and encryption key), so files cannot be uploaded into it from here"
+    "selfVolume": "This volume holds Nautix's own data (its database and encryption key), so files cannot be uploaded into it from here",
+    "overlayNeedsSwarm": "An overlay network needs a swarm. Create one in the Swarm tab first",
+    "overlayNeedsManager": "This engine is a swarm worker. Connect Nautix to a manager to create overlay networks",
+    "overlayLocked": "The swarm is locked. Unlock it in the Swarm tab first"
   },
   "terminal": {
     "title": "Terminal",
@@ -1035,7 +1051,12 @@
     "leaveHint": "This node stops being part of the cluster. Its services stop.",
     "leave": "Leave swarm",
     "leaveBody": "This node leaves the swarm and its services stop. This cannot be undone.",
-    "left": "Left the swarm"
+    "left": "Left the swarm",
+    "leaveZones": "{{count}} overlay zone(s) are left without a cluster: {{names}}.",
+    "leaveServices": "{{count}} service(s) stop here and the cluster creates them again on other nodes, if any remain: {{names}}.",
+    "leaveDataSafe": "Data is not touched: volumes stay on this server's disk and standalone containers keep running.",
+    "leaveLastManager": "This is the last manager: leaving dissolves the cluster. To keep it, promote another node to manager first.",
+    "leaveUnknown": "This engine is not a manager, so Nautix cannot list what would be affected."
   },
   "plugins": {
     "install": "Install plugin",
@@ -1249,5 +1270,50 @@
     "allTopics": "All topics",
     "thisPage": "About this page",
     "noResults": "No topic matches your search"
+  },
+  "cluster": {
+    "local": "Local server",
+    "cluster": "Cluster",
+    "by": {
+      "network": "By network",
+      "server": "By server"
+    },
+    "nodes": "Cluster nodes",
+    "nodesSummary": "{{nodes}} node(s) · {{managers}} manager(s) · click one to highlight its tasks",
+    "haWarning": "With {{count}} manager(s) the cluster cannot lose one and keep deciding. Three is the usual minimum.",
+    "manager": "manager",
+    "leader": "leader",
+    "unknownNode": "unknown node",
+    "availability": {
+      "active": "active",
+      "pause": "paused",
+      "drain": "draining"
+    },
+    "tasksCount": "{{count}} task(s)",
+    "nodeDown": "No answer: its tasks were created again on other nodes.",
+    "noTasks": "Nothing runs here.",
+    "focusHint": "Read-only. To create or change services use the Swarm tab.",
+    "global": "global",
+    "looking": "{{count}} waiting for a place",
+    "publishedAll": "Port {{ports}} open on every node",
+    "loose": "On no overlay network",
+    "readOnly": "Cluster view · read-only · refreshed every few seconds",
+    "noServices": "There are no services yet.",
+    "openSwarm": "Open in Swarm",
+    "notManager": "This engine is a swarm worker, and a worker cannot list the cluster. Connect Nautix to a manager.",
+    "locked": "The swarm is locked. Unlock it to see the cluster.",
+    "inspectorEmpty": "Select a service to see where its copies run.",
+    "mode": "Mode",
+    "modes": {
+      "replicated": "replicated",
+      "global": "global (one per node)"
+    },
+    "replicas": "Copies running",
+    "networks": "Networks",
+    "stack": "Stack",
+    "tasks": "Tasks",
+    "node": "Node",
+    "state": "State",
+    "whereHint": "Automatic placement: Swarm spreads the copies over the active nodes. To pin or spread them, edit the service in the Swarm tab."
   }
 }

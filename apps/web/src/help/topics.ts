@@ -13,6 +13,7 @@ export const TOPIC_IDS = [
   "audit",
   "templates-builds",
   "swarm",
+  "cluster",
   "troubleshooting",
 ] as const;
 

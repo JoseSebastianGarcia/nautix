@@ -35,10 +35,12 @@ import {
   useIsAdmin,
   useLayout,
   useNetworks,
+  useSwarmStatus,
 } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
 import { BindingDialog, type BindTarget } from "../bindings/binding-dialog.js";
+import { ClusterView } from "./cluster-view.js";
 import { DeployDialog, type DeployTarget } from "./deploy-dialog.js";
 import { ExportDialog, type ExportTarget } from "./export-dialog.js";
 import {
@@ -370,10 +372,64 @@ function Canvas() {
   );
 }
 
+const MODE_KEY = "nautix.topology.mode";
+const readMode = (): "local" | "cluster" => {
+  try {
+    return localStorage.getItem(MODE_KEY) === "cluster" ? "cluster" : "local";
+  } catch {
+    return "local";
+  }
+};
+
+/**
+ * The local canvas, as always. Only when this engine is in a swarm a second view appears, the cluster
+ * as its manager sees it; without a swarm nothing changes.
+ */
 export function TopologyPage() {
+  const { t } = useTranslation();
+  const swarm = useSwarmStatus().data;
+  const [mode, setModeState] = useState<"local" | "cluster">(readMode);
+  const setMode = (next: "local" | "cluster") => {
+    setModeState(next);
+    try {
+      localStorage.setItem(MODE_KEY, next);
+    } catch {
+      /* the choice just is not remembered */
+    }
+  };
+  if (!swarm?.active)
+    return (
+      <ReactFlowProvider>
+        <Canvas />
+      </ReactFlowProvider>
+    );
   return (
-    <ReactFlowProvider>
-      <Canvas />
-    </ReactFlowProvider>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center gap-2 border-b border-line bg-bg1 px-4 py-2">
+        <div className="flex rounded-lg border border-line p-0.5 text-sm" role="tablist">
+          {(["local", "cluster"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => setMode(m)}
+              className={`rounded-md px-3 py-1 ${mode === m ? "bg-accent-soft text-accent" : "text-dim hover:text-fg"}`}
+            >
+              {t(`cluster.${m}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1">
+        {mode === "cluster" ? (
+          <ClusterView />
+        ) : (
+          <ReactFlowProvider>
+            <Canvas />
+          </ReactFlowProvider>
+        )}
+      </div>
+    </div>
   );
 }

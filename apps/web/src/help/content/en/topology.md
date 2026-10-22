@@ -26,6 +26,10 @@ Each published port shows who can reach it:
 
 Change it from the container's page. See [Port guards](help:guards) to restrict who may connect.
 
+## Cluster view
+
+If this engine is in a swarm, a **Local server / Cluster** switch appears above the diagram. The cluster view draws the swarm's services and where their copies run; see [Cluster view and overlay networks](help:cluster). Without a swarm the switch does not exist.
+
 ## Lines between containers
 
 A solid labelled line is a [binding](help:bindings): one container uses another and Nautix configured the connection.

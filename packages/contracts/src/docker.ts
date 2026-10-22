@@ -45,8 +45,15 @@ export const Network = z.object({
   subnet: z.string().nullable(),
   containerIds: z.array(z.string()),
   system: z.boolean(),
+  /** Overlay networks only: traffic between nodes is encrypted. */
+  encrypted: z.boolean().optional(),
+  /** Overlay networks only: standalone containers can join, not only services. */
+  attachable: z.boolean().optional(),
 });
 export type Network = z.infer<typeof Network>;
+
+/** What this engine is in a swarm: nothing, a worker, a manager, or a locked manager. */
+export type SwarmRole = "none" | "worker" | "manager" | "locked";
 
 export const Image = z.object({
   id: z.string(),
@@ -88,6 +95,12 @@ export const CreateNetwork = z.object({
     .string()
     .regex(/^\d{1,3}(\.\d{1,3}){3}\/\d{1,2}$/, "invalid CIDR")
     .optional(),
+  /** `overlay` spans the nodes of a swarm and needs this engine to be a manager. */
+  driver: z.enum(["bridge", "overlay"]).default("bridge"),
+  /** Overlay only: encrypt traffic between nodes (Docker leaves it off by default). */
+  encrypted: z.boolean().default(false),
+  /** Overlay only: let standalone containers (not only services) join. */
+  attachable: z.boolean().default(false),
 });
 export type CreateNetwork = z.infer<typeof CreateNetwork>;
 

@@ -26,6 +26,10 @@ Cada puerto publicado muestra quién puede llegar a él:
 
 Se cambia desde la página del contenedor. Para restringir quién puede conectarse, mirá [Guardas de puertos](help:guards).
 
+## Vista de cluster
+
+Si este motor está en un swarm, aparece un selector **Servidor local / Cluster** sobre el diagrama. La vista de cluster dibuja los servicios del swarm y dónde corren sus copias; mirá [Vista de cluster y redes overlay](help:cluster). Sin swarm el selector no existe.
+
 ## Líneas entre contenedores
 
 Una línea sólida con etiqueta es un [vínculo](help:bindings): un contenedor usa a otro y Nautix configuró la conexión.

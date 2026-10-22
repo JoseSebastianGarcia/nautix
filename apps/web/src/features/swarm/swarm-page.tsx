@@ -8,6 +8,7 @@ import { useApiMutation } from "../../app/use-api-mutation.js";
 import { EnvEditor } from "../../components/fields.js";
 import { Button, ConfirmDialog, Dialog, Field, Input } from "../../components/ui.js";
 import { PageHeader, Table, Td } from "../resources/table.js";
+import { LeaveSwarmDialog } from "./leave-dialog.js";
 
 const SWARM = ["swarm"];
 const TABS = ["services", "nodes", "stacks", "secrets", "configs", "cluster"] as const;
@@ -805,10 +806,8 @@ function Cluster() {
           {t("swarm.leave")}
         </Button>
       </div>
-      <ConfirmDialog
+      <LeaveSwarmDialog
         open={leave}
-        title={t("swarm.leaveTitle")}
-        body={t("swarm.leaveBody")}
         onConfirm={() => leaveMutation.mutate(undefined)}
         onClose={() => setLeave(false)}
       />

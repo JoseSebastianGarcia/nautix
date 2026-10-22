@@ -32,3 +32,5 @@ Containers created with `docker run` are not services, so the Swarm tab does not
 > The nodes talk to each other on ports 2377 (tcp), 7946 (tcp and udp) and 4789 (udp). Open them only on a private network or a VPN, never to the internet.
 
 If you just need two separate servers to talk to each other, a VPN (WireGuard, Tailscale) between them plus one Nautix per server is simpler.
+
+With a swarm active, Topology also shows the whole cluster (services, copies and where they run) in a read-only view: see [Cluster view and overlay networks](help:cluster).

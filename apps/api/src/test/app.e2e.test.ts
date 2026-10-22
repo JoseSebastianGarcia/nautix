@@ -2087,4 +2087,84 @@ describe("gateways and proxies of every supported type", () => {
       (await trail("&q=%25")).every((r) => r.action.includes("%") || r.detail.includes("%")),
     ).toBe(true);
   });
+
+  it("creates overlay networks only on a swarm manager and reads the whole cluster in one call", async () => {
+    type Net = {
+      id: string;
+      name: string;
+      driver: string;
+      encrypted?: boolean;
+      attachable?: boolean;
+    };
+    const overlay = { name: "ov-shop", driver: "overlay", encrypted: true, attachable: true };
+
+    // No swarm: the cluster read answers with its status and nothing else; an overlay is refused with a hint.
+    const idle = await call("GET", "/swarm/cluster");
+    expect(idle.res.status).toBe(200);
+    expect(idle.json).toMatchObject({
+      status: { active: false },
+      nodes: [],
+      services: [],
+      tasks: [],
+    });
+    const refused = await call("POST", "/networks", overlay);
+    expect(refused.res.status).toBe(409);
+    expect(refused.json.hintKey).toBe("errors.overlayNeedsSwarm");
+    // A plain network is not affected by any of this.
+    expect((await call("POST", "/networks", { name: "ov-plain" })).res.status).toBe(201);
+
+    process.env.NAUTIX_FAKE_SWARM_NODES = "3";
+    try {
+      expect((await call("POST", "/swarm/init", {})).res.status).toBe(201);
+    } finally {
+      Reflect.deleteProperty(process.env, "NAUTIX_FAKE_SWARM_NODES");
+    }
+    expect((await call("POST", "/networks", overlay)).res.status).toBe(201);
+    const nets = (await call("GET", "/networks")).json as Net[];
+    expect(nets.find((n) => n.name === "ov-shop")).toMatchObject({
+      driver: "overlay",
+      encrypted: true,
+      attachable: true,
+    });
+    expect(nets.find((n) => n.name === "ov-plain")?.driver).toBe("bridge");
+
+    for (const [name, replicas, global] of [
+      ["ov-api", 3, false],
+      ["ov-edge", 1, true],
+    ] as const) {
+      await call("POST", "/swarm/services", {
+        name,
+        image: "nginx:1.27",
+        replicas,
+        global,
+        networks: ["ov-shop"],
+      });
+    }
+    const cluster = (await call("GET", "/swarm/cluster")).json as {
+      status: { active: boolean; isManager: boolean };
+      nodes: { id: string; role: string }[];
+      services: { id: string; name: string; networks: string[] }[];
+      tasks: { serviceId: string; nodeId: string }[];
+    };
+    expect(cluster.status).toMatchObject({ active: true, isManager: true });
+    expect(cluster.nodes).toHaveLength(3);
+    expect(cluster.services.map((x) => [x.name, x.networks])).toEqual([
+      ["ov-api", ["ov-shop"]],
+      ["ov-edge", ["ov-shop"]],
+    ]);
+    const api = cluster.services.find((x) => x.name === "ov-api");
+    const edge = cluster.services.find((x) => x.name === "ov-edge");
+    // Three copies spread over three nodes; a global service has one on each.
+    expect(
+      new Set(cluster.tasks.filter((t) => t.serviceId === api?.id).map((t) => t.nodeId)).size,
+    ).toBe(3);
+    expect(cluster.tasks.filter((t) => t.serviceId === edge?.id)).toHaveLength(3);
+
+    for (const x of cluster.services) await call("DELETE", `/swarm/services/${x.id}`);
+    expect((await call("POST", "/swarm/leave", { force: true })).res.status).toBe(204);
+    // Back to no swarm: the overlay is refused again.
+    expect((await call("POST", "/networks", { ...overlay, name: "ov-late" })).res.status).toBe(409);
+    for (const n of nets.filter((x) => x.name.startsWith("ov-")))
+      await call("DELETE", `/networks/${n.id}`);
+  });
 });

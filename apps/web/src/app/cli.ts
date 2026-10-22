@@ -6,8 +6,13 @@ export const cli = {
   removeContainer: (name: string, force: boolean): string =>
     `docker rm${force ? " -f" : ""} ${name}`,
   logs: (name: string): string => `docker logs --tail 300 -t ${name}`,
-  createNetwork: (name: string, internal: boolean, subnet?: string): string =>
-    `docker network create${internal ? " --internal" : ""}${subnet ? ` --subnet ${subnet}` : ""} ${name}`,
+  createNetwork: (
+    name: string,
+    internal: boolean,
+    subnet?: string,
+    overlay?: { encrypted: boolean; attachable: boolean },
+  ): string =>
+    `docker network create${overlay ? " -d overlay" : ""}${overlay?.encrypted ? " --opt encrypted" : ""}${overlay?.attachable ? " --attachable" : ""}${internal ? " --internal" : ""}${subnet ? ` --subnet ${subnet}` : ""} ${name}`,
   removeNetwork: (name: string): string => `docker network rm ${name}`,
   connect: (network: string, container: string): string =>
     `docker network connect ${network} ${container}`,
