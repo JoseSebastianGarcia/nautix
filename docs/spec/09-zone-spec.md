@@ -88,3 +88,10 @@ Selecting a zone in the topology opens its inspector with a **Spec** button: a Y
 2. Engine: `ContainerChange` gains `image`, `command`; apply orchestration, store for the desired spec, API.
 3. UI: Spec editor and plan view; drift badge.
 4. Later sections: `dns`, `routes`, `guards`, `checks` (acceptance checks that give an honest progress percentage), and the AI that proposes a diff of the document.
+
+
+---
+
+## Status (2026-10)
+
+Built: `describeZone`, `planZone`, apply, drift and the UI (ADR-044); zone apply is audited as one entry listing the actions (`create-network:…`, `create-service:…`) by name (ADR-046). **Networks created by a zone document are local (bridge)**: the applier passes explicit driver/encryption/attachable defaults and does not create overlays. Overlay networks and swarm services are drawn and managed in the Swarm canvas (`04-editors.md`, D2) and are **not** part of the zone document; a zone whose network is an overlay is shown with a double line in the topology.

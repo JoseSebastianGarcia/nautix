@@ -9,7 +9,9 @@ Milestone = first milestone where it must be `Done` (M1…M5, see roadmap).
 
 `Done` = reachable in the UI with the flags people use daily. `Partial` = works, with gaps named in the table below. `Planned` = not built yet (milestone in the M column).
 
-Gaps in `Partial` rows: **swarm** has no `ca` rotation or `update` beyond autolock · **node** has no inspect/ps · **service** creates and updates replicas, image, ports, env and networks only (no rollout policy, placement, secrets or configs attach, `rollback`) · **stack** deploys and removes; listing is derived from service labels · **build** uses the engine's classic builder: no BuildKit DAG, secrets, buildx or bake, and the context is the typed Dockerfile plus small text files (no directory upload) · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls and has a since-window but no until.
+Gaps in `Partial` rows: **swarm** has no `ca` rotation and `update` covers autolock and join tokens only · **node** has no inspect/ps (role and availability can be changed) · **service** creates, scales, removes, shows logs and tasks, and updates image, networks, placement (role, pinned node, per-node limit), published ports, volumes, secrets, configs, environment (by name), health check, limits and the update policy, with `rollback`; it cannot change the command, user, labels, mode (replicated/global) or `--init` of an existing service, and bindings between services are Nautix-only logic · **stack** deploys and removes; listing is derived from service labels · **build** uses the engine's classic builder: no BuildKit DAG, secrets, buildx or bake, and the context is the typed Dockerfile plus small text files (no directory upload) · **attach** opens a shell with exec rather than attaching to the main process · **logs** polls and has a since-window but no until.
+
+Swarm changes made from the topology go through a **plan** (`04-editors.md`, D2): the plan shows the `docker service …` line of each change, applies them one at a time and undoes them when one fails.
 
 ## Common (13)
 
@@ -40,10 +42,10 @@ Gaps in `Partial` rows: **swarm** has no `ca` rotation or `update` beyond autolo
 | context | CLI + LOCAL | Settings → Targets (list/inspect/create/update/use/export/import/rm; v1 shows the local target, remote post-1.0); top-bar target chip | M1 | Planned |
 | image | API | Images (all subcommands in rows below) | M1 | Done |
 | manifest | CLI | Images → Manifest (inspect/create/annotate/push/rm) | M5 | Planned |
-| network | API | Networks list + graph | M2 | Done |
+| network | API | Networks list; Topology (each network a box; connect/disconnect by moving containers); **overlay** networks (encrypted by default, attachable) only when the engine is a swarm manager | M2 | Done |
 | plugin | API | System → Plugins (ls/install/enable/disable/inspect/upgrade/set/rm) | M5 | Done |
 | system | API + CLI | System → Disk usage, Prune wizard, Events, Info | M1 | Done |
-| volume | API | Volumes (create/ls/inspect/rm/prune/update; browse files via helper container) | M1 | Done |
+| volume | API | Volumes (create/ls/inspect/rm/prune/update; browse, **download as tar** and **upload** files via one helper container with no network; Nautix's own data volume refuses uploads) | M1 | Done |
 
 > `trust`, `model`, `mcp`, `ai` and other plugin-provided top-level commands appear in `docker --help` only on some versions. If present in `corpus/docker-help.txt`, add rows here (Route: CLI, UI: Terminal + dedicated dialog for `trust` in Registries). Do not invent entries.
 
@@ -51,12 +53,12 @@ Gaps in `Partial` rows: **swarm** has no `ca` rotation or `update` beyond autolo
 
 | Command | Route | UI placement | M | Status |
 |---|---|---|---|---|
-| swarm | API | Swarm → Init/Join/Leave/Unlock/Join-token/CA/Update | M5 | Partial |
+| swarm | API | Swarm → Init/Join/Leave/Unlock/Join-token/Autolock; Topology → floating "Connect to Swarm"; Leave shows what stops | M5 | Partial |
 | node | API | Swarm → Nodes | M5 | Partial |
-| service | API | Swarm → Services | M5 | Partial |
+| service | API | Swarm → Services; Topology → Cluster → Canvas (create from a template, scale, update, move between overlays, bind, roll back, remove) | M5 | Partial |
 | stack | CLI | Swarm → Stacks | M5 | Partial |
-| secret | API | Swarm → Secrets | M5 | Done |
-| config | API | Swarm → Configs | M5 | Done |
+| secret | API | Swarm → Secrets (values never returned); attached to services in the canvas | M5 | Done |
+| config | API | Swarm → Configs; attached to services in the canvas | M5 | Done |
 | checkpoint | API (experimental) | Container → Checkpoints, shown only when the daemon has experimental features on | M5 | Planned |
 
 ## Individual commands (28)

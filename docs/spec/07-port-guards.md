@@ -144,3 +144,10 @@ Resources → **Guards** tab (next to Gateways and DNS): helper status (connecte
 - Docker Desktop and rootless Docker: the helper cannot reach their host firewall. Document as unsupported or add a mode that only reports the plan?
 - Should `open` exposure on a server with a public address require the Level 2 or 3 guard (a hard rule) or only a warning?
 - Rules by container port (what this spec uses) versus by host port: only matters when two containers publish the same container port.
+
+
+---
+
+## Status (2026-10)
+
+Levels 1 and 2 and the helper of level 3 are built (module `guard`, web `features/guard`, container exposure dialog, Resources → Guards). Every guard change is audited with names only (`exposure container=… 80/tcp=…`, rule kind and port) (ADR-046). In a swarm, **a published port of a service opens on every node, on all interfaces**: the canvas warns about it when you publish one and in the plan review; guards act on one engine at a time and do not follow a service between nodes (`help: Swarm`).

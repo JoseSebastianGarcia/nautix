@@ -20,7 +20,9 @@ apps/
     main.ts  app.module.ts
     shared/            # Result, DomainError, config, logger, auth guard, filters
     modules/<feature>/ # containers, images, volumes, networks, compose, dockerfile,
-                       # builds, registries, swarm, system, terminal, auth, settings
+                       # builds, registries, swarm, system, terminal, auth, settings,
+                       # zones, bindings, guard, dns, gateway, tls, layout, catalog,
+                       # audit, backup, plugins
       domain/
       application/     # commands/ queries/ events/ ports/
       infrastructure/
@@ -49,3 +51,14 @@ docs/  corpus/{compose,dockerfile,help}/  e2e/
 
 ## Events
 `DockerEventsService` (adapter) streams `/events` with `since`, reconnects with backoff (250 ms → 8 s), publishes `ContainerChanged`, `ImageChanged`, `NetworkChanged`, `VolumeChanged` on the event bus; the gateway forwards them.
+
+## Status of the layout (2026-10)
+Modules that exist in `apps/api/src/modules`: `audit`, `auth`, `backup`, `bindings`, `catalog` (templates), `compose`, `dns`, `docker` (containers, images, volumes, networks, system, registries, builds), `gateway`, `guard`, `layout` (saved positions), `plugins`, `swarm`, `terminal`, `tls`, `zones`. Web features: `audit`, `auth`, `bindings`, `builds`, `compose`, `containers`, `dns`, `gateway`, `guard`, `resources`, `settings`, `swarm`, `system`, `terminal`, `topology`, `zones`.
+
+Ports added since the first version: `SwarmEngine` (nodes, services, tasks, secrets, configs, rollback, environment read), `SwarmBindingStore`, `BindingStore`, `VolumeHelper` (a throw-away container with no network for browsing, downloading and uploading volume files), `DockerEngine.swarmRole()`. Every port that touches Docker has a **fake** adapter that the demo engine (`NAUTIX_ENGINE=fake`) and the e2e tests use; the fake swarm even schedules (`scheduleTasks`) so placement can be seen without a cluster.
+
+Persistence is SQLite with **numbered migrations** (`shared/db/schema.ts`; v6 `swarm_bindings` is the latest). A copy of the database is taken in `backups/` before any schema upgrade.
+
+**Audit.** Controllers describe what they touched with `setAuditNote(req, { detail, skip?, read? })`; an interceptor records it. Details carry names only, never values (`06-roadmap.md`, security 9; ADR-046). Sensitive reads (environment values, volume downloads, service environment names) are recorded once per person and subject per ten minutes.
+
+**Decisions** that came up while building are numbered in `docs/DECISIONS.md` (ADR-045 onwards cover the help system, audit, volume files, the cluster view, theming, the Swarm canvas and plan, and editing services in place).

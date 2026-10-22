@@ -114,3 +114,12 @@ In the topology, container nodes get a connection handle. Dragging from an app t
 1. `planRecreate` + `DockerEngine.recreateContainer` with the gate; exposure moves onto it; env editing; tests (unit, real daemon, e2e).
 2. Bindings: contracts, strategies, module, API, tests.
 3. UI: result display for recreating dialogs, env editor, topology handle and dialog, inspector list.
+
+
+---
+
+## Status and Swarm addendum (2026-10)
+
+**Built:** safe apply and bindings between containers as specified (ADR-043); bindings are audited with consumer, provider, name and style, never the values (ADR-046).
+
+**Bindings between swarm services (ADR-053).** The same strategies (`planBinding`) wire a service to another: the consumer receives the provider's connection settings as environment variables and joins the provider's overlay when they share none. Differences from containers: the apply is a **rolling update of the consumer** (the engine rolls it back by itself if the new copies do not start) instead of a recreate behind a health gate; the provider's environment is read on the server (`SwarmEngine.serviceEnv`) and never returned; bindings live in their own table (`swarm_bindings`, by service name) and never mix with container bindings; removing one takes out exactly the variables it added and leaves the overlay joined. In the Swarm canvas a binding is a plan item (`bind` / `unbind`): if a later change of the plan fails the binding is taken out again, and a removed binding is put back.
