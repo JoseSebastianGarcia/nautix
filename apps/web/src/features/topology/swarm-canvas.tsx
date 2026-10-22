@@ -29,6 +29,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { api } from "../../app/api.js";
+import { cli } from "../../app/cli.js";
 import { keys, useCatalog, useIsAdmin, useLayout, useNetworks } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { useToasts } from "../../components/toast-store.js";
@@ -41,6 +42,7 @@ import { LogoBadge } from "./logo-badge.js";
 import { NetworkDialog } from "./network-dialog.js";
 import { type ZoneFlowNode, ZoneNode } from "./nodes.js";
 import { CUSTOM_TEMPLATE_ID, DRAG_TYPE, Palette } from "./palette.js";
+import { PanelTab } from "./panel-tab.js";
 import { SideHandles } from "./side-handles.js";
 import { type BindTarget, SwarmBindDialog } from "./swarm-bind-dialog.js";
 import {
@@ -68,6 +70,8 @@ import {
   SwarmServiceDialog,
 } from "./swarm-service-dialog.js";
 import { ServiceSettings } from "./swarm-service-settings.js";
+import { useCanvasPanels } from "./use-canvas-panels.js";
+import { useCanvasShortcuts } from "./use-canvas-shortcuts.js";
 
 const EMPTY_LAYOUT: Layout = { zones: {}, nodes: {} };
 const NO_TEMPLATES: Template[] = [];
@@ -219,7 +223,11 @@ function ServiceNode({ data, selected }: NodeProps<ServiceFlowNode>) {
 const nodeTypes = { zone: ZoneNode, service: ServiceNode };
 type FlowNode = ZoneFlowNode | ServiceFlowNode;
 
-type Selection = { kind: "service"; id: string } | { kind: "planned"; key: string } | null;
+type Selection =
+  | { kind: "service"; id: string }
+  | { kind: "planned"; key: string }
+  | { kind: "overlay"; id: string }
+  | null;
 
 interface Item extends Placeable {
   existing: ClusterService | null;
@@ -282,6 +290,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
 
   const [plan, setPlan] = useState<PlanItem[]>([]);
   const [selection, setSelection] = useState<Selection>(null);
+  const panels = useCanvasPanels(selection !== null);
   const [target, setTarget] = useState<ServiceTarget | null>(null);
   const [newNetwork, setNewNetwork] = useState(false);
   const [reviewing, setReviewing] = useState(false);
@@ -565,15 +574,28 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
     selection?.kind === "service"
       ? (model.services.find((s) => s.service.id === selection.id) ?? null)
       : null;
+  const selectedOverlay =
+    selection?.kind === "overlay" ? (overlays.find((n) => n.id === selection.id) ?? null) : null;
   const selectedPlanned =
     selection?.kind === "planned"
       ? (plan.find((p): p is PlannedCreate => p.kind === "create" && p.key === selection.key) ??
         null)
       : null;
 
+  // A drawn-but-not-applied service has no inspector component of its own, so its shortcut lives here.
+  useCanvasShortcuts({
+    remove: selectedPlanned
+      ? () => {
+          setPlan((cur) => cur.filter((p) => p !== selectedPlanned));
+          setSelection(null);
+        }
+      : undefined,
+  });
+
   return (
     <div className="relative flex h-full min-h-0">
       <Palette
+        open={panels.paletteOpen}
         onNewNetwork={() => setNewNetwork(true)}
         onPick={(template) => setTarget({ template, network: null })}
       />
@@ -591,6 +613,10 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           onNodesChange={onNodesChange}
           onNodeDragStop={onNodeDragStop}
           onNodeClick={(_, node) => {
+            if (node.id.startsWith("z:")) {
+              const id = node.id.slice(2);
+              return setSelection(id === EXTERNAL_ID ? null : { kind: "overlay", id });
+            }
             if (!node.id.startsWith("s:")) return setSelection(null);
             const id = node.id.slice(2);
             setSelection(
@@ -599,7 +625,10 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
                 : { kind: "service", id },
             );
           }}
-          onPaneClick={() => setSelection(null)}
+          onPaneClick={() => {
+            setSelection(null);
+            panels.hideAll();
+          }}
           onConnect={onConnect}
           nodesConnectable={isAdmin}
           nodesDraggable={isAdmin}
@@ -610,6 +639,18 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
         </ReactFlow>
+        <PanelTab
+          side="left"
+          open={panels.paletteOpen}
+          label={t(panels.paletteOpen ? "topology.paletteHide" : "topology.paletteShow")}
+          onClick={() => panels.setPaletteOpen((o) => !o)}
+        />
+        <PanelTab
+          side="right"
+          open={panels.inspectorOpen}
+          label={t(panels.inspectorOpen ? "topology.inspectorHide" : "topology.inspectorShow")}
+          onClick={() => panels.setInspectorOpen((o) => !o)}
+        />
         {model.servers.length > 0 && (
           <div className="absolute left-4 top-4 z-10 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-line bg-bg1 px-3 py-1.5 text-xs text-dim">
             <span>{t("swarmCanvas.servers")}</span>
@@ -626,12 +667,14 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           </div>
         )}
         {model.services.length === 0 && plan.length === 0 && (
-          <p className="pointer-events-none absolute inset-x-0 top-6 pr-[22rem] text-center text-sm text-dim">
+          <p className="pointer-events-none absolute inset-x-0 top-16 pr-[22rem] text-center text-sm text-dim">
             {t("swarmCanvas.empty")}
           </p>
         )}
         {plan.length > 0 && (
-          <div className="nx-glass nx-lens-wide absolute bottom-4 right-[22rem] z-10 flex items-center gap-3 rounded-full py-2 pl-5 pr-2 text-sm">
+          <div
+            className={`nx-glass nx-lens-wide absolute bottom-4 z-10 ${panels.inspectorOpen ? "right-[22rem]" : "right-4"} flex items-center gap-3 rounded-full py-2 pl-5 pr-2 text-sm`}
+          >
             <span className="h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
             {t("swarmCanvas.pending", { count: plan.length })}
             <Button onClick={() => setPlan([])}>
@@ -643,45 +686,55 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           </div>
         )}
       </div>
-      <aside
-        aria-label={t("topology.inspector")}
-        className="nx-glass nx-glass-dense nx-lens-tall absolute bottom-3 right-3 top-3 z-10 flex w-80 flex-col gap-3 overflow-y-auto rounded-3xl p-5"
-      >
-        <h2 className="font-mono text-xs uppercase tracking-wider text-dim">
-          {t("topology.inspector")}
-        </h2>
-        {selectedService && (
-          <ServiceInspector
-            svc={selectedService}
-            plan={plan}
-            bindings={bindings}
-            secretNames={secrets.map((x) => x.name)}
-            configNames={configs.map((x) => x.name)}
-            overlays={overlays}
-            nodes={swarmNodes}
-            onPlan={(change) => setPlan(change)}
-            onRolledBack={() => void qc.invalidateQueries({ queryKey: keys.cluster })}
-          />
-        )}
-        {selectedPlanned && (
-          <>
-            <p className="text-sm font-semibold">{selectedPlanned.spec.name}</p>
-            <p className="font-mono text-xs text-dim">{selectedPlanned.spec.image}</p>
-            <p className="text-xs text-dim">{t("swarmCanvas.plannedHint")}</p>
-            <Button
-              onClick={() => {
-                setPlan((cur) => cur.filter((p) => p !== selectedPlanned));
-                setSelection(null);
-              }}
-            >
-              <Undo2 size={14} /> {t("swarmCanvas.removeFromPlan")}
-            </Button>
-          </>
-        )}
-        {!selectedService && !selectedPlanned && (
-          <p className="text-sm text-dim">{t("cluster.inspectorEmpty")}</p>
-        )}
-      </aside>
+      {panels.inspectorOpen && (
+        <aside
+          aria-label={t("topology.inspector")}
+          className="nx-glass nx-glass-dense nx-lens-tall absolute bottom-3 right-3 top-3 z-10 flex w-80 flex-col gap-3 overflow-y-auto rounded-3xl p-5"
+        >
+          <h2 className="font-mono text-xs uppercase tracking-wider text-dim">
+            {t("topology.inspector")}
+          </h2>
+          {selectedService && (
+            <ServiceInspector
+              svc={selectedService}
+              plan={plan}
+              bindings={bindings}
+              secretNames={secrets.map((x) => x.name)}
+              configNames={configs.map((x) => x.name)}
+              overlays={overlays}
+              nodes={swarmNodes}
+              onPlan={(change) => setPlan(change)}
+              onRolledBack={() => void qc.invalidateQueries({ queryKey: keys.cluster })}
+            />
+          )}
+          {selectedPlanned && (
+            <>
+              <p className="text-sm font-semibold">{selectedPlanned.spec.name}</p>
+              <p className="font-mono text-xs text-dim">{selectedPlanned.spec.image}</p>
+              <p className="text-xs text-dim">{t("swarmCanvas.plannedHint")}</p>
+              <Button
+                onClick={() => {
+                  setPlan((cur) => cur.filter((p) => p !== selectedPlanned));
+                  setSelection(null);
+                }}
+              >
+                <Undo2 size={14} /> {t("swarmCanvas.removeFromPlan")}
+              </Button>
+            </>
+          )}
+          {selectedOverlay && (
+            <OverlayInspector
+              network={selectedOverlay}
+              services={model.services}
+              onGone={() => setSelection(null)}
+            />
+          )}
+          {!selectedService && !selectedPlanned && !selectedOverlay && (
+            <p className="text-sm text-dim">{t("cluster.inspectorEmpty")}</p>
+          )}
+          <p className="mt-auto text-[11px] text-dim">{t("topology.shortcuts")}</p>
+        </aside>
+      )}
       <SwarmServiceDialog
         target={target}
         overlays={overlays}
@@ -717,6 +770,61 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
           void qc.invalidateQueries({ queryKey: keys.cluster });
           void qc.invalidateQueries({ queryKey: ["swarm-bindings"] });
         }}
+      />
+    </div>
+  );
+}
+
+/** An overlay network box: what it is and, when nothing uses it, delete. Docker cannot edit a network in place. */
+function OverlayInspector({
+  network: n,
+  services,
+  onGone,
+}: {
+  network: Network;
+  services: ClusterService[];
+  onGone: () => void;
+}) {
+  const { t } = useTranslation();
+  const isAdmin = useIsAdmin();
+  const [confirm, setConfirm] = useState(false);
+  const remove = useApiMutation(() => api.removeNetwork(n.id), [keys.networks, keys.cluster]);
+  const members = services.filter((s) => s.networks.includes(n.name));
+  const canRemove = isAdmin && members.length === 0;
+  useCanvasShortcuts({ remove: canRemove ? () => setConfirm(true) : undefined });
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <div className="font-semibold">{n.name}</div>
+        <div className="font-mono text-xs text-dim">
+          overlay · {n.subnet ?? "—"} ·{" "}
+          {n.internal ? t("topology.isolated") : t("topology.bridged")}
+        </div>
+      </div>
+      <p className="text-sm text-dim">{t("swarmCanvas.overlayHint")}</p>
+      <ul className="flex flex-col gap-1">
+        {members.map((s) => (
+          <li
+            key={s.service.id}
+            className="flex items-center gap-2 rounded-lg bg-bg2 px-2 py-1 text-sm"
+          >
+            <LogoBadge image={s.service.image} name={s.service.name} size={20} />
+            {s.service.name}
+          </li>
+        ))}
+      </ul>
+      <Button write variant="danger" disabled={!canRemove} onClick={() => setConfirm(true)}>
+        <Trash2 size={14} /> {t("common.delete")}
+      </Button>
+      {members.length > 0 && <p className="text-xs text-dim">{t("swarmCanvas.overlayNotEmpty")}</p>}
+      <ShowCommand command={cli.removeNetwork(n.name)} />
+      <ConfirmDialog
+        open={confirm}
+        title={t("topology.removeNetworkTitle", { name: n.name })}
+        body={t("topology.removeNetworkBody")}
+        command={cli.removeNetwork(n.name)}
+        onConfirm={() => remove.mutate(undefined, { onSuccess: onGone })}
+        onClose={() => setConfirm(false)}
       />
     </div>
   );
@@ -771,6 +879,19 @@ function ServiceInspector({
     [keys.cluster],
     () => t("swarmCanvas.rolledBackToast", { name: s.name }),
   );
+  // Swarm services are not started or stopped: "stop" plans zero copies and "start" plans one.
+  const replicated = isAdmin && s.mode === "replicated" && !removing;
+  useCanvasShortcuts({
+    remove: isAdmin && !removing ? () => onPlan(planRemove(plan, handle)) : undefined,
+    stop:
+      replicated && copies > 0
+        ? () => onPlan(planScale(plan, { ...handle, desired: s.desired }, 0))
+        : undefined,
+    start:
+      replicated && copies === 0
+        ? () => onPlan(planScale(plan, { ...handle, desired: s.desired }, 1))
+        : undefined,
+  });
   const select = "rounded-lg border border-line bg-bg0 px-2 py-1.5 text-sm";
   const here = svc.networks[0] ?? null;
   const targets = overlays.filter((n) => !svc.networks.includes(n.name));

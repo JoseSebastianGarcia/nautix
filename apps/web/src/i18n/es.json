@@ -196,7 +196,12 @@
     "overlayAttachableHint": "Permite unir también contenedores sueltos (docker run), no solo servicios.",
     "overlayZone": "Overlay",
     "overlayShort": "overlay",
-    "overlayEncryptedShort": "overlay, cifrada"
+    "overlayEncryptedShort": "overlay, cifrada",
+    "paletteHide": "Ocultar paleta",
+    "paletteShow": "Mostrar paleta",
+    "inspectorHide": "Ocultar inspector",
+    "inspectorShow": "Mostrar inspector",
+    "shortcuts": "Atajos: Ctrl+Supr borrar · Ctrl+I iniciar · Ctrl+. parar"
   },
   "containers": {
     "title": "Contenedores",
@@ -1506,6 +1511,8 @@
     "envName": "Nombre de la variable",
     "envValue": "Valor",
     "removeVar": "Quitar {{name}}",
-    "keepVar": "Conservar {{name}}"
+    "keepVar": "Conservar {{name}}",
+    "overlayHint": "Docker no permite editar una red en su lugar. Para cambiarla, creá otra y movés los servicios.",
+    "overlayNotEmpty": "Primero mové o quitá sus servicios."
   }
 }

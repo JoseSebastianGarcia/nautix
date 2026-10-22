@@ -15,9 +15,11 @@ export const DRAG_TYPE = "application/x-nautix-template";
 export const CUSTOM_TEMPLATE_ID = "custom";
 
 export function Palette({
+  open,
   onNewNetwork,
   onPick,
 }: {
+  open: boolean;
   onNewNetwork: () => void;
   onPick: (t: Template | "custom") => void;
 }) {
@@ -33,6 +35,7 @@ export function Palette({
   for (const tpl of data ?? [])
     groups.set(tpl.category, [...(groups.get(tpl.category) ?? []), tpl]);
 
+  if (!open) return null;
   return (
     <aside
       className="flex w-64 shrink-0 flex-col gap-4 overflow-y-auto border-r border-line bg-bg1 p-4"

@@ -19,11 +19,13 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useCatalog } from "../../app/queries.js";
 import { randomSecret, uniqueName } from "../topology/deploy.js";
 import { type FlowNode, nodeTypes, toEdges, toNodes } from "../topology/flow-graph.js";
 import { EXTERNAL_ID, layoutTopology, NODE_H, NODE_W, zoneAt } from "../topology/layout.js";
 import { CUSTOM_TEMPLATE_ID, DRAG_TYPE, Palette } from "../topology/palette.js";
+import { PanelTab } from "../topology/panel-tab.js";
 import { buildComposeGraph, DEFAULT_BOX, serviceIdToName } from "./compose-graph.js";
 import { ComposeNetworkDialog, CustomImageDialog } from "./compose-network-dialog.js";
 import { type ComposeSelection, useComposeStore } from "./compose-store.js";
@@ -40,6 +42,7 @@ function Canvas({
   states: ReadonlyMap<string, Container["state"]>;
   readOnly: boolean;
 }) {
+  const { t } = useTranslation();
   const flow = useReactFlow();
   const { data: catalog = [] } = useCatalog();
   const edit = useComposeStore((s) => s.edit);
@@ -49,6 +52,7 @@ function Canvas({
   const topology = useMemo(() => layoutTopology(graph.containers, graph.networks), [graph]);
   const [nodes, setNodes] = useState<FlowNode[]>([]);
   const [newNetwork, setNewNetwork] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(true);
   const [custom, setCustom] = useState<{ box?: string } | null>(null);
 
   useEffect(() => {
@@ -174,6 +178,7 @@ function Canvas({
     <div className="flex h-full min-h-0">
       {!readOnly && (
         <Palette
+          open={paletteOpen}
           onNewNetwork={() => setNewNetwork(true)}
           onPick={(t) => (t === "custom" ? setCustom({}) : addFromTemplate(t, undefined))}
         />
@@ -191,7 +196,10 @@ function Canvas({
           onNodesChange={onNodesChange}
           onNodeDragStop={onNodeDragStop}
           onNodeClick={onNodeClick}
-          onPaneClick={() => select(null)}
+          onPaneClick={() => {
+            select(null);
+            setPaletteOpen(false);
+          }}
           nodesConnectable={false}
           nodesDraggable={!readOnly}
           minZoom={0.2}
@@ -203,6 +211,14 @@ function Canvas({
           <Background variant={BackgroundVariant.Lines} gap={24} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
         </ReactFlow>
+        {!readOnly && (
+          <PanelTab
+            side="left"
+            open={paletteOpen}
+            label={t(paletteOpen ? "topology.paletteHide" : "topology.paletteShow")}
+            onClick={() => setPaletteOpen((o) => !o)}
+          />
+        )}
       </div>
       <ComposeNetworkDialog
         open={newNetwork}

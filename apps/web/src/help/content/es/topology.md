@@ -37,3 +37,9 @@ Una línea sólida con etiqueta es un [vínculo](help:bindings): un contenedor u
 ## Una zona como documento
 
 Seleccioná una caja y presioná **Editar como documento** para ver toda la zona como un único YAML. Mirá [Documento de zona](help:zone-spec). Una insignia de **desvío** en una caja indica que lo que corre ya no coincide con el último documento que aplicaste.
+
+## Paneles y atajos
+
+Hacé clic en un lugar vacío del lienzo para esconder la paleta y el inspector y ver solo el dibujo. Al seleccionar algo vuelve el inspector; la pestaña de cada borde muestra u oculta un panel a mano.
+
+Con algo seleccionado: **Ctrl+Supr** pide confirmación para borrarlo, **Ctrl+I** lo inicia y **Ctrl+.** lo detiene (Ctrl+Esc también, donde el sistema no lo reserva, como Windows). Los atajos no actúan mientras escribís ni con un diálogo abierto. En el lienzo de Swarm, parar e iniciar planifican cero o una copia y borrar planifica la baja, así que no pasa nada hasta que apliques el plan.

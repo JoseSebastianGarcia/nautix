@@ -32,6 +32,7 @@ import { EnvDialog } from "../containers/env-dialog.js";
 import { ExposureDialog, type ExposureTarget } from "../containers/exposure-dialog.js";
 import type { ExportTarget } from "./export-dialog.js";
 import { LogoBadge } from "./logo-badge.js";
+import { useCanvasShortcuts } from "./use-canvas-shortcuts.js";
 
 export type Selection =
   | { kind: "container"; id: string }
@@ -40,6 +41,7 @@ export type Selection =
   | null;
 
 export function Inspector({
+  open,
   selection,
   containers,
   networks,
@@ -47,6 +49,7 @@ export function Inspector({
   onClearSelection,
   onExport,
 }: {
+  open: boolean;
   selection: Selection;
   containers: Container[];
   networks: Network[];
@@ -63,6 +66,7 @@ export function Inspector({
   const network =
     selection?.kind === "zone" ? networks.find((n) => n.id === selection.id) : undefined;
 
+  if (!open) return null;
   return (
     <aside
       className="nx-glass nx-glass-dense nx-lens-tall absolute bottom-3 right-3 top-3 z-10 flex w-80 flex-col gap-4 overflow-y-auto rounded-3xl p-5"
@@ -91,6 +95,7 @@ export function Inspector({
       {!container && !network && !tunnel && (
         <p className="text-sm text-dim">{t("topology.inspectorEmpty")}</p>
       )}
+      <p className="mt-auto text-[11px] text-dim">{t("topology.shortcuts")}</p>
     </aside>
   );
 }
@@ -129,6 +134,11 @@ function ContainerInspector({
   });
 
   const running = c.state === "running";
+  useCanvasShortcuts({
+    remove: isAdmin && !locked ? () => setConfirmRemove(true) : undefined,
+    start: isAdmin && !locked && !running && !act.isPending ? () => act.mutate("start") : undefined,
+    stop: isAdmin && !locked && running && !act.isPending ? () => act.mutate("stop") : undefined,
+  });
   const published = c.ports.filter((p) => p.publicPort !== undefined);
   const memberOf = networks.filter((n) => c.networks.includes(n.name));
 
@@ -344,6 +354,10 @@ function NetworkInspector({
   const [confirm, setConfirm] = useState(false);
   const remove = useApiMutation(() => api.removeNetwork(n.id), [keys.networks]);
   const members = containers.filter((c) => c.networks.includes(n.name));
+  const isAdmin = useIsAdmin();
+  useCanvasShortcuts({
+    remove: isAdmin && !n.system && members.length === 0 ? () => setConfirm(true) : undefined,
+  });
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -407,6 +421,8 @@ function TunnelInspector({ tunnel, onGone }: { tunnel: TunnelInfo; onGone: () =>
     () => api.removeContainer(tunnel.containerId, true),
     [keys.containers, keys.networks],
   );
+  const isAdmin = useIsAdmin();
+  useCanvasShortcuts({ remove: isAdmin ? () => setConfirm(true) : undefined });
   return (
     <div className="flex flex-col gap-4">
       <div>

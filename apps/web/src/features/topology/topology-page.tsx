@@ -23,7 +23,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileDown, Hexagon, LayoutGrid } from "lucide-react";
+import { FileDown, Hexagon, LayoutGrid, LogOut } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../app/api.js";
@@ -40,6 +40,7 @@ import {
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
 import { BindingDialog, type BindTarget } from "../bindings/binding-dialog.js";
+import { LeaveSwarmDialog } from "../swarm/leave-dialog.js";
 import { SwarmConnectDialog } from "../swarm/swarm-connect.js";
 import { ClusterView } from "./cluster-view.js";
 import { DeployDialog, type DeployTarget } from "./deploy-dialog.js";
@@ -65,7 +66,9 @@ import {
 import { type MoveStep, planMove } from "./move-plan.js";
 import { NetworkDialog } from "./network-dialog.js";
 import { CUSTOM_TEMPLATE_ID, DRAG_TYPE, Palette } from "./palette.js";
+import { PanelTab } from "./panel-tab.js";
 import { TunnelDialog, type TunnelTarget } from "./tunnel-dialog.js";
+import { useCanvasPanels } from "./use-canvas-panels.js";
 
 const NO_CONTAINERS: Container[] = [];
 const NO_NETWORKS: Network[] = [];
@@ -114,6 +117,7 @@ function Canvas() {
   );
   const [nodes, setNodes] = useState<FlowNode[]>([]);
   const [selection, setSelection] = useState<Selection>(null);
+  const panels = useCanvasPanels(selection !== null);
   const [deploy, setDeploy] = useState<DeployTarget | null>(null);
   const [newNetwork, setNewNetwork] = useState(false);
   const [exporting, setExporting] = useState<ExportTarget | null>(null);
@@ -270,6 +274,7 @@ function Canvas() {
   return (
     <div className="relative flex h-full min-h-0">
       <Palette
+        open={panels.paletteOpen}
         onNewNetwork={() => setNewNetwork(true)}
         onPick={(template) => setDeploy({ template, network: null })}
       />
@@ -299,7 +304,10 @@ function Canvas() {
                   : { kind: "zone", id: node.id.slice(2) },
             )
           }
-          onPaneClick={() => setSelection(null)}
+          onPaneClick={() => {
+            setSelection(null);
+            panels.hideAll();
+          }}
           nodesConnectable={isAdmin}
           nodesDraggable={isAdmin}
           minZoom={0.2}
@@ -309,6 +317,18 @@ function Canvas() {
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
         </ReactFlow>
+        <PanelTab
+          side="left"
+          open={panels.paletteOpen}
+          label={t(panels.paletteOpen ? "topology.paletteHide" : "topology.paletteShow")}
+          onClick={() => panels.setPaletteOpen((o) => !o)}
+        />
+        <PanelTab
+          side="right"
+          open={panels.inspectorOpen}
+          label={t(panels.inspectorOpen ? "topology.inspectorHide" : "topology.inspectorShow")}
+          onClick={() => panels.setInspectorOpen((o) => !o)}
+        />
         <div className="absolute left-4 top-4 flex gap-2">
           <Button write onClick={() => setResetting(true)}>
             <LayoutGrid size={14} /> {t("topology.autoLayout")}
@@ -324,6 +344,7 @@ function Canvas() {
         )}
       </div>
       <Inspector
+        open={panels.inspectorOpen}
         selection={selection}
         containers={containers}
         networks={networks}
@@ -401,11 +422,40 @@ function ConnectSwarmButton() {
           setOpen(true);
         }}
         onAnimationEnd={() => setPop(false)}
-        className={`nx-fab nx-glass nx-lens-wide right-[22rem] top-4 z-10 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-fg ${pop ? "nx-fab-pop" : ""}`}
+        className={`nx-fab nx-glass nx-lens-wide inset-x-0 top-4 z-10 mx-auto flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-fg ${pop ? "nx-fab-pop" : ""}`}
       >
         <Hexagon size={15} className="nx-fab-icon text-accent" /> {t("swarm.connectFab")}
       </button>
       <SwarmConnectDialog open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+/** Floating way out of the swarm, the counterpart of ConnectSwarmButton; asks first what leaving takes along. */
+function LeaveSwarmButton() {
+  const { t } = useTranslation();
+  const isAdmin = useIsAdmin();
+  const [open, setOpen] = useState(false);
+  const leave = useApiMutation(
+    () => api.swarmLeave(true),
+    [keys.swarm, keys.cluster, keys.networks],
+    () => t("swarm.left"),
+  );
+  if (!isAdmin) return null;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="nx-fab nx-glass nx-lens-wide right-4 top-1.5 z-20 flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-fg"
+      >
+        <LogOut size={15} className="nx-fab-icon text-accent" /> {t("swarm.leave")}
+      </button>
+      <LeaveSwarmDialog
+        open={open}
+        onConfirm={() => leave.mutate(undefined)}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }
@@ -459,7 +509,7 @@ export function TopologyPage() {
     );
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-2 border-b border-line bg-bg1 px-4 py-2">
+      <div className="relative flex items-center gap-2 border-b border-line bg-bg1 px-4 py-2">
         <div className="flex rounded-lg border border-line p-0.5 text-sm" role="tablist">
           {(["local", "cluster"] as const).map((m) => (
             <button
@@ -474,6 +524,7 @@ export function TopologyPage() {
             </button>
           ))}
         </div>
+        <LeaveSwarmButton />
       </div>
       <div className="min-h-0 flex-1">
         {mode === "cluster" ? (
