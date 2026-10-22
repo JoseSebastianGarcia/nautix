@@ -1,4 +1,13 @@
-import type { Container, Layout, Network } from "@nautix/contracts";
+import type { Layout, Network } from "@nautix/contracts";
+
+/** What the layout needs of a thing drawn inside a box: containers and swarm services both fit. */
+export interface Placeable {
+  id: string;
+  /** Key under which its position is saved. */
+  name: string;
+  /** Names of the networks it belongs to. */
+  networks: string[];
+}
 
 export const NODE_W = 220;
 export const NODE_H = 72;
@@ -67,16 +76,16 @@ const size = (count: number): { w: number; h: number; cols: number } => {
  * (its "zone"); extra memberships become links. Containers with no user network sit in
  * the external frame — they share nothing with the zones.
  */
-export const layoutTopology = (
-  containers: Container[],
+export const layoutTopology = <C extends Placeable>(
+  containers: C[],
   networks: Network[],
   saved: Layout = NO_LAYOUT,
 ): Topology => {
   const userNetworks = networks.filter(isZoneNetwork);
   const byName = new Map(userNetworks.map((n) => [n.name, n]));
 
-  const members = new Map<string, Container[]>();
-  const external: Container[] = [];
+  const members = new Map<string, C[]>();
+  const external: C[] = [];
   const links: Link[] = [];
 
   for (const c of containers) {
@@ -98,7 +107,7 @@ export const layoutTopology = (
   const place = (
     id: string,
     network: Network | null,
-    list: Container[],
+    list: C[],
     x: number,
     y: number,
   ): ZoneLayout => {

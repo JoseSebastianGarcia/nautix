@@ -1,4 +1,5 @@
 import type { Network, SwarmNode } from "@nautix/contracts";
+import { ReactFlowProvider } from "@xyflow/react";
 import { Lock } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +16,7 @@ import {
   type ServerColumn,
 } from "./cluster-model.js";
 import { LogoBadge } from "./logo-badge.js";
+import { SwarmCanvas } from "./swarm-canvas.js";
 
 const TEXT: Record<PlacementState, string> = {
   ok: "text-ok",
@@ -281,6 +283,70 @@ function NodesPanel({
   );
 }
 
+/** What the cluster knows about one service: mode, copies, networks and where each task runs. */
+export function ServiceDetails({ svc }: { svc: ClusterService }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        <LogoBadge image={svc.service.image} name={svc.service.name} />
+        <div className="min-w-0">
+          <div className="truncate text-base font-semibold">{svc.service.name}</div>
+          <div className="truncate font-mono text-xs text-dim">{svc.service.image}</div>
+        </div>
+      </div>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        <dt className="text-dim">{t("cluster.mode")}</dt>
+        <dd>{t(`cluster.modes.${svc.service.mode}`)}</dd>
+        <dt className="text-dim">{t("cluster.replicas")}</dt>
+        <dd className={HEALTH_TEXT[svc.health]}>
+          {svc.placements.filter((p) => p.state === "ok").length} / {svc.service.desired}
+        </dd>
+        <dt className="text-dim">{t("cluster.networks")}</dt>
+        <dd>{svc.networks.length > 0 ? svc.networks.join(", ") : "—"}</dd>
+        {svc.service.stack && (
+          <>
+            <dt className="text-dim">{t("cluster.stack")}</dt>
+            <dd>{svc.service.stack}</dd>
+          </>
+        )}
+      </dl>
+      <h3 className="font-mono text-xs uppercase tracking-wider text-dim">{t("cluster.tasks")}</h3>
+      <table className="w-full text-left text-xs">
+        <thead>
+          <tr className="text-dim">
+            <th className="py-1 font-medium">#</th>
+            <th className="py-1 font-medium">{t("cluster.node")}</th>
+            <th className="py-1 font-medium">{t("cluster.state")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {svc.placements.map((p) => (
+            <tr key={p.task.id} className="border-t border-line align-top">
+              <td className="py-1.5">{p.task.slot ?? "·"}</td>
+              <td className="whitespace-nowrap py-1.5 font-mono">
+                {p.node?.hostname ?? t("cluster.unknownNode")}
+              </td>
+              <td className={`py-1.5 ${TEXT[p.state]}`}>
+                {MARK[p.state]} {p.task.state}
+                {p.task.error && <div className="text-dim">{p.task.error}</div>}
+              </td>
+            </tr>
+          ))}
+          {svc.missing > 0 && (
+            <tr className="border-t border-line text-amber">
+              <td className="py-1.5" colSpan={3}>
+                ◌ {t("cluster.looking", { count: svc.missing })}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+      <p className="text-xs text-dim">{t("cluster.whereHint")}</p>
+    </>
+  );
+}
+
 function ServiceInspector({ svc }: { svc: ClusterService | null }) {
   const { t } = useTranslation();
   return (
@@ -292,63 +358,7 @@ function ServiceInspector({ svc }: { svc: ClusterService | null }) {
         <p className="text-sm text-dim">{t("cluster.inspectorEmpty")}</p>
       ) : (
         <>
-          <div className="flex items-center gap-3">
-            <LogoBadge image={svc.service.image} name={svc.service.name} />
-            <div className="min-w-0">
-              <div className="truncate text-base font-semibold">{svc.service.name}</div>
-              <div className="truncate font-mono text-xs text-dim">{svc.service.image}</div>
-            </div>
-          </div>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-            <dt className="text-dim">{t("cluster.mode")}</dt>
-            <dd>{t(`cluster.modes.${svc.service.mode}`)}</dd>
-            <dt className="text-dim">{t("cluster.replicas")}</dt>
-            <dd className={HEALTH_TEXT[svc.health]}>
-              {svc.placements.filter((p) => p.state === "ok").length} / {svc.service.desired}
-            </dd>
-            <dt className="text-dim">{t("cluster.networks")}</dt>
-            <dd>{svc.networks.length > 0 ? svc.networks.join(", ") : "—"}</dd>
-            {svc.service.stack && (
-              <>
-                <dt className="text-dim">{t("cluster.stack")}</dt>
-                <dd>{svc.service.stack}</dd>
-              </>
-            )}
-          </dl>
-          <h3 className="font-mono text-xs uppercase tracking-wider text-dim">
-            {t("cluster.tasks")}
-          </h3>
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="text-dim">
-                <th className="py-1 font-medium">#</th>
-                <th className="py-1 font-medium">{t("cluster.node")}</th>
-                <th className="py-1 font-medium">{t("cluster.state")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {svc.placements.map((p) => (
-                <tr key={p.task.id} className="border-t border-line align-top">
-                  <td className="py-1.5">{p.task.slot ?? "·"}</td>
-                  <td className="whitespace-nowrap py-1.5 font-mono">
-                    {p.node?.hostname ?? t("cluster.unknownNode")}
-                  </td>
-                  <td className={`py-1.5 ${TEXT[p.state]}`}>
-                    {MARK[p.state]} {p.task.state}
-                    {p.task.error && <div className="text-dim">{p.task.error}</div>}
-                  </td>
-                </tr>
-              ))}
-              {svc.missing > 0 && (
-                <tr className="border-t border-line text-amber">
-                  <td className="py-1.5" colSpan={3}>
-                    ◌ {t("cluster.looking", { count: svc.missing })}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          <p className="text-xs text-dim">{t("cluster.whereHint")}</p>
+          <ServiceDetails svc={svc} />
           <Link
             to="/swarm"
             className="mt-auto inline-flex w-fit items-center rounded-lg border border-line bg-bg1 px-3 py-1.5 text-sm font-medium hover:bg-bg2"
@@ -362,11 +372,13 @@ function ServiceInspector({ svc }: { svc: ClusterService | null }) {
 }
 
 const VIEW_KEY = "nautix.cluster.by";
-const readBy = (): "network" | "server" => {
+type By = "canvas" | "network" | "server";
+const readBy = (): By => {
   try {
-    return localStorage.getItem(VIEW_KEY) === "server" ? "server" : "network";
+    const v = localStorage.getItem(VIEW_KEY);
+    return v === "server" || v === "network" ? v : "canvas";
   } catch {
-    return "network";
+    return "canvas";
   }
 };
 
@@ -375,13 +387,13 @@ export function ClusterView() {
   const { t } = useTranslation();
   const cluster = useCluster(true);
   const { data: networks = [] } = useNetworks();
-  const [by, setByState] = useState<"network" | "server">(readBy);
+  const [by, setByState] = useState<By>(readBy);
   const [selected, setSelected] = useState<string | null>(null);
   const [focus, setFocus] = useState<string | null>(null);
   const data = cluster.data;
   const model = useMemo(() => (data ? buildCluster(data, networks) : null), [data, networks]);
 
-  const setBy = (next: "network" | "server") => {
+  const setBy = (next: By) => {
     setByState(next);
     try {
       localStorage.setItem(VIEW_KEY, next);
@@ -412,11 +424,18 @@ export function ClusterView() {
 
   return (
     <div className="flex h-full min-h-0">
-      <NodesPanel model={model} managers={data.status.managers} focus={focus} onFocus={setFocus} />
+      {by !== "canvas" && (
+        <NodesPanel
+          model={model}
+          managers={data.status.managers}
+          focus={focus}
+          onFocus={setFocus}
+        />
+      )}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center gap-3 border-b border-line bg-bg1 px-4 py-2">
           <div className="flex rounded-lg border border-line p-0.5 text-sm" role="tablist">
-            {(["network", "server"] as const).map((v) => (
+            {(["canvas", "network", "server"] as const).map((v) => (
               <button
                 key={v}
                 type="button"
@@ -442,68 +461,78 @@ export function ClusterView() {
               ))}
             </span>
           )}
-          <span className="ml-auto text-xs text-dim">{t("cluster.readOnly")}</span>
-        </div>
-        <div className="min-h-0 flex-1 overflow-auto p-6">
-          {model.services.length === 0 ? (
-            <p className="text-sm text-dim">
-              {t("cluster.noServices")}{" "}
-              <Link to="/swarm" className="text-accent underline">
-                {t("cluster.openSwarm")}
-              </Link>
-            </p>
-          ) : by === "network" ? (
-            <div className="flex flex-col gap-5">
-              {model.zones.map((z) => (
-                <OverlayZone
-                  key={z.network.id}
-                  zone={z}
-                  selected={selected}
-                  focus={focus}
-                  onSelect={setSelected}
-                />
-              ))}
-              {model.loose.length > 0 && (
-                <section
-                  aria-label={t("cluster.loose")}
-                  className="rounded-2xl border-2 border-dashed border-line p-4"
-                >
-                  <h3 className="mb-3 font-mono text-xs uppercase tracking-wider text-dim">
-                    {t("cluster.loose")}
-                  </h3>
-                  <div
-                    className="ml-5 flex flex-col gap-3"
-                    style={{ ["--bus" as string]: "var(--nx-line)" }}
-                  >
-                    {model.loose.map((s) => (
-                      <ServiceCard
-                        key={s.service.id}
-                        svc={s}
-                        selected={selected === s.service.id}
-                        focus={focus}
-                        onSelect={() => setSelected(s.service.id)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-start gap-4">
-              {model.servers.map((col) => (
-                <ServerBox
-                  key={col.node.id}
-                  col={col}
-                  selected={selected}
-                  focus={focus}
-                  onSelect={setSelected}
-                />
-              ))}
-            </div>
+          {by !== "canvas" && (
+            <span className="ml-auto text-xs text-dim">{t("cluster.readOnly")}</span>
           )}
         </div>
+        {by === "canvas" ? (
+          <div className="min-h-0 flex-1">
+            <ReactFlowProvider>
+              <SwarmCanvas model={model} />
+            </ReactFlowProvider>
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 overflow-auto p-6">
+            {model.services.length === 0 ? (
+              <p className="text-sm text-dim">
+                {t("cluster.noServices")}{" "}
+                <Link to="/swarm" className="text-accent underline">
+                  {t("cluster.openSwarm")}
+                </Link>
+              </p>
+            ) : by === "network" ? (
+              <div className="flex flex-col gap-5">
+                {model.zones.map((z) => (
+                  <OverlayZone
+                    key={z.network.id}
+                    zone={z}
+                    selected={selected}
+                    focus={focus}
+                    onSelect={setSelected}
+                  />
+                ))}
+                {model.loose.length > 0 && (
+                  <section
+                    aria-label={t("cluster.loose")}
+                    className="rounded-2xl border-2 border-dashed border-line p-4"
+                  >
+                    <h3 className="mb-3 font-mono text-xs uppercase tracking-wider text-dim">
+                      {t("cluster.loose")}
+                    </h3>
+                    <div
+                      className="ml-5 flex flex-col gap-3"
+                      style={{ ["--bus" as string]: "var(--nx-line)" }}
+                    >
+                      {model.loose.map((s) => (
+                        <ServiceCard
+                          key={s.service.id}
+                          svc={s}
+                          selected={selected === s.service.id}
+                          focus={focus}
+                          onSelect={() => setSelected(s.service.id)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-start gap-4">
+                {model.servers.map((col) => (
+                  <ServerBox
+                    key={col.node.id}
+                    col={col}
+                    selected={selected}
+                    focus={focus}
+                    onSelect={setSelected}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      <ServiceInspector svc={svc} />
+      {by !== "canvas" && <ServiceInspector svc={svc} />}
     </div>
   );
 }

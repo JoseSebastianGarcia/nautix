@@ -199,23 +199,22 @@ await shoot("volumes", async (page) => {
 const seedCluster = async () => {
   await call("POST", "/swarm/init", {}).catch(() => {});
   await call("POST", "/networks", {
-    name: "shop",
+    name: "orders",
     internal: false,
     driver: "overlay",
     encrypted: true,
-    subnet: "10.0.1.0/24",
   }).catch(() => {});
   await call("POST", "/networks", { name: "public", internal: false, driver: "overlay" }).catch(
     () => {},
   );
   for (const svc of [
-    { name: "orders-api", image: "myorg/orders-api:1.4", replicas: 3, networks: ["shop"] },
-    { name: "orders-db", image: "postgres:16-alpine", replicas: 1, networks: ["shop"] },
+    { name: "orders-api", image: "myorg/orders-api:1.4", replicas: 3, networks: ["orders"] },
+    { name: "orders-db", image: "postgres:16-alpine", replicas: 1, networks: ["orders"] },
     {
       name: "traefik",
       image: "traefik:v3.1",
       global: true,
-      networks: ["public", "shop"],
+      networks: ["public", "orders"],
       ports: [{ target: 443, published: 443 }],
     },
   ])
@@ -233,6 +232,35 @@ const clusterShot = (name, by) =>
     else await page.getByRole("tab", { name: "By network" }).click();
     await page.getByText("orders-api").first().click();
   });
+const canvasShot = (name, prepare) =>
+  shoot(name, async (page) => {
+    await seedCluster();
+    await page.goto("/");
+    await settle(page);
+    await page.getByRole("tab", { name: "Cluster" }).click();
+    await page.getByRole("tab", { name: "Canvas" }).click();
+    await settle(page);
+    await prepare(page);
+  });
+const planRedis = async (page) => {
+  await page.getByRole("button", { name: /Redis/ }).first().click();
+  await page.getByRole("button", { name: "Add to plan" }).click();
+};
+await canvasShot("cluster-canvas", async (page) => {
+  await page.getByText("orders-db").first().click();
+  await page.getByRole("button", { name: "More replicas" }).click();
+  await planRedis(page);
+});
+await canvasShot("cluster-plan", async (page) => {
+  await planRedis(page);
+  await page.getByRole("button", { name: /Any image/ }).click();
+  await page.getByLabel("Name").fill("broken");
+  await page.getByLabel("Image").fill("nautix/demo-fail:1");
+  await page.getByRole("button", { name: "Add to plan" }).click();
+  await page.getByRole("button", { name: "Review and apply" }).click();
+  await page.getByRole("button", { name: "Apply plan" }).click();
+  await page.waitForTimeout(9000);
+});
 await clusterShot("cluster-network", "network");
 await clusterShot("cluster-server", "server");
 

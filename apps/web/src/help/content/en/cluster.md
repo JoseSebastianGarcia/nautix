@@ -2,13 +2,32 @@
 
 When this engine is part of a swarm, Topology gets a second view: the **cluster** as its manager sees it. Without a swarm nothing changes: no new tab, no new option.
 
+The cluster has three drawings: the **Canvas**, where you build, and **By network** and **By server**, which only show.
+
+## Canvas: build services on overlay networks
+
+![The canvas: services inside their overlay, a service being created (dashed) and one being scaled, with the plan bar](img:cluster-canvas)
+
+Each **overlay network** is a box and each **service** a node inside it, with its logo, copies running (`3/3`) and published ports. Move boxes and nodes as in the local topology; positions are saved. A service on two overlays is drawn in the first and linked to the other by a dashed line.
+
+- **Create a service**: drag a template onto an overlay box (or click it). Name, image, copies (or one on every node), network, the ports to publish and the environment come prefilled. Nothing is created yet: the service appears **dashed and marked new**.
+- **Scale a service**: select it and use **− / +** in the inspector. It shows `1 → 2` until you apply.
+- **Plan bar**: every change waits in a plan (**Discard** drops them all, **Remove from plan** drops one). **Review and apply** lists each change with its `docker service` command.
+
+![A plan that fails: the service never starts and everything is undone](img:cluster-plan)
+
+- **Applying** goes one change at a time and waits for each service to have its copies running, like `docker service create` does. If a change fails, or a service does not start, everything the plan already did is **undone**: created services are removed and scaled ones go back to their copies. The dialog says what failed and why. Nothing is removed that the plan did not create.
+- A **published port** opens on every node of the swarm, on all interfaces; the dialog warns about it. A port you do not publish is still reachable by the other services of the network.
+- A template that asks for **volumes** creates the service **without them** for now (the dialog says so): data would not survive a restart on another node.
+- **Removing** a service, changing its image or moving it to another network is not done from the canvas: use the Swarm tab.
+
 ![The cluster by network: two overlay zones, with services, copies and the server each one runs on](img:cluster-network)
 
 ## When it appears
 
 - **Topology → Local server / Cluster** shows up only when this engine is in a swarm.
 - It needs a **manager**. On a worker, or on a locked swarm, the view says why and points to the Swarm tab instead of showing something incomplete.
-- It is **read-only**. To create or change services use the Swarm tab; the inspector has a button that takes you there.
+- **By network** and **By server** are read-only. The **Canvas** creates and scales services through the plan above.
 
 ## By network
 

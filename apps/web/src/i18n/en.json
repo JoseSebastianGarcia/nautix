@@ -1276,7 +1276,8 @@
     "cluster": "Cluster",
     "by": {
       "network": "By network",
-      "server": "By server"
+      "server": "By server",
+      "canvas": "Canvas"
     },
     "nodes": "Cluster nodes",
     "nodesSummary": "{{nodes}} node(s) · {{managers}} manager(s) · click one to highlight its tasks",
@@ -1332,5 +1333,50 @@
     "previewBadge": "badge",
     "previewLink": "link",
     "previewButton": "Button (not accent)"
+  },
+  "swarmCanvas": {
+    "dialogTitle": "Add a service to the plan",
+    "dialogHint": "Nothing is created yet: the service is drawn dashed on the canvas and applied with the rest of the plan.",
+    "nameTaken": "That name is empty, invalid or already used by a service or a change in the plan.",
+    "global": "One copy on every node (global) instead of a number of replicas",
+    "portsHint": "A port is reachable by the other services of the network without publishing it. Publish only what must be open to the outside.",
+    "notPublished": "not published",
+    "publishAs": "Publish port",
+    "publishedWarn": "A published port opens on every node of the swarm, on all interfaces.",
+    "envHint": "One KEY=value per line. Values are sent to the cluster and never shown again.",
+    "volumesDropped": "This template asks for volumes. A service created here has no volume yet, so its data will not survive a restart on another node.",
+    "addToPlan": "Add to plan",
+    "new": "new",
+    "changed": "changed",
+    "looseHint": "Services on no overlay network. Drag a service onto an overlay box when creating it to put it there.",
+    "emptyOverlay": "Drop a template here to create a service on this overlay.",
+    "empty": "No services yet. Drag a template onto an overlay box, or create an overlay with New network.",
+    "discard": "Discard",
+    "review": "Review and apply",
+    "plannedHint": "Planned: it does not exist yet. It is created when you apply the plan.",
+    "removeFromPlan": "Remove from plan",
+    "globalNoScale": "A global service has one copy per node: there is nothing to scale.",
+    "fewer": "Fewer replicas",
+    "more": "More replicas",
+    "reviewTitle": "Review the plan",
+    "reviewHint": "Changes are applied one by one. If one fails or the service does not start, everything done by this plan is undone.",
+    "stepCreate": "Create service {{name}}",
+    "stepScale": "Scale {{name}}: {{from}} → {{to}}",
+    "state": {
+      "pending": "waiting",
+      "running": "applying…",
+      "waiting": "waiting for it to start…",
+      "done": "done",
+      "undone": "undone"
+    },
+    "failed": "{{step}} failed",
+    "rollbackFailed": "These could not be undone and need a look in Resources, Swarm: {{steps}}",
+    "applying": "Applying…",
+    "apply": "Apply plan",
+    "applied": "Plan applied",
+    "publishedShort": "{{count}} open",
+    "pending": "{{count}} change(s) pending",
+    "rolledBack": "{{count}} change(s) undone: the cluster is as it was.",
+    "copies": "Copies"
   }
 }

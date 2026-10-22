@@ -107,3 +107,23 @@ describe("layoutTopology", () => {
     expect(zone && p && p.x >= zone.x && p.y >= zone.y + 52).toBe(true);
   });
 });
+
+describe("layoutTopology with other placeable things", () => {
+  it("lays out swarm services in their overlays, linking the extra ones", () => {
+    const overlays = [net("o1", "shop"), net("o2", "public")];
+    const t = layoutTopology(
+      [
+        { id: "s1", name: "svc:api", networks: ["shop", "public"] },
+        { id: "s2", name: "svc:db", networks: ["shop"] },
+        { id: "s3", name: "svc:loose", networks: [] },
+      ],
+      overlays,
+    );
+    expect(t.placements.map((p) => [p.containerId, p.zoneId])).toEqual([
+      ["s3", "external"],
+      ["s1", "o1"],
+      ["s2", "o1"],
+    ]);
+    expect(t.links).toEqual([{ containerId: "s1", zoneId: "o2" }]);
+  });
+});

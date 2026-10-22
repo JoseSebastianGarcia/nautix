@@ -1276,7 +1276,8 @@
     "cluster": "Cluster",
     "by": {
       "network": "Por red",
-      "server": "Por servidor"
+      "server": "Por servidor",
+      "canvas": "Lienzo"
     },
     "nodes": "Nodos del cluster",
     "nodesSummary": "{{nodes}} nodo(s) · {{managers}} manager(s) · clic en uno para resaltar sus tareas",
@@ -1332,5 +1333,50 @@
     "previewBadge": "insignia",
     "previewLink": "enlace",
     "previewButton": "Botón (sin acento)"
+  },
+  "swarmCanvas": {
+    "dialogTitle": "Agregar un servicio al plan",
+    "dialogHint": "Todavía no se crea nada: el servicio se dibuja punteado en el lienzo y se aplica junto con el resto del plan.",
+    "nameTaken": "Ese nombre está vacío, no es válido o ya lo usa un servicio o un cambio del plan.",
+    "global": "Una copia en cada nodo (global) en vez de un número de réplicas",
+    "portsHint": "Un puerto es alcanzable por los demás servicios de la red sin publicarlo. Publicá solo lo que deba estar abierto al exterior.",
+    "notPublished": "sin publicar",
+    "publishAs": "Publicar puerto",
+    "publishedWarn": "Un puerto publicado se abre en todos los nodos del swarm, en todas las interfaces.",
+    "envHint": "Un CLAVE=valor por línea. Los valores se envían al cluster y no se vuelven a mostrar.",
+    "volumesDropped": "Esta plantilla pide volúmenes. Un servicio creado desde acá todavía no tiene volumen, así que sus datos no sobreviven a un reinicio en otro nodo.",
+    "addToPlan": "Agregar al plan",
+    "new": "nuevo",
+    "changed": "cambiado",
+    "looseHint": "Servicios que no están en ninguna red overlay. Al crear un servicio, soltalo sobre una caja overlay para ponerlo ahí.",
+    "emptyOverlay": "Soltá una plantilla acá para crear un servicio en este overlay.",
+    "empty": "Todavía no hay servicios. Arrastrá una plantilla a una caja overlay, o creá un overlay con Nueva red.",
+    "discard": "Descartar",
+    "review": "Revisar y aplicar",
+    "plannedHint": "Planificado: todavía no existe. Se crea cuando aplicás el plan.",
+    "removeFromPlan": "Quitar del plan",
+    "globalNoScale": "Un servicio global tiene una copia por nodo: no hay nada que escalar.",
+    "fewer": "Menos réplicas",
+    "more": "Más réplicas",
+    "reviewTitle": "Revisar el plan",
+    "reviewHint": "Los cambios se aplican de a uno. Si uno falla o el servicio no arranca, se deshace todo lo que hizo este plan.",
+    "stepCreate": "Crear el servicio {{name}}",
+    "stepScale": "Escalar {{name}}: {{from}} → {{to}}",
+    "state": {
+      "pending": "en espera",
+      "running": "aplicando…",
+      "waiting": "esperando que arranque…",
+      "done": "listo",
+      "undone": "deshecho"
+    },
+    "failed": "Falló {{step}}",
+    "rollbackFailed": "Estos no se pudieron deshacer y conviene revisarlos en Recursos, Swarm: {{steps}}",
+    "applying": "Aplicando…",
+    "apply": "Aplicar plan",
+    "applied": "Plan aplicado",
+    "publishedShort": "{{count}} abierto(s)",
+    "pending": "{{count}} cambio(s) pendiente(s)",
+    "rolledBack": "{{count}} cambio(s) deshecho(s): el cluster quedó como estaba.",
+    "copies": "Copias"
   }
 }

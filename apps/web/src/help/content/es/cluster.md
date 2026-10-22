@@ -2,13 +2,32 @@
 
 Cuando este motor forma parte de un swarm, la Topología suma una segunda vista: el **cluster** tal como lo ve su manager. Sin swarm no cambia nada: no hay pestaña nueva ni opción nueva.
 
+El cluster tiene tres dibujos: el **Lienzo**, donde construís, y **Por red** y **Por servidor**, que solo muestran.
+
+## Lienzo: construir servicios sobre redes overlay
+
+![El lienzo: servicios dentro de su overlay, un servicio por crear (punteado) y otro por escalar, con la barra del plan](img:cluster-canvas)
+
+Cada **red overlay** es una caja y cada **servicio** un nodo adentro, con su logo, las copias en ejecución (`3/3`) y los puertos publicados. Movés cajas y nodos como en la topología local; las posiciones se guardan. Un servicio en dos overlays se dibuja en la primera y se une a la otra con una línea punteada.
+
+- **Crear un servicio**: arrastrá una plantilla a una caja overlay (o hacé clic en ella). Nombre, imagen, copias (o una en cada nodo), red, los puertos a publicar y el entorno vienen completados. Todavía no se crea nada: el servicio aparece **punteado y marcado como nuevo**.
+- **Escalar un servicio**: seleccionalo y usá **− / +** en el inspector. Muestra `1 → 2` hasta que apliques.
+- **Barra del plan**: cada cambio espera en un plan (**Descartar** los quita todos, **Quitar del plan** uno solo). **Revisar y aplicar** lista cada cambio con su comando `docker service`.
+
+![Un plan que falla: el servicio no arranca y se deshace todo](img:cluster-plan)
+
+- **Aplicar** va de a un cambio y espera a que cada servicio tenga sus copias en ejecución, como hace `docker service create`. Si un cambio falla, o un servicio no arranca, se **deshace** todo lo que el plan ya hizo: los servicios creados se eliminan y los escalados vuelven a sus copias. El diálogo dice qué falló y por qué. No se elimina nada que el plan no haya creado.
+- Un **puerto publicado** se abre en todos los nodos del swarm, en todas las interfaces; el diálogo lo advierte. Un puerto que no publicás igual es alcanzable por los demás servicios de la red.
+- Una plantilla que pide **volúmenes** crea el servicio **sin ellos** por ahora (el diálogo lo dice): los datos no sobrevivirían a un reinicio en otro nodo.
+- **Eliminar** un servicio, cambiar su imagen o pasarlo a otra red no se hace desde el lienzo: usá la pestaña Swarm.
+
 ![El cluster por red: dos zonas overlay, con servicios, copias y el servidor donde corre cada una](img:cluster-network)
 
 ## Cuándo aparece
 
 - **Topología → Servidor local / Cluster** aparece solo cuando este motor está en un swarm.
 - Necesita un **manager**. En un worker, o con el swarm bloqueado, la vista dice por qué y te lleva a la pestaña Swarm en vez de mostrar algo incompleto.
-- Es de **solo lectura**. Para crear o cambiar servicios usá la pestaña Swarm; el inspector tiene un botón que te lleva ahí.
+- **Por red** y **Por servidor** son de solo lectura. El **Lienzo** crea y escala servicios mediante el plan de arriba.
 
 ## Por red
 

@@ -17,6 +17,11 @@ export type ZoneNodeData = {
   canTunnel?: boolean;
   /** Actions needed to bring the zone back to its applied document (0 or missing = in sync). */
   drift?: number;
+  /** Replaces the "external" texts: the box of things that are on no network of this view. */
+  label?: string;
+  hint?: string;
+  /** No dot to draw a tunnel from (views where tunnels do not exist). */
+  noTunnel?: boolean;
 } & Record<string, unknown>;
 
 export type ContainerFlowNode = Node<ContainerNodeData, "container">;
@@ -135,9 +140,11 @@ export function ZoneNode({ data, selected }: NodeProps<ZoneFlowNode>) {
           className="truncate font-mono uppercase tracking-wider"
           style={{ color: external ? "var(--nx-cyan)" : "var(--nx-accent)" }}
         >
-          {external
-            ? t("topology.external")
-            : `${overlay ? t("topology.overlayZone") : t("topology.networkZone")} · ${n.name}`}
+          {data.label
+            ? data.label
+            : external
+              ? t("topology.external")
+              : `${overlay ? t("topology.overlayZone") : t("topology.networkZone")} · ${n.name}`}
           {(data.drift ?? 0) > 0 && (
             <span
               className="ml-2 rounded bg-amber/20 px-1.5 py-0.5 text-[10px] normal-case text-amber"
@@ -148,7 +155,7 @@ export function ZoneNode({ data, selected }: NodeProps<ZoneFlowNode>) {
           )}
         </span>
         <span className="flex shrink-0 items-center gap-1 whitespace-nowrap text-dim">
-          {external ? (
+          {data.label ? null : external ? (
             <>
               <Lock size={12} /> {t("topology.loopbackOnly")}
             </>
@@ -167,10 +174,20 @@ export function ZoneNode({ data, selected }: NodeProps<ZoneFlowNode>) {
       </div>
       {data.count === 0 && (
         <div className="px-4 pt-6 text-center text-xs text-dim">
-          {external ? t("topology.externalHint") : t("topology.sharesNetwork")}
+          {(data.hint ?? external)
+            ? (data.hint ?? t("topology.externalHint"))
+            : t("topology.sharesNetwork")}
         </div>
       )}
-      {n && (
+      {n && data.noTunnel === true && (
+        <Handle
+          type="target"
+          position={Position.Left}
+          style={HIDDEN_HANDLE}
+          isConnectable={false}
+        />
+      )}
+      {n && data.noTunnel !== true && (
         // Drag from this dot to another box's dot to open a tunnel between the two networks.
         <Handle
           id="tunnel"

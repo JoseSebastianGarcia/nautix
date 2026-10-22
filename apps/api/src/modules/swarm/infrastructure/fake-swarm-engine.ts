@@ -22,6 +22,9 @@ interface FakeItem extends SwarmItem {
 }
 
 /** In-memory swarm for the demo engine and tests. */
+/** Images containing this text never start in the demo engine. */
+const FAILING_IMAGE = "demo-fail";
+
 export class FakeSwarmEngine extends SwarmEngine {
   private active = false;
   private locked = false;
@@ -165,6 +168,19 @@ export class FakeSwarmEngine extends SwarmEngine {
 
   /** Spreads the running copies over the nodes, like Swarm does by default; a global service has one per node. */
   private tasksOf(s: SwarmService): ClusterTask[] {
+    // Demo: an image named like this never starts, to show the plan undoing a failed change.
+    if (s.image.includes(FAILING_IMAGE))
+      return [1, 2].map((slot) => ({
+        id: id(),
+        slot: 1,
+        nodeId: this.nodeList[0]?.id ?? "",
+        state: slot === 1 ? "rejected" : "failed",
+        desiredState: "shutdown",
+        error: `No such image: ${s.image}`,
+        image: s.image,
+        updatedAt: now(),
+        serviceId: s.id,
+      }));
     const count = s.mode === "global" ? this.nodeList.length : s.running;
     return Array.from({ length: count }, (_, i) => ({
       id: id(),
@@ -201,7 +217,7 @@ export class FakeSwarmEngine extends SwarmEngine {
       image: request.image,
       mode: request.global ? "global" : "replicated",
       replicas: request.global ? null : request.replicas,
-      running: replicas,
+      running: request.image.includes(FAILING_IMAGE) ? 0 : replicas,
       desired: replicas,
       ports: request.ports,
       stack: null,
