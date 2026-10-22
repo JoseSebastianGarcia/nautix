@@ -54,6 +54,9 @@ export function Shell() {
               className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition-colors ${isActivePath(to, pathname) ? "bg-primary text-primary-fg" : "text-dim hover:text-fg"}`}
             >
               <Icon size={15} /> {t(key)}
+              {isActivePath(to, pathname) && (
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+              )}
             </NavLink>
           ))}
         </nav>

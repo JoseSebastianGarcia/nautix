@@ -1326,6 +1326,11 @@
     "hueMoved": "alejado de rojo, verde o amarillo",
     "adjusted": "luminosidad ajustada para que se lea",
     "reduceTransparency": "Reducir transparencia",
-    "reduceTransparencyHint": "Paneles sólidos, sin desenfoque ni vidrio. También se aplica solo cuando tu sistema lo pide."
+    "reduceTransparencyHint": "Paneles sólidos, sin desenfoque ni vidrio. También se aplica solo cuando tu sistema lo pide.",
+    "previewSelected": "Seleccionado",
+    "previewZone": "Zona",
+    "previewBadge": "insignia",
+    "previewLink": "enlace",
+    "previewButton": "Botón (sin acento)"
   }
 }

@@ -54,7 +54,7 @@ function AppearanceSection() {
                 aria-label={hex}
                 aria-pressed={hex === theme.accent}
                 onClick={() => theme.setAccent(hex)}
-                style={{ background: hex }}
+                style={{ background: resolveAccent(hex, resolved).accent }}
                 className={`h-8 w-8 rounded-full ring-offset-2 ring-offset-bg1 ${hex === theme.accent ? "ring-2 ring-fg" : ""}`}
               />
             ))}
@@ -78,6 +78,19 @@ function AppearanceSection() {
             {result.hueMoved && ` · ${t("appearance.hueMoved")}`}
             {result.adjusted && ` · ${t("appearance.adjusted")}`}
           </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 rounded-xl border border-line bg-bg0 p-4">
+          <span className="rounded-lg border border-accent bg-bg1 px-3 py-2 text-sm shadow-[var(--nx-glow)]">
+            {t("appearance.previewSelected")}
+          </span>
+          <span className="rounded-lg border border-dashed border-[var(--nx-zone-line)] bg-[var(--nx-zone)] px-3 py-2 text-sm">
+            {t("appearance.previewZone")}
+          </span>
+          <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
+            {t("appearance.previewBadge")}
+          </span>
+          <span className="text-sm text-accent underline">{t("appearance.previewLink")}</span>
+          <Button variant="primary">{t("appearance.previewButton")}</Button>
         </div>
         <label className="flex items-start gap-3 text-sm">
           <input

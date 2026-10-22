@@ -1326,6 +1326,11 @@
     "hueMoved": "moved away from red, green or yellow",
     "adjusted": "lightness adjusted to stay readable",
     "reduceTransparency": "Reduce transparency",
-    "reduceTransparencyHint": "Solid panels, no blur or glass. Also applied automatically when your system asks for it."
+    "reduceTransparencyHint": "Solid panels, no blur or glass. Also applied automatically when your system asks for it.",
+    "previewSelected": "Selected",
+    "previewZone": "Zone",
+    "previewBadge": "badge",
+    "previewLink": "link",
+    "previewButton": "Button (not accent)"
   }
 }
