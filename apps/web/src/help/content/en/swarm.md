@@ -31,6 +31,17 @@ Swarm is worth it when you want services to keep running if a machine goes down,
 
 Containers created with `docker run` are not services, so the Swarm tab does not show them. Topology, bindings, zone documents and port guards work on one Docker engine at a time; they do not follow a service across nodes.
 
+
+## Joining a second machine
+
+Nautix runs on the manager; the other machines only need Docker.
+
+1. Open between the machines only: `2377/tcp`, `7946/tcp` and `7946/udp`, `4789/udp` (and IP protocol 50 if you encrypt an overlay). Never to the internet: use a private network or a VPN.
+2. In Nautix start the swarm with the manager's private address as the advertise address, and copy the worker **join token** from **Swarm, Cluster**.
+3. On the other machine: `docker swarm join --token <token> <manager-address>:2377`.
+
+The node appears under **Nodes** and in the legend of the canvas. If a machine goes down its copies are started again on the others (unless they are pinned to it); **Drain** moves them on purpose.
+
 > The nodes talk to each other on ports 2377 (tcp), 7946 (tcp and udp) and 4789 (udp). Open them only on a private network or a VPN, never to the internet.
 
 If you just need two separate servers to talk to each other, a VPN (WireGuard, Tailscale) between them plus one Nautix per server is simpler.

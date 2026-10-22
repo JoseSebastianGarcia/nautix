@@ -1,5 +1,13 @@
-import type { Network, SwarmMount, SwarmNode, SwarmPlacement, Template } from "@nautix/contracts";
-import { Plus, Trash2 } from "lucide-react";
+import type {
+  Network,
+  SwarmHealthcheck,
+  SwarmMount,
+  SwarmNode,
+  SwarmPlacement,
+  SwarmResources,
+  SwarmUpdatePolicy,
+  Template,
+} from "@nautix/contracts";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Dialog, Field, Input } from "../../components/ui.js";
@@ -13,6 +21,13 @@ import {
 } from "./deploy.js";
 import { CUSTOM_TEMPLATE_ID } from "./palette.js";
 import type { PlannedCreate } from "./swarm-plan.js";
+import {
+  HealthcheckFields,
+  MountsEditor,
+  NameChecklist,
+  PolicyFields,
+  ResourcesFields,
+} from "./swarm-settings-fields.js";
 
 export interface ServiceTarget {
   template: Template | typeof CUSTOM_TEMPLATE_ID;
@@ -59,6 +74,7 @@ export function SwarmServiceDialog({
   overlays,
   nodes,
   secretNames,
+  configNames,
   taken,
   onAdd,
   onClose,
@@ -68,6 +84,7 @@ export function SwarmServiceDialog({
   nodes: SwarmNode[];
   /** Secrets that exist in the swarm, by name. */
   secretNames: string[];
+  configNames: string[];
   /** Names already used by services or by changes in the plan. */
   taken: string[];
   onAdd: (item: PlannedCreate) => void;
@@ -88,6 +105,7 @@ export function SwarmServiceDialog({
           overlays={overlays}
           nodes={nodes}
           secretNames={secretNames}
+          configNames={configNames}
           taken={taken}
           onAdd={(item) => {
             onAdd(item);
@@ -105,6 +123,7 @@ function ServiceForm({
   overlays,
   nodes,
   secretNames,
+  configNames,
   taken,
   onAdd,
   onClose,
@@ -113,6 +132,7 @@ function ServiceForm({
   overlays: Network[];
   nodes: SwarmNode[];
   secretNames: string[];
+  configNames: string[];
   taken: string[];
   onAdd: (item: PlannedCreate) => void;
   onClose: () => void;
@@ -138,6 +158,15 @@ function ServiceForm({
     mountsFor(initialName, tpl?.volumes ?? []),
   );
   const [secrets, setSecrets] = useState<string[]>([]);
+  const [configs, setConfigs] = useState<string[]>([]);
+  const [health, setHealth] = useState<SwarmHealthcheck | null>(null);
+  const [resources, setResources] = useState<SwarmResources>({});
+  const [policy, setPolicy] = useState<SwarmUpdatePolicy>({
+    failureAction: "rollback",
+    parallelism: 1,
+    delaySeconds: 5,
+    monitorSeconds: 10,
+  });
   // Data lives on the node where a copy runs, so a service with volumes starts pinned to a node.
   const home = nodes.find((n) => n.leader) ?? nodes[0];
   const [mode, setMode] = useState<PlacementMode>(mounts.length > 0 && home ? "pin" : "anywhere");
@@ -159,6 +188,7 @@ function ServiceForm({
     image.trim() !== "" &&
     publishedValid &&
     mountsValid &&
+    (health === null || health.command.trim() !== "") &&
     replicas >= 0 &&
     (mode !== "pin" || nodeId !== "");
 
@@ -176,6 +206,10 @@ function ServiceForm({
         networks: network ? [network] : [],
         mounts,
         secrets,
+        configs,
+        ...(health ? { healthcheck: health } : {}),
+        resources,
+        update: policy,
         placement,
         ports: ports
           .filter((p) => p.published !== "")
@@ -278,44 +312,7 @@ function ServiceForm({
 
       <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="text-sm text-dim">{t("swarmCanvas.volumes")}</legend>
-        {mounts.map((m, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: rows are edited in place and have no id
-          <div key={i} className="flex items-center gap-2">
-            <Input
-              className="min-w-0"
-              aria-label={t("swarmCanvas.volumeName")}
-              placeholder={t("swarmCanvas.volumeName")}
-              value={m.source}
-              onChange={(e) =>
-                setMounts(mounts.map((x, j) => (j === i ? { ...x, source: e.target.value } : x)))
-              }
-            />
-            <Input
-              className="min-w-0"
-              aria-label={t("swarmCanvas.mountPath")}
-              placeholder="/data"
-              value={m.target}
-              onChange={(e) =>
-                setMounts(mounts.map((x, j) => (j === i ? { ...x, target: e.target.value } : x)))
-              }
-            />
-            <button
-              type="button"
-              aria-label={t("common.delete")}
-              className="rounded p-1.5 text-dim hover:text-danger"
-              onClick={() => setMounts(mounts.filter((_, j) => j !== i))}
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-        ))}
-        <Button
-          onClick={() =>
-            setMounts([...mounts, { source: `${name}-data`, target: "/data", readOnly: false }])
-          }
-        >
-          <Plus size={14} /> {t("swarmCanvas.addVolume")}
-        </Button>
+        <MountsEditor value={mounts} onChange={setMounts} defaultSource={`${name}-data`} />
         {mounts.length > 0 && (
           <p className={`text-xs ${mode === "pin" ? "text-dim" : "text-amber"}`}>
             {mode === "pin" ? t("swarmCanvas.volumesPinned") : t("swarmCanvas.volumesNeedPin")}
@@ -353,23 +350,23 @@ function ServiceForm({
 
       <fieldset className="flex min-w-0 flex-col gap-1">
         <legend className="text-sm text-dim">{t("swarmCanvas.secrets")}</legend>
-        {secretNames.length === 0 ? (
-          <p className="text-xs text-dim">{t("swarmCanvas.noSecrets")}</p>
-        ) : (
-          secretNames.map((s) => (
-            <label key={s} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={secrets.includes(s)}
-                onChange={(e) =>
-                  setSecrets(e.target.checked ? [...secrets, s] : secrets.filter((x) => x !== s))
-                }
-              />
-              <span className="font-mono">{s}</span>
-              <span className="text-xs text-dim">/run/secrets/{s}</span>
-            </label>
-          ))
-        )}
+        <NameChecklist
+          names={secretNames}
+          selected={secrets}
+          onChange={setSecrets}
+          path={(n) => `/run/secrets/${n}`}
+          empty={t("swarmCanvas.noSecrets")}
+        />
+      </fieldset>
+      <fieldset className="flex min-w-0 flex-col gap-1">
+        <legend className="text-sm text-dim">{t("swarmCanvas.configs")}</legend>
+        <NameChecklist
+          names={configNames}
+          selected={configs}
+          onChange={setConfigs}
+          path={(n) => `/${n}`}
+          empty={t("swarmCanvas.noConfigs")}
+        />
       </fieldset>
 
       <Field label={t("topology.environment")} hint={t("swarmCanvas.envHint")}>
@@ -380,6 +377,28 @@ function ServiceForm({
           spellCheck={false}
         />
       </Field>
+      <details className="rounded-lg border border-line p-3 text-sm">
+        <summary className="cursor-pointer select-none text-dim">
+          {t("swarmCanvas.advanced")}
+        </summary>
+        <div className="mt-3 flex flex-col gap-4">
+          <section className="flex flex-col gap-2">
+            <h3 className="text-sm font-medium">{t("swarmCanvas.healthTitle")}</h3>
+            <p className="text-xs text-dim">{t("swarmCanvas.healthHint")}</p>
+            <HealthcheckFields value={health} onChange={setHealth} />
+          </section>
+          <section className="flex flex-col gap-2">
+            <h3 className="text-sm font-medium">{t("swarmCanvas.resourcesTitle")}</h3>
+            <p className="text-xs text-dim">{t("swarmCanvas.resourcesHint")}</p>
+            <ResourcesFields value={resources} onChange={setResources} />
+          </section>
+          <section className="flex flex-col gap-2">
+            <h3 className="text-sm font-medium">{t("swarmCanvas.policyTitle")}</h3>
+            <p className="text-xs text-dim">{t("swarmCanvas.policyHint")}</p>
+            <PolicyFields value={policy} onChange={setPolicy} allowAuto />
+          </section>
+        </div>
+      </details>
       <div className="flex justify-end gap-2">
         <Button onClick={onClose}>{t("common.cancel")}</Button>
         <Button type="submit" variant="primary" disabled={!valid}>

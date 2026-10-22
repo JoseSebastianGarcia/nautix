@@ -26,6 +26,7 @@ import { StackRunner } from "./application/ports/stack-runner.js";
 import { SwarmBindingStore } from "./application/ports/swarm-binding-store.js";
 import { SwarmEngine } from "./application/ports/swarm-engine.js";
 import { GetJoinTokensHandler } from "./application/queries/get-join-tokens.handler.js";
+import { GetServiceEnvNamesHandler } from "./application/queries/get-service-env-names.handler.js";
 import { GetServiceLogsHandler } from "./application/queries/get-service-logs.handler.js";
 import { GetSwarmHandler } from "./application/queries/get-swarm.handler.js";
 import { GetSwarmClusterHandler } from "./application/queries/get-swarm-cluster.handler.js";
@@ -64,6 +65,7 @@ const HANDLERS = [
   ListSwarmServicesHandler,
   ListServiceTasksHandler,
   GetServiceLogsHandler,
+  GetServiceEnvNamesHandler,
   CreateSwarmServiceSpecHandler,
   UpdateSwarmServiceSpecHandler,
   RemoveSwarmServiceHandler,

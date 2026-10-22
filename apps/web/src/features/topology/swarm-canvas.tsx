@@ -65,6 +65,7 @@ import {
   type ServiceTarget,
   SwarmServiceDialog,
 } from "./swarm-service-dialog.js";
+import { ServiceSettings } from "./swarm-service-settings.js";
 
 const EMPTY_LAYOUT: Layout = { zones: {}, nodes: {} };
 const NO_TEMPLATES: Template[] = [];
@@ -269,6 +270,10 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
   const { data: secrets = NO_NAMES } = useQuery({
     queryKey: ["swarm-secrets"],
     queryFn: api.swarmSecrets,
+  });
+  const { data: configs = NO_NAMES } = useQuery({
+    queryKey: ["swarm-configs"],
+    queryFn: api.swarmConfigs,
   });
   const { data: bindings = NO_BINDINGS } = useQuery({
     queryKey: ["swarm-bindings"],
@@ -638,6 +643,8 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
             svc={selectedService}
             plan={plan}
             bindings={bindings}
+            secretNames={secrets.map((x) => x.name)}
+            configNames={configs.map((x) => x.name)}
             overlays={overlays}
             nodes={swarmNodes}
             onPlan={(change) => setPlan(change)}
@@ -668,6 +675,7 @@ export function SwarmCanvas({ model }: { model: ClusterModel }) {
         overlays={overlays}
         nodes={swarmNodes}
         secretNames={secrets.map((s) => s.name)}
+        configNames={configs.map((c) => c.name)}
         taken={[...model.services.map((s) => s.service.name), ...plannedNames(plan)]}
         onAdd={(item) => {
           setPlan((cur) => [...cur, item]);
@@ -707,6 +715,8 @@ function ServiceInspector({
   svc,
   plan,
   bindings,
+  secretNames,
+  configNames,
   overlays,
   nodes,
   onPlan,
@@ -715,6 +725,8 @@ function ServiceInspector({
   svc: ClusterService;
   plan: PlanItem[];
   bindings: SwarmBinding[];
+  secretNames: string[];
+  configNames: string[];
   overlays: Network[];
   nodes: SwarmNode[];
   onPlan: (next: PlanItem[]) => void;
@@ -919,6 +931,15 @@ function ServiceInspector({
               {t("swarmCanvas.set")}
             </Button>
           </fieldset>
+          <ServiceSettings
+            // A service's settings come from the cluster: a new draft after each change.
+            key={`${s.id}:${s.updatedAt}`}
+            svc={svc}
+            plan={plan}
+            secretNames={secretNames}
+            configNames={configNames}
+            onPlan={onPlan}
+          />
           {s.update.state !== null && (
             <>
               <p className="text-xs text-dim">
@@ -1007,6 +1028,7 @@ function PlanDialog({
         remove: (id) => api.swarmRemoveService(id),
         bind: async (input) => (await api.swarmCreateBinding(input)).id,
         unbind: (id) => api.swarmDeleteBinding(id),
+        rollback: (id) => api.swarmRollbackService(id),
         tasks: (id) => api.swarmTasks(id),
         service: async (id) => (await api.swarmServices()).find((s) => s.id === id),
         sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),

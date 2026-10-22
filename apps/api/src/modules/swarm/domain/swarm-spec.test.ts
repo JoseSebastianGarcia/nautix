@@ -1,12 +1,14 @@
 import { CreateSwarmService } from "@nautix/contracts";
 import { describe, expect, it } from "vitest";
 import {
+  fromHealthcheck,
   fromNode,
   fromService,
   fromTask,
   patchEnv,
   patchServiceSpec,
   plainImage,
+  rollsOutPatch,
   stacksOf,
   toServiceSpec,
 } from "./swarm-spec.js";
@@ -213,5 +215,122 @@ describe("swarm spec", () => {
     const next = patchServiceSpec(bare, { env: { set: { B: "2" }, unset: [] } });
     expect(next.TaskTemplate.ContainerSpec.Env).toEqual(["A=1", "B=2"]);
     expect(next.UpdateConfig).toMatchObject({ FailureAction: "rollback" });
+  });
+
+  it("builds a health check, limits, reservations and configs, and reads them back", () => {
+    const spec = toServiceSpec(
+      CreateSwarmService.parse({
+        name: "api",
+        image: "x",
+        healthcheck: { command: "curl -f http://localhost/ || exit 1", retries: 5 },
+        resources: { cpuLimit: 0.5, memoryLimitMb: 256, memoryReserveMb: 128 },
+        configs: ["app.conf"],
+      }),
+      {},
+      { "app.conf": "cid" },
+    );
+    expect(spec.TaskTemplate.ContainerSpec.Healthcheck).toMatchObject({
+      Test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"],
+      Interval: 30_000_000_000,
+      Retries: 5,
+    });
+    expect(spec.TaskTemplate.Resources).toEqual({
+      Limits: { NanoCPUs: 500_000_000, MemoryBytes: 256 * 1024 * 1024 },
+      Reservations: { MemoryBytes: 128 * 1024 * 1024 },
+    });
+    expect(spec.TaskTemplate.ContainerSpec.Configs?.[0]).toMatchObject({
+      ConfigID: "cid",
+      File: { Name: "/app.conf" },
+    });
+    const svc = fromService({ ID: "x", Spec: spec });
+    expect(svc.healthcheck).toMatchObject({
+      command: "curl -f http://localhost/ || exit 1",
+      retries: 5,
+    });
+    expect(svc.resources).toEqual({ cpuLimit: 0.5, memoryLimitMb: 256, memoryReserveMb: 128 });
+    expect(svc.configs).toEqual(["app.conf"]);
+    expect(svc.policy).toMatchObject({
+      failureAction: "rollback",
+      order: "start-first",
+      delaySeconds: 5,
+    });
+  });
+
+  it("reads Docker's defaults when a service never set a policy, and no health check", () => {
+    const spec = toServiceSpec(CreateSwarmService.parse({ name: "a", image: "x" }));
+    const { UpdateConfig: _drop, ...bare } = spec;
+    const svc = fromService({ ID: "x", Spec: bare });
+    expect(svc.policy).toEqual({
+      order: "stop-first",
+      failureAction: "pause",
+      parallelism: 1,
+      delaySeconds: 0,
+      monitorSeconds: 5,
+    });
+    expect(svc.healthcheck).toBeNull();
+    expect(fromHealthcheck({ Test: ["NONE"] })).toBeNull();
+  });
+
+  it("an update edits ports, volumes, secrets, configs, health check and limits in place", () => {
+    const spec = toServiceSpec(
+      CreateSwarmService.parse({
+        name: "a",
+        image: "x",
+        ports: [{ target: 80, published: 8080 }],
+        mounts: [
+          { source: "d", target: "/d" },
+          { source: "e", target: "/e" },
+        ],
+        secrets: ["s1", "s2"],
+        healthcheck: { command: "true" },
+        resources: { memoryLimitMb: 64 },
+      }),
+      { s1: "i1", s2: "i2" },
+    );
+    const next = patchServiceSpec(
+      spec,
+      {
+        ports: [{ target: 81, published: 8081, protocol: "tcp" }],
+        mounts: { add: [{ source: "f", target: "/f", readOnly: true }], remove: ["/d"] },
+        secrets: { add: ["s3"], remove: ["s1"] },
+        healthcheck: null,
+        resources: {},
+      },
+      {},
+      { secrets: { s3: "i3" }, configs: {} },
+    );
+    expect(next.EndpointSpec?.Ports).toEqual([
+      { Protocol: "tcp", TargetPort: 81, PublishedPort: 8081, PublishMode: "ingress" },
+    ]);
+    expect(next.TaskTemplate.ContainerSpec.Mounts?.map((m) => m.Target)).toEqual(["/e", "/f"]);
+    expect(next.TaskTemplate.ContainerSpec.Secrets?.map((x) => x.SecretName)).toEqual(["s2", "s3"]);
+    expect(next.TaskTemplate.ContainerSpec.Healthcheck).toBeUndefined();
+    expect(next.TaskTemplate.Resources).toBeUndefined();
+  });
+
+  it("a policy change alone replaces the policy and is not a rollout", () => {
+    expect(
+      rollsOutPatch({
+        policy: { failureAction: "pause", parallelism: 2, delaySeconds: 0, monitorSeconds: 5 },
+      }),
+    ).toBe(false);
+    expect(rollsOutPatch({ replicas: 3 })).toBe(false);
+    expect(rollsOutPatch({ resources: {} })).toBe(true);
+    const spec = toServiceSpec(CreateSwarmService.parse({ name: "a", image: "x" }));
+    const next = patchServiceSpec(spec, {
+      policy: {
+        order: "stop-first",
+        failureAction: "pause",
+        parallelism: 2,
+        delaySeconds: 1,
+        monitorSeconds: 2,
+      },
+    });
+    expect(next.UpdateConfig).toMatchObject({
+      Parallelism: 2,
+      FailureAction: "pause",
+      Order: "stop-first",
+      Delay: 1_000_000_000,
+    });
   });
 });

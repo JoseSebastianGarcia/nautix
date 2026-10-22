@@ -53,6 +53,7 @@ import { UnlockSwarmCommand } from "../application/commands/unlock-swarm.command
 import { UpdateSwarmNodeSpecCommand } from "../application/commands/update-swarm-node-spec.command.js";
 import { UpdateSwarmServiceSpecCommand } from "../application/commands/update-swarm-service-spec.command.js";
 import { GetJoinTokensQuery } from "../application/queries/get-join-tokens.query.js";
+import { GetServiceEnvNamesQuery } from "../application/queries/get-service-env-names.query.js";
 import { GetServiceLogsQuery } from "../application/queries/get-service-logs.query.js";
 import { GetSwarmQuery } from "../application/queries/get-swarm.query.js";
 import { GetSwarmClusterQuery } from "../application/queries/get-swarm-cluster.query.js";
@@ -220,6 +221,14 @@ export class SwarmController {
   async deleteBinding(@Param("id") id: string, @Req() req: Request) {
     const binding = await this.commands.execute(new DeleteSwarmBindingCommand(id));
     setAuditNote(req, { detail: `service ${bindingDetail("delete", binding)}` });
+  }
+
+  /** Names only: the values never leave the engine. Recorded as a sensitive read. */
+  @AdminOnly()
+  @Get("services/:id/env")
+  envNames(@Param("id") id: string, @Req() req: Request) {
+    setAuditNote(req, { detail: `read env service=${id}`, read: true });
+    return this.queries.execute(new GetServiceEnvNamesQuery(id));
   }
 
   @Get("services/:id/tasks")

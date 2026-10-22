@@ -931,6 +931,135 @@ services:
     }
   }, 300_000);
 
+  it("creates a real service with a health check, limits and a config, then edits them in place", async () => {
+    const status = (await call("GET", "/swarm")).json as { active: boolean };
+    const startedHere = !status.active;
+    if (startedHere)
+      await call("POST", "/swarm/init", { advertiseAddr: "127.0.0.1" }).then((r) =>
+        expect(r.res.status).toBe(201),
+      );
+    const name = `${PREFIX}svc-edit`;
+    const cfg = `${PREFIX}edit-config`;
+    const inspect = (format: string): string =>
+      docker("service", "inspect", name, "--format", format).trim();
+    type Svc = {
+      id: string;
+      name: string;
+      running: number;
+      ports: { target: number; published?: number }[];
+      configs: string[];
+      healthcheck: { command: string; retries: number } | null;
+      resources: { cpuLimit?: number; memoryLimitMb?: number };
+      policy: { order: string; failureAction: string; parallelism: number };
+      update: { state: string | null };
+    };
+    const read = async (): Promise<Svc> =>
+      ((await call("GET", "/swarm/services")).json as Svc[]).find((x) => x.name === name) as Svc;
+    const until = async (ok: (s: Svc) => boolean, rounds = 120) => {
+      for (let i = 0; i < rounds; i++) {
+        const s = await read();
+        if (s && ok(s)) return s;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      return read();
+    };
+    try {
+      await call("POST", "/swarm/configs", { name: cfg, value: "listen=80" });
+      const refused = await call("POST", "/swarm/services", {
+        name,
+        image: IMAGE,
+        configs: ["nope"],
+      });
+      expect(refused.res.status).toBe(422);
+      expect(refused.json.hintKey).toBe("errors.configNotFound");
+
+      const created = await call("POST", "/swarm/services", {
+        name,
+        image: IMAGE,
+        replicas: 1,
+        configs: [cfg],
+        healthcheck: { command: "true", intervalSeconds: 5, retries: 2 },
+        resources: { cpuLimit: 0.5, memoryLimitMb: 64 },
+        update: { failureAction: "rollback", parallelism: 1, delaySeconds: 1, monitorSeconds: 5 },
+        command: ["sh", "-c", `cat /${cfg} > /tmp/seen; sleep 300`],
+      });
+      expect(created.res.status).toBe(201);
+      const up = await until((x) => x.running >= 1);
+      expect(up.running).toBe(1);
+      expect(up.configs).toEqual([cfg]);
+      expect(up.healthcheck).toMatchObject({ command: "true", retries: 2 });
+      expect(up.resources).toEqual({ cpuLimit: 0.5, memoryLimitMb: 64 });
+      expect(up.policy).toMatchObject({ failureAction: "rollback", order: "start-first" });
+      expect(inspect("{{.Spec.TaskTemplate.Resources.Limits.MemoryBytes}}")).toBe(
+        String(64 * 1024 * 1024),
+      );
+
+      // Edit ports, health check and limits in place: one rolling update that completes.
+      const before = (await read()).update;
+      expect(
+        (
+          await call("PATCH", `/swarm/services/${up.id}`, {
+            ports: [{ target: 80, published: 18080, protocol: "tcp" }],
+            healthcheck: {
+              command: "false || true",
+              intervalSeconds: 10,
+              timeoutSeconds: 5,
+              retries: 4,
+              startPeriodSeconds: 0,
+            },
+            resources: { cpuLimit: 1, memoryLimitMb: 128 },
+          })
+        ).res.status,
+      ).toBe(204);
+      const edited = await until(
+        (x) => x.update.state === "completed" && x.resources.memoryLimitMb === 128,
+      );
+      expect(edited.ports).toEqual(
+        expect.arrayContaining([expect.objectContaining({ target: 80, published: 18080 })]),
+      );
+      expect(edited.healthcheck).toMatchObject({ command: "false || true", retries: 4 });
+      expect(edited.resources).toEqual({ cpuLimit: 1, memoryLimitMb: 128 });
+      expect(before.state === null || before.state === "completed").toBe(true);
+
+      // A policy change alone does not replace any copy.
+      expect(
+        (
+          await call("PATCH", `/swarm/services/${up.id}`, {
+            policy: {
+              order: "stop-first",
+              failureAction: "pause",
+              parallelism: 2,
+              delaySeconds: 0,
+              monitorSeconds: 3,
+            },
+          })
+        ).res.status,
+      ).toBe(204);
+      const policy = await until((x) => x.policy.parallelism === 2, 40);
+      expect(policy.policy).toMatchObject({
+        order: "stop-first",
+        failureAction: "pause",
+        parallelism: 2,
+      });
+
+      // The health check can be taken out again.
+      await call("PATCH", `/swarm/services/${up.id}`, { healthcheck: null });
+      const bare = await until((x) => x.healthcheck === null);
+      expect(bare.healthcheck).toBeNull();
+    } finally {
+      for (const svc of ((await call("GET", "/swarm/services")).json as Svc[]).filter((x) =>
+        x.name.startsWith(PREFIX),
+      ))
+        await call("DELETE", `/swarm/services/${svc.id}`);
+      for (const c of (
+        (await call("GET", "/swarm/configs")).json as { id: string; name: string }[]
+      ).filter((x) => x.name.startsWith(PREFIX)))
+        await call("DELETE", `/swarm/configs/${c.id}`);
+      await new Promise((r) => setTimeout(r, 1500));
+      if (startedHere) await call("POST", "/swarm/leave", { force: true });
+    }
+  }, 240_000);
+
   it("binds a real swarm service to another: the consumer gets the connection string and loses it on unbind", async () => {
     const status = (await call("GET", "/swarm")).json as { active: boolean };
     const startedHere = !status.active;

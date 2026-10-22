@@ -2,9 +2,14 @@ import type {
   BindingStyle,
   CreateSwarmBindingInput,
   CreateSwarmServiceInput,
+  SwarmHealthcheck,
+  SwarmMount,
   SwarmPlacement,
+  SwarmPort,
+  SwarmResources,
   SwarmService,
   SwarmTask,
+  SwarmUpdatePolicy,
   UpdateSwarmService,
 } from "@nautix/contracts";
 
@@ -32,6 +37,17 @@ export interface UpdateFields {
   placement?: { from: SwarmPlacement; to: SwarmPlacement };
   /** Overlay networks to join and to leave, by name. */
   networks?: { add: string[]; remove: string[] };
+  ports?: { from: SwarmPort[]; to: SwarmPort[] };
+  /** Mounts to add and to take out (the full definition, so a removal can be put back). */
+  mounts?: { add: SwarmMount[]; remove: SwarmMount[] };
+  secrets?: { add: string[]; remove: string[] };
+  configs?: { add: string[]; remove: string[] };
+  /** Values stay in memory until applied; the engine never returns them, so an overwritten one cannot be restored by hand. */
+  env?: { set: Record<string, string>; unset: string[] };
+  healthcheck?: { from: SwarmHealthcheck | null; to: SwarmHealthcheck | null };
+  resources?: { from: SwarmResources; to: SwarmResources };
+  /** How future updates roll out: nothing is replaced when only this changes. */
+  policy?: { from: Required<SwarmUpdatePolicy>; to: Required<SwarmUpdatePolicy> };
 }
 
 export interface PlannedUpdate {
@@ -97,6 +113,8 @@ export interface PlanIo {
   /** Creates a binding and returns its id. */
   bind: (input: CreateSwarmBindingInput) => Promise<string>;
   unbind: (bindingId: string) => Promise<void>;
+  /** Goes back to the spec before the service's last update. */
+  rollback: (serviceId: string) => Promise<void>;
   tasks: (serviceId: string) => Promise<SwarmTask[]>;
   service: (serviceId: string) => Promise<SwarmService | undefined>;
   sleep: (ms: number) => Promise<void>;
@@ -205,17 +223,39 @@ const desiredCopies = (item: PlanItem): number =>
       ? item.to
       : 0;
 
-/** The request that applies an update, and the one that puts it back. */
+/** The request that applies an update, and the one that puts it back (environment aside: see `applyPlan`). */
 export const updatePatch = (c: UpdateFields): UpdateSwarmService => ({
   ...(c.image ? { image: c.image.to } : {}),
   ...(c.placement ? { placement: c.placement.to } : {}),
   ...(c.networks ? { networks: c.networks } : {}),
+  ...(c.ports ? { ports: c.ports.to } : {}),
+  ...(c.mounts
+    ? { mounts: { add: c.mounts.add, remove: c.mounts.remove.map((m) => m.target) } }
+    : {}),
+  ...(c.secrets ? { secrets: c.secrets } : {}),
+  ...(c.configs ? { configs: c.configs } : {}),
+  ...(c.env ? { env: c.env } : {}),
+  ...(c.healthcheck ? { healthcheck: c.healthcheck.to } : {}),
+  ...(c.resources ? { resources: c.resources.to } : {}),
+  ...(c.policy ? { policy: c.policy.to } : {}),
 });
 export const undoPatch = (c: UpdateFields): UpdateSwarmService => ({
   ...(c.image ? { image: c.image.from } : {}),
   ...(c.placement ? { placement: c.placement.from } : {}),
   ...(c.networks ? { networks: { add: c.networks.remove, remove: c.networks.add } } : {}),
+  ...(c.ports ? { ports: c.ports.from } : {}),
+  ...(c.mounts
+    ? { mounts: { add: c.mounts.remove, remove: c.mounts.add.map((m) => m.target) } }
+    : {}),
+  ...(c.secrets ? { secrets: { add: c.secrets.remove, remove: c.secrets.add } } : {}),
+  ...(c.configs ? { configs: { add: c.configs.remove, remove: c.configs.add } } : {}),
+  ...(c.healthcheck ? { healthcheck: c.healthcheck.from } : {}),
+  ...(c.resources ? { resources: c.resources.from } : {}),
+  ...(c.policy ? { policy: c.policy.from } : {}),
 });
+
+/** Everything except the update policy replaces copies, so the plan waits for the rolling update. */
+export const rolls = (c: UpdateFields): boolean => Object.keys(c).some((k) => k !== "policy");
 
 /**
  * Applies the plan one change at a time, removals last. When one fails, the ones already done are undone in
@@ -234,8 +274,17 @@ export const applyPlan = async (
   ];
   const done: PlanItem[] = [];
   const createdIds = new Map<PlanItem, string>();
+  // The engine keeps only the spec before the last update, so an environment change can be undone by the
+  // engine's own rollback only when it is the one update this plan makes to that service.
+  const touches = new Map<string, number>();
+  for (const i of items)
+    if (i.kind !== "create" && i.kind !== "remove") {
+      const id = itemServiceId(i);
+      if (id) touches.set(id, (touches.get(id) ?? 0) + 1);
+    }
   const undo = async (
     list: PlanItem[],
+    failing?: PlanItem,
   ): Promise<Pick<PlanResult, "rolledBack" | "rollbackErrors">> => {
     const rolledBack: PlanItem[] = [];
     const rollbackErrors: PlanResult["rollbackErrors"] = [];
@@ -247,6 +296,16 @@ export const applyPlan = async (
         } else if (item.kind === "scale") {
           await io.update(item.serviceId, { replicas: item.from });
         } else if (item.kind === "update") {
+          if (item.changes.env && item !== failing) {
+            if (touches.get(item.serviceId) === 1) {
+              // Restores every field of that update, the environment included.
+              await io.rollback(item.serviceId);
+              rolledBack.push(item);
+              continue;
+            }
+            await io.update(item.serviceId, undoPatch(item.changes));
+            throw new Error("environment values cannot be restored automatically");
+          }
           await io.update(item.serviceId, undoPatch(item.changes));
         } else if (item.kind === "bind") {
           const id = createdIds.get(item);
@@ -279,8 +338,11 @@ export const applyPlan = async (
       } else if (item.kind === "update") {
         const since = (await io.service(item.serviceId))?.update.startedAt ?? "";
         await io.update(item.serviceId, updatePatch(item.changes));
-        opts.onStep?.(item, "waiting");
-        error = await waitUpdated(io, item.serviceId, since, opts);
+        // A change of policy alone replaces no copy: there is nothing to wait for.
+        if (rolls(item.changes)) {
+          opts.onStep?.(item, "waiting");
+          error = await waitUpdated(io, item.serviceId, since, opts);
+        }
       } else if (item.kind === "bind") {
         const since = (await io.service(item.consumer.id))?.update.startedAt ?? "";
         createdIds.set(
@@ -321,7 +383,7 @@ export const applyPlan = async (
       const undoable = [...done, ...(item.kind === "remove" ? [] : [item])].filter(
         (i) => i.kind !== "remove",
       );
-      const { rolledBack, rollbackErrors } = await undo(undoable);
+      const { rolledBack, rollbackErrors } = await undo(undoable, item);
       return {
         ok: false,
         done: [],
@@ -366,7 +428,21 @@ export const planCommands = (item: PlanItem): string[] => {
       `docker service update ${item.variables.map((v) => `--env-rm ${v}`).join(" ")} ${item.consumer.name}`,
     ];
   if (item.kind === "update") {
-    const { image, networks, placement } = item.changes;
+    const {
+      image,
+      networks,
+      placement,
+      ports,
+      mounts,
+      secrets,
+      configs,
+      env,
+      healthcheck,
+      resources,
+      policy,
+    } = item.changes;
+    const flags = (parts: string[]): string[] =>
+      parts.length > 0 ? [`docker service update ${parts.join(" ")} ${item.name}`] : [];
     return [
       ...(image ? [`docker service update --image ${image.to} ${item.name}`] : []),
       ...(networks
@@ -378,6 +454,65 @@ export const planCommands = (item: PlanItem): string[] => {
           ]
         : []),
       ...(placement ? placementFlags(item.name, placement.from, placement.to) : []),
+      ...flags(
+        ports
+          ? [
+              ...ports.from.map((p) => `--publish-rm ${p.published ?? p.target}`),
+              ...ports.to.map(
+                (p) =>
+                  `--publish-add ${p.published ?? p.target}:${p.target}${p.protocol === "udp" ? "/udp" : ""}`,
+              ),
+            ]
+          : [],
+      ),
+      ...flags([
+        ...(mounts?.remove.map((m) => `--mount-rm ${m.target}`) ?? []),
+        ...(mounts?.add.map(
+          (m) => `--mount-add type=volume,source=${m.source},target=${m.target}`,
+        ) ?? []),
+        ...(secrets?.remove.map((n) => `--secret-rm ${n}`) ?? []),
+        ...(secrets?.add.map((n) => `--secret-add ${n}`) ?? []),
+        ...(configs?.remove.map((n) => `--config-rm ${n}`) ?? []),
+        ...(configs?.add.map((n) => `--config-add ${n}`) ?? []),
+        ...(env?.unset.map((k) => `--env-rm ${k}`) ?? []),
+        ...Object.keys(env?.set ?? {}).map((k) => `--env-add ${k}=…`),
+      ]),
+      ...flags(
+        healthcheck
+          ? healthcheck.to
+            ? [
+                `--health-cmd '${healthcheck.to.command}'`,
+                `--health-interval ${healthcheck.to.intervalSeconds}s`,
+                `--health-retries ${healthcheck.to.retries}`,
+              ]
+            : ["--no-healthcheck"]
+          : [],
+      ),
+      ...flags(
+        resources
+          ? [
+              ...(resources.to.cpuLimit ? [`--limit-cpu ${resources.to.cpuLimit}`] : []),
+              ...(resources.to.memoryLimitMb
+                ? [`--limit-memory ${resources.to.memoryLimitMb}m`]
+                : []),
+              ...(resources.to.cpuReserve ? [`--reserve-cpu ${resources.to.cpuReserve}`] : []),
+              ...(resources.to.memoryReserveMb
+                ? [`--reserve-memory ${resources.to.memoryReserveMb}m`]
+                : []),
+            ]
+          : [],
+      ),
+      ...flags(
+        policy
+          ? [
+              `--update-order ${policy.to.order}`,
+              `--update-failure-action ${policy.to.failureAction}`,
+              `--update-parallelism ${policy.to.parallelism}`,
+              `--update-delay ${policy.to.delaySeconds}s`,
+              `--update-monitor ${policy.to.monitorSeconds}s`,
+            ]
+          : [],
+      ),
     ];
   }
   const { spec } = item;
@@ -389,6 +524,13 @@ export const planCommands = (item: PlanItem): string[] => {
       `--mount type=volume,source=${m.source},target=${m.target}${m.readOnly ? ",readonly" : ""}`,
     );
   for (const s of spec.secrets ?? []) parts.push(`--secret ${s}`);
+  for (const c of spec.configs ?? []) parts.push(`--config ${c}`);
+  if (spec.healthcheck) parts.push(`--health-cmd '${spec.healthcheck.command}'`);
+  if (spec.resources?.cpuLimit) parts.push(`--limit-cpu ${spec.resources.cpuLimit}`);
+  if (spec.resources?.memoryLimitMb) parts.push(`--limit-memory ${spec.resources.memoryLimitMb}m`);
+  if (spec.resources?.cpuReserve) parts.push(`--reserve-cpu ${spec.resources.cpuReserve}`);
+  if (spec.resources?.memoryReserveMb)
+    parts.push(`--reserve-memory ${spec.resources.memoryReserveMb}m`);
   if (spec.placement?.role) parts.push(`--constraint 'node.role==${spec.placement.role}'`);
   if (spec.placement?.nodeId) parts.push(`--constraint 'node.id==${spec.placement.nodeId}'`);
   if (spec.placement?.maxPerNode)
@@ -410,7 +552,7 @@ export const plannedNames = (items: PlanItem[]): string[] =>
 const updateOf = (plan: PlanItem[], serviceId: string): PlannedUpdate | undefined =>
   plan.find((p): p is PlannedUpdate => p.kind === "update" && p.serviceId === serviceId);
 
-const isEmpty = (c: UpdateFields): boolean => !c.image && !c.placement && !c.networks;
+const isEmpty = (c: UpdateFields): boolean => Object.keys(c).length === 0;
 
 /** Changes the update item of a service (creating it, or dropping it once nothing is left to change). */
 export const upsertUpdate = (
@@ -490,3 +632,98 @@ export const planRemove = (plan: PlanItem[], svc: { id: string; name: string }):
   ...plan.filter((p) => itemServiceId(p) !== svc.id),
   { kind: "remove", serviceId: svc.id, name: svc.name },
 ];
+
+const sameJson = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+const without = <T extends object>(c: T, key: keyof T): T => {
+  const { [key]: _drop, ...rest } = c;
+  return rest as T;
+};
+
+const diffNames = (current: string[], wanted: string[]): { add: string[]; remove: string[] } => ({
+  add: wanted.filter((n) => !current.includes(n)),
+  remove: current.filter((n) => !wanted.includes(n)),
+});
+
+export const planPorts =
+  (current: SwarmPort[], to: SwarmPort[]) =>
+  (c: UpdateFields): UpdateFields =>
+    sameJson(current, to) ? without(c, "ports") : { ...c, ports: { from: current, to } };
+
+/** `wanted` is the full list of mounts the service should have. */
+export const planMounts =
+  (current: SwarmMount[], wanted: SwarmMount[]) =>
+  (c: UpdateFields): UpdateFields => {
+    const same = (a: SwarmMount, b: SwarmMount) => sameJson(a, b);
+    const add = wanted.filter((w) => !current.some((m) => same(m, w)));
+    const remove = current.filter((m) => !wanted.some((w) => same(m, w)));
+    return add.length === 0 && remove.length === 0
+      ? without(c, "mounts")
+      : { ...c, mounts: { add, remove } };
+  };
+
+export const planSecrets =
+  (current: string[], wanted: string[]) =>
+  (c: UpdateFields): UpdateFields => {
+    const d = diffNames(current, wanted);
+    return d.add.length === 0 && d.remove.length === 0
+      ? without(c, "secrets")
+      : { ...c, secrets: d };
+  };
+
+export const planConfigs =
+  (current: string[], wanted: string[]) =>
+  (c: UpdateFields): UpdateFields => {
+    const d = diffNames(current, wanted);
+    return d.add.length === 0 && d.remove.length === 0
+      ? without(c, "configs")
+      : { ...c, configs: d };
+  };
+
+/** Adds a variable to set; setting it again replaces the value, and it cancels a pending removal. */
+export const planEnvSet =
+  (key: string, value: string) =>
+  (c: UpdateFields): UpdateFields => ({
+    ...c,
+    env: {
+      set: { ...(c.env?.set ?? {}), [key]: value },
+      unset: (c.env?.unset ?? []).filter((k) => k !== key),
+    },
+  });
+
+/** Removes a variable (or cancels one that was about to be set). */
+export const planEnvUnset =
+  (key: string) =>
+  (c: UpdateFields): UpdateFields => {
+    const { [key]: _gone, ...set } = c.env?.set ?? {};
+    const unset = [...(c.env?.unset ?? []).filter((k) => k !== key), key];
+    return { ...c, env: { set, unset } };
+  };
+
+/** Takes a pending environment change back out of the plan (by name). */
+export const planEnvForget =
+  (key: string) =>
+  (c: UpdateFields): UpdateFields => {
+    if (!c.env) return c;
+    const { [key]: _gone, ...set } = c.env.set;
+    const unset = c.env.unset.filter((k) => k !== key);
+    return Object.keys(set).length === 0 && unset.length === 0
+      ? without(c, "env")
+      : { ...c, env: { set, unset } };
+  };
+
+export const planHealthcheck =
+  (current: SwarmHealthcheck | null, to: SwarmHealthcheck | null) =>
+  (c: UpdateFields): UpdateFields =>
+    sameJson(current, to)
+      ? without(c, "healthcheck")
+      : { ...c, healthcheck: { from: current, to } };
+
+export const planResources =
+  (current: SwarmResources, to: SwarmResources) =>
+  (c: UpdateFields): UpdateFields =>
+    sameJson(current, to) ? without(c, "resources") : { ...c, resources: { from: current, to } };
+
+export const planPolicy =
+  (current: Required<SwarmUpdatePolicy>, to: Required<SwarmUpdatePolicy>) =>
+  (c: UpdateFields): UpdateFields =>
+    sameJson(current, to) ? without(c, "policy") : { ...c, policy: { from: current, to } };
