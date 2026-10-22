@@ -20,7 +20,7 @@ export function ShortcutHints() {
   const { t } = useTranslation();
   return (
     <ul
-      className="sticky bottom-0 -mx-5 mt-auto flex flex-col gap-2 border-t border-line bg-bg1/90 px-5 pb-4 pt-3 backdrop-blur"
+      className="sticky bottom-0 mt-auto flex flex-col gap-2 border-t border-line bg-bg1 pb-4 pt-3"
       aria-label={t("topology.shortcuts")}
     >
       {HINTS.map(({ action, keys }) => (
