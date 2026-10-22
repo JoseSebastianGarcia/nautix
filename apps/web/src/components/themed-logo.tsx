@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { Logo } from "./logo.js";
 
-/**
- * Full brand logo for the current theme. Both images ship with their own background, so the
- * light one is blended with `multiply` (white vanishes on light surfaces) and the dark one with
- * `lighten` (black vanishes on dark surfaces). If a file is missing, the vector mark is shown.
- */
+/** Full brand logo (transparent background) for the current theme. If a file is missing, the vector mark is shown. */
 export function ThemedLogo({ size = 200, alt }: { size?: number; alt: string }) {
   const [missing, setMissing] = useState({ light: false, dark: false });
   const style = { width: size, height: size };
@@ -18,7 +14,7 @@ export function ThemedLogo({ size = 200, alt }: { size?: number; alt: string }) 
           <img
             src="/brand/logo-light.png"
             alt={alt}
-            style={{ ...style, mixBlendMode: "multiply" }}
+            style={style}
             onError={() => setMissing((m) => ({ ...m, light: true }))}
           />
         )}
@@ -30,7 +26,7 @@ export function ThemedLogo({ size = 200, alt }: { size?: number; alt: string }) 
           <img
             src="/brand/logo-dark.png"
             alt={alt}
-            style={{ ...style, mixBlendMode: "lighten" }}
+            style={style}
             onError={() => setMissing((m) => ({ ...m, dark: true }))}
           />
         )}

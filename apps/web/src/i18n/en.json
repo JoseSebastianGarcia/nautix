@@ -196,7 +196,12 @@
     "overlayAttachableHint": "Also lets standalone containers (docker run) join, not only services.",
     "overlayZone": "Overlay",
     "overlayShort": "overlay",
-    "overlayEncryptedShort": "overlay, encrypted"
+    "overlayEncryptedShort": "overlay, encrypted",
+    "paletteHide": "Hide palette",
+    "paletteShow": "Show palette",
+    "inspectorHide": "Hide inspector",
+    "inspectorShow": "Show inspector",
+    "shortcuts": "Shortcuts: Ctrl+Delete remove · Ctrl+I start · Ctrl+. stop"
   },
   "containers": {
     "title": "Containers",
@@ -1506,6 +1511,8 @@
     "envName": "Variable name",
     "envValue": "Value",
     "removeVar": "Remove {{name}}",
-    "keepVar": "Keep {{name}}"
+    "keepVar": "Keep {{name}}",
+    "overlayHint": "Docker cannot edit a network in place. To change it, create another one and move the services.",
+    "overlayNotEmpty": "Move or remove its services first."
   }
 }

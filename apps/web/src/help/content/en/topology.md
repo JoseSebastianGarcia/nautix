@@ -37,3 +37,9 @@ A solid labelled line is a [binding](help:bindings): one container uses another 
 ## A zone as a document
 
 Select a box and press **Edit as document** to see the whole zone as one YAML file. See [Zone document](help:zone-spec). A **drift** badge on a box means what runs no longer matches the last document you applied.
+
+## Panels and shortcuts
+
+Click an empty spot of the canvas to tuck the palette and the inspector away and see only the drawing. Selecting something brings the inspector back; the small tab on each edge shows or hides a panel by hand.
+
+With something selected: **Ctrl+Delete** asks to remove it, **Ctrl+I** starts it and **Ctrl+.** stops it (Ctrl+Esc works too where the system does not keep it, as Windows does). Shortcuts stay quiet while you type or while a dialog is open. In the Swarm canvas, stop and start plan zero or one copy, and remove plans the removal, so nothing happens until you apply the plan.
