@@ -122,6 +122,7 @@ function Editor({ gateway, containers }: { gateway: Container; containers: Conta
       <p className="max-w-3xl text-sm text-dim">
         {info && <strong className="text-fg">{info.label} · </strong>}
         {t("gateway.intro")}
+        {kind && <> {t(`gateway.how.${kind}`)}</>}
       </p>
       {info && !info.upstreamPath && (
         <p className="max-w-3xl text-xs text-dim">
@@ -282,7 +283,7 @@ function Editor({ gateway, containers }: { gateway: Container; containers: Conta
           <RefreshCw size={14} /> {t("gateway.reapply")}
         </Button>
       </div>
-      <p className="text-xs text-dim">{t("gateway.restartNote")}</p>
+      {kind && <p className="text-xs text-dim">{t(`gateway.keep.${kind}`)}</p>}
       <p className="text-xs text-dim">{t("gateway.allowNote")}</p>
 
       {output && (
@@ -295,7 +296,9 @@ function Editor({ gateway, containers }: { gateway: Container; containers: Conta
               {output.text}
             </pre>
           )}
-          {!output.ok && <p className="mt-2 text-xs text-dim">{t("gateway.failedHint")}</p>}
+          {!output.ok && kind && (
+            <p className="mt-2 text-xs text-dim">{t(`gateway.failedHintFor.${kind}`)}</p>
+          )}
         </section>
       )}
 
@@ -312,7 +315,9 @@ function Editor({ gateway, containers }: { gateway: Container; containers: Conta
           }
         />
       ) : (
-        <p className="text-xs text-dim">{t("gateway.noProxyPort")}</p>
+        <p className="text-xs text-dim">
+          {t("gateway.noProxyPort", { port: info?.proxyPort ?? 80 })}
+        </p>
       )}
     </div>
   );

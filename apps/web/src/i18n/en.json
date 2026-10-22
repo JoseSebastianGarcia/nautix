@@ -695,7 +695,7 @@
   "gateway": {
     "title": "Gateways and proxies",
     "none": "No supported gateway or proxy found. Drag Kong, Nginx, Caddy, Traefik or HAProxy from the palette into a network box (publish its traffic port, and 8001 too for Kong) and it will show up here.",
-    "intro": "Map a path and/or a domain to a service. Nautix saves the mappings and applies them to Kong for you; no config files or curl needed. Pick a service the gateway can reach (same network, or a tunnel) or type any URL.",
+    "intro": "Map a path and/or a domain to a service. Nautix saves the mappings and applies them to the gateway for you; no config files or curl needed. Pick a service the gateway can reach (same network, or a tunnel) or type any URL.",
     "path": "Path",
     "host": "Domain (optional)",
     "destination": "Destination",
@@ -706,12 +706,10 @@
     "saveApply": "Save and apply",
     "reapply": "Apply again",
     "noRoutes": "No routes yet.",
-    "restartNote": "Kong keeps routes in memory: after the gateway restarts, press “Apply again”.",
     "applying": "Applying routes to {{name}}…",
     "applied": "Applied to the gateway",
     "failed": "The gateway did not accept the routes",
-    "failedHint": "Check that the container is running, that it is on a user-defined network and that its admin API listens on 0.0.0.0:8001 (the Kong template does).",
-    "noProxyPort": "Publish port 8000 of the gateway on the host to get a ready-to-use test command.",
+    "noProxyPort": "Publish port {{port}} of the gateway on the host to get a ready-to-use test command.",
     "notRunning": "The gateway is not running.",
     "category": {
       "gateway": "gateway",
@@ -722,7 +720,28 @@
     "allow": "Allowed sources",
     "addMine": "Add my address ({{address}})",
     "lockout": "Your address ({{address}}) is not in this list: you would not be able to use this route from here.",
-    "allowNote": "Empty = anyone who can reach the gateway. Entries are addresses or networks such as 10.0.0.0/24. Behind another proxy or Docker's port forwarding, the gateway may see that proxy's address instead of the client's."
+    "allowNote": "Empty = anyone who can reach the gateway. Entries are addresses or networks such as 10.0.0.0/24. Behind another proxy or Docker's port forwarding, the gateway may see that proxy's address instead of the client's.",
+    "how": {
+      "kong": "Routes are posted to Kong's admin API.",
+      "nginx": "Nautix writes the file 00-nautix.conf in the container, checks it with nginx -t and reloads nginx.",
+      "caddy": "Nautix writes the Caddyfile in the container, validates it and reloads Caddy.",
+      "traefik": "Nautix writes /etc/traefik/dynamic/nautix.yml; Traefik watches that folder, so there is nothing to reload.",
+      "haproxy": "Nautix writes haproxy.cfg in the container, checks it and reloads HAProxy."
+    },
+    "keep": {
+      "kong": "Kong keeps routes in memory: after the gateway restarts, press “Apply again”.",
+      "nginx": "The file lives inside the container: it survives a restart, but if you recreate the container press “Apply again”.",
+      "caddy": "The Caddyfile lives inside the container: it survives a restart, but if you recreate the container press “Apply again”.",
+      "traefik": "The file is kept in the data volume of the Traefik template, so it survives restarts and recreation. With no routes saved, Traefik answers 404 to everything.",
+      "haproxy": "The file is kept in the template's volume, so it survives restarts and recreation."
+    },
+    "failedHintFor": {
+      "kong": "Check that the container is running, that it is on a user-defined network and that its admin API listens on 0.0.0.0:8001 (the Kong template does).",
+      "nginx": "Check that the container is running and on a user-defined network. The new file was not kept if nginx -t found an error: the output above says which line.",
+      "caddy": "Check that the container is running and on a user-defined network. A Caddyfile that does not validate is not applied: the output above says why.",
+      "traefik": "Check that the container is running and that the template's data volume is mounted at /etc/traefik/dynamic.",
+      "haproxy": "Check that the container is running and on a user-defined network. A configuration that does not validate is not applied: the output above says why."
+    }
   },
   "builds": {
     "title": "Builds",

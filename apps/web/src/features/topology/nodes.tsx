@@ -4,6 +4,7 @@ import { Globe, Lock, ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NODE_H, NODE_W } from "./layout.js";
 import { LogoBadge } from "./logo-badge.js";
+import { SideHandles } from "./side-handles.js";
 
 export type ContainerNodeData = { container: Container; canBind?: boolean } & Record<
   string,
@@ -66,13 +67,11 @@ export function ContainerNode({ data, selected }: NodeProps<ContainerFlowNode>) 
       style={{ width: NODE_W, height: NODE_H, boxShadow: selected ? "var(--nx-glow)" : undefined }}
       className="flex items-center gap-3 rounded-xl border border-line bg-bg1 px-3"
     >
-      <Handle
-        id="bind"
-        type="target"
-        position={Position.Left}
-        isConnectable={bindable}
-        style={bindable ? BIND_HANDLE : HIDDEN_HANDLE}
-        aria-label={t("bindings.dragHint")}
+      <SideHandles
+        prefix="bind"
+        connectable={bindable}
+        visibleStyle={BIND_HANDLE}
+        label={t("bindings.dragHint")}
       />
       <LogoBadge image={c.image} name={c.name} />
       <div className="min-w-0 flex-1">
@@ -106,14 +105,6 @@ export function ContainerNode({ data, selected }: NodeProps<ContainerFlowNode>) 
           )}
         </div>
       </div>
-      <Handle
-        id="bind"
-        type="source"
-        position={Position.Right}
-        isConnectable={bindable}
-        style={bindable ? BIND_HANDLE : HIDDEN_HANDLE}
-        aria-label={t("bindings.dragHint")}
-      />
     </div>
   );
 }
@@ -179,30 +170,20 @@ export function ZoneNode({ data, selected }: NodeProps<ZoneFlowNode>) {
             : t("topology.sharesNetwork")}
         </div>
       )}
-      {n && data.noTunnel === true && (
-        <Handle
-          type="target"
-          position={Position.Left}
-          style={HIDDEN_HANDLE}
-          isConnectable={false}
-        />
-      )}
-      {n && data.noTunnel !== true && (
-        // Drag from this dot to another box's dot to open a tunnel between the two networks.
-        <Handle
-          id="tunnel"
-          type="source"
-          position={Position.Right}
-          isConnectable={data.canTunnel === true}
-          title={t("tunnel.handle")}
-          aria-label={t("tunnel.handle")}
-          style={{
+      {n && (
+        // Drag from a dot to another box's dot to open a tunnel between the two networks. The dots are on
+        // every side so a line can use the ones that face the other box.
+        <SideHandles
+          prefix="tunnel"
+          connectable={data.noTunnel !== true && data.canTunnel === true}
+          visibleStyle={{
             width: 14,
             height: 14,
             background: "var(--nx-bg-1)",
             border: "2px solid var(--nx-accent)",
-            right: -8,
           }}
+          label={t("tunnel.handle")}
+          title={t("tunnel.handle")}
         />
       )}
     </div>
