@@ -27,7 +27,10 @@ export const useApiMutation = <V, R = unknown>(
     },
     onError: (error) => {
       const key = error instanceof ApiError ? error.hintKey : undefined;
-      push("error", key ? t(key) : t("errors.generic"));
+      const base = key ? t(key) : t("errors.generic");
+      // Docker's own reason is the only useful part of a rejected swarm call.
+      const why = key === "errors.swarmRejected" && error instanceof ApiError ? error.detail : "";
+      push("error", why ? `${base}: ${why}` : base);
     },
     onSettled: (_data, _error, _variables, pendingId) => {
       if (pendingId !== undefined) dismiss(pendingId);
