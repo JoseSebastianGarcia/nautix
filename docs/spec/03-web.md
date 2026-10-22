@@ -14,33 +14,38 @@ export interface EditorCommand<D> { type: string; apply(doc: D): D }
 // history = { past: D[]; present: D; future: D[] }, max 500, coalesce typing within 500 ms
 ```
 
-## Layout
-Sidebar (Dashboard · Containers · Images · Volumes · Networks · Compose · Dockerfile · Builds · Registries · Swarm · Terminal · System · Settings), top bar (command palette `Ctrl/⌘+K`, engine status, theme and language switchers, user menu), operations drawer, toasts. "Show command" on every action.
+## Layout (as built)
+A **floating glass top bar** (not a sidebar) with the main menu — **Topology · Resources · Compose · Swarm · System** — and, on the right, the engine status, theme and language selectors, the signed-in user, change password, help (**?**), settings (gear) and sign out. **Resources** has its own tab row: Containers · Images · Volumes · Networks · Builds · Gateways · DNS · Guards · Swarm (Swarm is in both places on purpose: the page is the same). Settings holds Appearance, Users, API tokens, Registries, HTTPS certificate, Backup and Audit log. Dialogs are native `<dialog>` with a close button; toasts float at the bottom right. "Show command" is on every action.
 
-## Theme (dark / light / system)
-CSS variables on `:root[data-theme]`, applied before first paint; `system` follows `prefers-color-scheme`. Test: both themes define the same variables and text/background pairs meet WCAG AA.
+The **topology** screen: palette of templates on the left, the canvas (networks as boxes, containers as nodes), and a floating inspector on the right. When the engine is in a swarm a *Local server / Cluster* switch appears above it; without a swarm nothing of Swarm is shown except a floating **Connect to Swarm** button (ADR-052). The cluster has three drawings: **Canvas**, **By network**, **By server** (ADR-048, ADR-050).
+
+## Theme (dark / light / system) and glass (ADR-049)
+CSS variables on `:root[data-theme]`; `system` follows `prefers-color-scheme`. Tests: both themes define the **same set of tokens**, and the accent keeps its contrast. The base is **flat** (no gradients); the **primary button is inverted** (white on dark, black on light) and the accent is a fine detail — selection, links, zones, focus, small badges — never a button fill and never a state color.
 
 | Token | Dark | Light |
 |---|---|---|
-| `--nx-bg-0` | `#07090B` | `#F4F7F9` |
-| `--nx-bg-1` | `#0D1114` | `#FFFFFF` |
-| `--nx-bg-2` | `#141A1F` | `#EAF0F3` |
-| `--nx-line` | `#1F2A31` | `#D5DFE5` |
-| `--nx-text` | `#E6EEF2` | `#0E1A21` |
-| `--nx-text-dim` | `#8A9BA6` | `#55677A` |
-| `--nx-lime` (fill) | `#B6FF3B` | `#B6FF3B` |
-| `--nx-lime-strong` (text/lines) | `#B6FF3B` | `#4C8A00` |
-| `--nx-cyan` | `#38D5FF` | `#0089B8` |
-| `--nx-violet` (volumes) | `#A78BFA` | `#7C5CE0` |
-| `--nx-amber` (config/secret/warn) | `#FFB020` | `#B86E00` |
-| `--nx-danger` | `#FF4D6A` | `#D6204A` |
+| `--nx-bg-0` / `-1` / `-2` | `#09090B` / `#111113` / `#18181B` | `#FFFFFF` / `#FAFAFA` / `#F4F4F5` |
+| `--nx-line` | `#27272A` | `#E4E4E7` |
+| `--nx-text` / `--nx-text-dim` | `#FAFAFA` / `#A1A1AA` | `#09090B` / `#52525B` |
+| `--nx-primary` / `-fg` | `#FAFAFA` / `#09090B` | `#09090B` / `#FAFAFA` |
+| `--nx-accent` (default, overridable) | `#8B7CF6` | `#5B46D8` |
+| `--nx-ok` · `--nx-amber` · `--nx-danger` | `#4ADE80` · `#FBBF24` · `#EF4444` | `#15803D` · `#A15C00` · `#DC2626` |
+| `--nx-cyan` | `#38BDF8` | `#0369A1` |
+| `--nx-glass-bg` / `-edge` / `-shadow` | translucent dark, light edges | translucent white, light edges |
 
-Fonts: Inter + JetBrains Mono, self-hosted. Radius 12 / 8. Futuristic accents: lime/cyan, subtle glow on selected nodes only (off under reduced motion).
+Also `--nx-grid`, `--nx-zone`, `--nx-zone-line`, `--nx-ext-line`, `--nx-glow`. Fonts: Inter + JetBrains Mono.
 
-**Canvas (n8n-style):** grid background (24 px minor, 120 px major, snap 12), nodes 220×72 with a 40×40 tinted icon (service lime, network cyan, volume violet, config/secret amber), status dot **plus** icon/tooltip, Bézier edges colored by relation, minimap and zoom controls. Perf: visible-only rendering, memoized nodes, layout in a worker above 150 nodes.
+**Accent** (Settings → Appearance): seven presets or any color; hues in red, yellow/orange and green are moved to the nearest allowed hue (those colors mean error, warning and ok), and lightness is adjusted until text on the panel color reaches 4.5:1 in the current theme (`theme/accent.ts`, pure and tested). Written as CSS variables on the root; saved in `localStorage`.
+
+**Glass is only for what floats**: the top bar, the topology inspector, toasts and dialogs. In Chromium the edge also refracts what is behind it (SVG displacement inside `backdrop-filter`); other browsers get blur only. Text-carrying layers use a denser fill. **Reduce transparency** (a setting, or `prefers-reduced-transparency`) makes every glass layer solid; `prefers-reduced-motion` turns animations off.
+
+**Canvas:** dotted grid, zone boxes (dashed = local network, double line = overlay), nodes 220×72 with the product's logo (simple-icons, initials as fallback), status dot **plus** text/icon, Bézier edges colored by relation (binding, tunnel, extra network), controls for zoom. Positions are saved per zone and per node (`layout` module).
+
+## Help (ADR-045)
+A **?** by the settings gear opens a side panel on the topic of the page you are on, with search. Topics are Markdown files per language in `apps/web/src/help/content/<en|es>/`, bundled with the app (works offline), with screenshots in both themes (`apps/web/public/help/<name>-<dark|light>.png`, regenerated by `scripts/help-screenshots.mjs` against the demo engine). Small **?** buttons in dialogs open the topic behind them. **Rule:** a feature change updates its topic. Tests: every topic exists in both languages, every screenshot in both themes.
 
 ## i18n (en, es)
-Resources `en.json` / `es.json` per feature, ICU messages, runtime switch without reload, default = browser language. Server errors send `code` + `hintKey`; the web translates. Tests: key parity, placeholder parity, no literal text in JSX.
+Resources `en.json` / `es.json` per feature, ICU messages, runtime switch without reload, default = browser language. Server errors send `code` + `hintKey`; the web translates. Tests: key parity, placeholder parity, no literal text in JSX; every `t("key")` used in source exists in both files, and every `errors.*` hint the API can send has an English and a Spanish text.
 
 ## Accessibility
 Keyboard-operable (including graph: arrows select, Enter inspects, Delete removes with confirm, Ctrl+Z/Y), visible focus, ARIA names from i18n, axe check on main screens in both themes.

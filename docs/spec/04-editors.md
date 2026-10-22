@@ -13,6 +13,8 @@ export interface GraphCanvas { /* nodes, edges, viewport, selection, layout; no 
 
 ## A. Network graph (live)
 
+> **Status.** Built as the **topology** (section D) rather than as a Networks → Graph tab: networks are boxes and the containers on them live inside. The behaviors below that are not in D (layers, focus mode, SVG/PNG export, undo/redo of the graph) were not built; the rest (connect by drag, create network with CIDR check, actions on nodes, warnings, inspector) were, in the topology's own form.
+
 Nest module `networks` + web `features/networks`. Screen: Networks → "Graph" tab.
 
 **Model** (`NetworkTopology`): nodes = `ContainerNode`, `NetworkNode`, `VolumeNode`(optional layer); edges = `Attachment(container↔network, aliases, ipv4, ipv6)`, `Mount(container↔volume)`. Built from `ListNetworks`, `ListContainers`, `InspectNetwork` and updated by events.
@@ -99,3 +101,26 @@ Modules: `dockerfile` (editing) + `builds` (running).
 - History: last 50 builds persisted (metadata only) in SQLite.
 
 **Acceptance**: see M4.
+
+---
+
+## D. Topology and Swarm canvas (as built)
+
+Both are React Flow canvases in `web/src/features/topology`, share the same layout code (`layoutTopology`, generic over containers and services) and save positions in the same `layout` document (services under `svc:<name>`).
+
+### D1. Topology (local engine)
+- Each **network is a box** (zone); containers sit in the first user network they belong to and are linked to the others. Containers on no user network sit in an **external** box (published on `127.0.0.1` only). Isolated networks are drawn as such; an overlay is a double line.
+- **Palette** of templates (catalog module; built-ins are version-pinned, users add their own, a built-in can be customized as a copy). Drag onto a box to deploy there; the dialog pre-fills ports, environment (placeholder secrets are generated), volumes (named after the container) and command.
+- **Move** a container to another box (leave one network, join the other, after confirmation with the commands), **join a second network**, **tunnel** between two boxes (a relay container), **bind** an app to a service by dragging between their dots (`08`), edit a **zone as a YAML document** (`09`), see **drift**.
+- Inspector: details, ports with who can reach them (`07`), environment, bindings, networks, history (audit).
+
+### D2. Swarm canvas (ADR-048, 050, 053, 054)
+Shown only when the engine is a swarm manager (otherwise a floating **Connect to Swarm** button, ADR-052). **Cluster → Canvas**:
+- **Overlay networks are boxes, services are nodes**: logo, copies running (`3/3`), published ports, a **dot per copy in the colour of the server it runs on** (hollow when not well; a legend lists the servers), small icons for pinned / volumes / secrets / rolled back. Copies nobody has taken yet are *waiting*, with Docker's reason, not running on an unknown server.
+- **Plan.** Nothing is applied when you edit; each change is drawn dashed and waits in a plan with its `docker service …` command (environment values are never shown). Items: **create** (from a template: copies or global, network, **placement** any/workers/managers/pinned node plus a per-node limit, **volumes**, ports to publish, **secrets**, **configs**, environment, health check, limits, update policy), **scale**, **update** (image, networks by dragging the node to another box, placement, ports, volumes, secrets, configs, environment by name, health check, limits, update policy), **bind / unbind** two services, **remove**.
+- **Apply** runs one change at a time and waits for the result: a new service until its copies run; an update until Docker reports the rolling update `completed` (only an update newer than the one seen before the request counts). Docker rolls a failing update back by itself (failure action *rollback*); that is a failure of the plan, with Docker's own cause. **On any failure everything already done is undone in reverse** (created → removed; scaled/updated → previous values; bound → unbound; unbound → bound again). **Environment** changes are undone with the engine's `rollback=previous`, exact only when it is the only update the plan makes to that service; otherwise the dialog says the values cannot be restored automatically. **Removals run last and are never undone** (a removed service's settings cannot be read back); if one fails the earlier removals stay and the dialog says so.
+- **Bindings between services** reuse the container strategies (PostgreSQL, MySQL/MariaDB, SQL Server, MongoDB, Redis, RabbitMQ, plain URL): the consumer gets the variables in its environment and joins the provider's overlay if needed; the provider's own environment is read on the server and never returned.
+- **Defaults that keep data safe:** a service created with volumes starts **pinned to a node** (a volume lives on the node where a copy runs) and updates **stop the old copy first** when it has volumes or a per-node limit; every service gets an update policy with failure action *rollback* (10 s monitor).
+- Roll back to the previous version, move, change image or settings, and remove are all done from the inspector of the selected service.
+
+Not in this version: a canvas over several engines, container↔service bindings, overlay MTU, editing a service's command/user/labels.
