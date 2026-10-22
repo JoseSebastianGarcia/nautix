@@ -201,7 +201,12 @@
     "paletteShow": "Show palette",
     "inspectorHide": "Hide inspector",
     "inspectorShow": "Show inspector",
-    "shortcuts": "Shortcuts: Ctrl+Delete remove · Ctrl+I start · Ctrl+. stop"
+    "shortcuts": "Shortcuts",
+    "shortcut": {
+      "remove": "Remove",
+      "start": "Start",
+      "stop": "Stop"
+    }
   },
   "containers": {
     "title": "Containers",
@@ -1350,7 +1355,7 @@
   "appearance": {
     "title": "Appearance",
     "accent": "Accent color",
-    "accentHint": "A fine detail for selection, links, zones and focus. Buttons stay white (dark) or black (light). Red, green and yellow are not available because they mean error, ok and warning.",
+    "accentHint": "A fine detail for selection, links, zones and focus. Buttons stay white (dark) or black (light). Red, green and yellow are not available because they mean error, ok and warning. A second, related color (shifted toward teal) paints the overlays and, as a gradient, a few details: the selected node, the active tab and the edge of the inspector.",
     "custom": "Custom",
     "reset": "Reset",
     "contrast": "contrast {{ratio}}:1",

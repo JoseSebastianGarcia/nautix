@@ -201,7 +201,12 @@
     "paletteShow": "Mostrar paleta",
     "inspectorHide": "Ocultar inspector",
     "inspectorShow": "Mostrar inspector",
-    "shortcuts": "Atajos: Ctrl+Supr borrar · Ctrl+I iniciar · Ctrl+. parar"
+    "shortcuts": "Atajos",
+    "shortcut": {
+      "remove": "Borrar",
+      "start": "Iniciar",
+      "stop": "Detener"
+    }
   },
   "containers": {
     "title": "Contenedores",
@@ -1350,7 +1355,7 @@
   "appearance": {
     "title": "Apariencia",
     "accent": "Color de acento",
-    "accentHint": "Un detalle fino para selección, enlaces, zonas y foco. Los botones siguen blancos (oscuro) o negros (claro). Rojo, verde y amarillo no están disponibles porque significan error, correcto y aviso.",
+    "accentHint": "Un detalle fino para selección, enlaces, zonas y foco. Los botones siguen blancos (oscuro) o negros (claro). Rojo, verde y amarillo no están disponibles porque significan error, correcto y aviso. Un segundo color emparentado (corrido hacia el turquesa) pinta las overlay y, en degradé, unos pocos detalles: el nodo seleccionado, la pestaña activa y el borde del inspector.",
     "custom": "Otro",
     "reset": "Restablecer",
     "contrast": "contraste {{ratio}}:1",

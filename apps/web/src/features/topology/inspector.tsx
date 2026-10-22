@@ -32,6 +32,7 @@ import { EnvDialog } from "../containers/env-dialog.js";
 import { ExposureDialog, type ExposureTarget } from "../containers/exposure-dialog.js";
 import type { ExportTarget } from "./export-dialog.js";
 import { LogoBadge } from "./logo-badge.js";
+import { ShortcutHints } from "./shortcut-hints.js";
 import { useCanvasShortcuts } from "./use-canvas-shortcuts.js";
 
 export type Selection =
@@ -69,7 +70,7 @@ export function Inspector({
   if (!open) return null;
   return (
     <aside
-      className="nx-glass nx-glass-dense nx-lens-tall absolute bottom-3 right-3 top-3 z-10 flex w-80 flex-col gap-4 overflow-y-auto rounded-3xl p-5"
+      className="nx-glass nx-glass-dense nx-hairline nx-lens-tall absolute bottom-3 right-3 top-3 z-10 flex w-80 flex-col gap-4 overflow-y-auto rounded-3xl p-5"
       aria-label={t("topology.inspector")}
     >
       <h2 className="font-mono text-xs uppercase tracking-wider text-dim">
@@ -95,7 +96,7 @@ export function Inspector({
       {!container && !network && !tunnel && (
         <p className="text-sm text-dim">{t("topology.inspectorEmpty")}</p>
       )}
-      <p className="mt-auto text-[11px] text-dim">{t("topology.shortcuts")}</p>
+      <ShortcutHints />
     </aside>
   );
 }

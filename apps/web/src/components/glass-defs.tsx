@@ -37,6 +37,10 @@ export function GlassDefs() {
     <svg width="0" height="0" className="absolute" aria-hidden="true" focusable="false">
       <title>glass</title>
       <Lens id="nx-lens-wide" href={map(0.02, 0.3)} scale={50} />
+      <linearGradient id="nx-aurora" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" style={{ stopColor: "var(--nx-accent)" }} />
+        <stop offset="1" style={{ stopColor: "var(--nx-accent-2)" }} />
+      </linearGradient>
       <Lens id="nx-lens-tall" href={map(0.1, 0.03)} scale={45} />
     </svg>
   );

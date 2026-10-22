@@ -65,7 +65,7 @@ export function Shell() {
             >
               <Icon size={15} /> {t(key)}
               {isActivePath(to, pathname) && (
-                <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                <span className="nx-aurora-bg h-1.5 w-1.5 rounded-full" aria-hidden="true" />
               )}
             </NavLink>
           ))}

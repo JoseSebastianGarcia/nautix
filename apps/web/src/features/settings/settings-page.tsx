@@ -9,7 +9,7 @@ import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Select } from "../../components/select.js";
 import { useToasts } from "../../components/toast-store.js";
 import { Button, ConfirmDialog, Dialog, Field, Input } from "../../components/ui.js";
-import { PRESET_ACCENTS, resolveAccent } from "../../theme/accent.js";
+import { PRESET_ACCENTS, resolveAccent, resolveCompanion } from "../../theme/accent.js";
 import { resolveTheme } from "../../theme/resolve-theme.js";
 import { useTheme } from "../../theme/theme-store.js";
 import { AuditTable } from "../audit/audit-table.js";
@@ -54,7 +54,9 @@ function AppearanceSection() {
                 aria-label={hex}
                 aria-pressed={hex === theme.accent}
                 onClick={() => theme.setAccent(hex)}
-                style={{ background: resolveAccent(hex, resolved).accent }}
+                style={{
+                  background: `linear-gradient(135deg, ${resolveAccent(hex, resolved).accent}, ${resolveCompanion(hex, resolved).accent})`,
+                }}
                 className={`h-8 w-8 rounded-full ring-offset-2 ring-offset-bg1 ${hex === theme.accent ? "ring-2 ring-fg" : ""}`}
               />
             ))}

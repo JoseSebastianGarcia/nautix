@@ -19,3 +19,5 @@ Solo las capas que flotan tienen aspecto de vidrio: la barra superior, el inspec
 Activá **Reducir transparencia** para tener paneles sólidos sin desenfoque. Se activa sola cuando tu sistema pide menos transparencia. Con **Reducir movimiento** en tu sistema los diálogos también se abren sin animación.
 
 Las preferencias se guardan solo en este navegador.
+
+El valor por defecto es **Aurora**: azul que se funde en turquesa, como el logo. El segundo color es el matiz del acento corrido hacia el turquesa (nunca rojo, verde ni amarillo); pinta las cajas overlay y los túneles, y junto con el acento forma un degradé en el nodo seleccionado, el punto de la pestaña activa, el borde superior del inspector y un resplandor suave detrás del encabezado. Si elegís otro acento, el par lo sigue.
