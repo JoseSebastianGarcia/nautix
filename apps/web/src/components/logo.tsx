@@ -25,7 +25,7 @@ function Emblem({ size, theme }: { size: number; theme: "light" | "dark" }) {
       aria-hidden="true"
       width={size}
       height={size}
-      className="rounded-full"
+      style={{ width: size, height: size, maxWidth: "none" }}
       onError={() => setMissing(true)}
     />
   );
