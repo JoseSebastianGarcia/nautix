@@ -695,7 +695,7 @@
   "gateway": {
     "title": "Gateways y proxies",
     "none": "No hay ningún gateway o proxy compatible. Arrastrá Kong, Nginx, Caddy, Traefik o HAProxy desde la paleta a una caja de red (publicá su puerto de tráfico, y 8001 también en Kong) y aparecerá acá.",
-    "intro": "Asociá una ruta y/o un dominio con un servicio. Nautix guarda los mapeos y los aplica en Kong por vos; sin archivos de configuración ni curl. Elegí un servicio al que el gateway llegue (misma red, o un túnel) o escribí cualquier URL.",
+    "intro": "Asociá una ruta y/o un dominio con un servicio. Nautix guarda los mapeos y los aplica en el gateway por vos; sin archivos de configuración ni curl. Elegí un servicio al que el gateway llegue (misma red, o un túnel) o escribí cualquier URL.",
     "path": "Ruta",
     "host": "Dominio (opcional)",
     "destination": "Destino",
@@ -706,12 +706,10 @@
     "saveApply": "Guardar y aplicar",
     "reapply": "Aplicar de nuevo",
     "noRoutes": "Todavía no hay rutas.",
-    "restartNote": "Kong guarda las rutas en memoria: si el gateway se reinicia, apretá “Aplicar de nuevo”.",
     "applying": "Aplicando rutas en {{name}}…",
     "applied": "Aplicado en el gateway",
     "failed": "El gateway no aceptó las rutas",
-    "failedHint": "Verificá que el contenedor esté en ejecución, en una red definida por el usuario y que su API de administración escuche en 0.0.0.0:8001 (la plantilla de Kong lo hace).",
-    "noProxyPort": "Publicá el puerto 8000 del gateway en el host para obtener un comando de prueba listo.",
+    "noProxyPort": "Publicá el puerto {{port}} del gateway en el host para obtener un comando de prueba listo.",
     "notRunning": "El gateway no está en ejecución.",
     "category": {
       "gateway": "gateway",
@@ -722,7 +720,28 @@
     "allow": "Orígenes permitidos",
     "addMine": "Agregar mi dirección ({{address}})",
     "lockout": "Tu dirección ({{address}}) no está en esta lista: no podrías usar esta ruta desde acá.",
-    "allowNote": "Vacío = cualquiera que llegue al gateway. Se escriben direcciones o redes como 10.0.0.0/24. Detrás de otro proxy o del reenvío de puertos de Docker, el gateway puede ver la dirección de ese proxy en lugar de la del cliente."
+    "allowNote": "Vacío = cualquiera que llegue al gateway. Se escriben direcciones o redes como 10.0.0.0/24. Detrás de otro proxy o del reenvío de puertos de Docker, el gateway puede ver la dirección de ese proxy en lugar de la del cliente.",
+    "how": {
+      "kong": "Las rutas se envían a la API de administración de Kong.",
+      "nginx": "Nautix escribe el archivo 00-nautix.conf dentro del contenedor, lo verifica con nginx -t y recarga nginx.",
+      "caddy": "Nautix escribe el Caddyfile dentro del contenedor, lo valida y recarga Caddy.",
+      "traefik": "Nautix escribe /etc/traefik/dynamic/nautix.yml; Traefik vigila esa carpeta, así que no hay nada que recargar.",
+      "haproxy": "Nautix escribe haproxy.cfg dentro del contenedor, lo verifica y recarga HAProxy."
+    },
+    "keep": {
+      "kong": "Kong guarda las rutas en memoria: si el gateway se reinicia, apretá “Aplicar de nuevo”.",
+      "nginx": "El archivo vive dentro del contenedor: sobrevive a un reinicio, pero si recreás el contenedor apretá “Aplicar de nuevo”.",
+      "caddy": "El Caddyfile vive dentro del contenedor: sobrevive a un reinicio, pero si recreás el contenedor apretá “Aplicar de nuevo”.",
+      "traefik": "El archivo queda en el volumen de datos de la plantilla de Traefik, así que sobrevive a reinicios y a recrearlo. Sin rutas guardadas, Traefik responde 404 a todo.",
+      "haproxy": "El archivo queda en el volumen de la plantilla, así que sobrevive a reinicios y a recrearlo."
+    },
+    "failedHintFor": {
+      "kong": "Verificá que el contenedor esté en ejecución, en una red definida por el usuario y que su API de administración escuche en 0.0.0.0:8001 (la plantilla de Kong lo hace).",
+      "nginx": "Verificá que el contenedor esté en ejecución y en una red definida por el usuario. Si nginx -t encontró un error, el archivo nuevo no se conservó: la salida de arriba dice qué línea.",
+      "caddy": "Verificá que el contenedor esté en ejecución y en una red definida por el usuario. Un Caddyfile que no valida no se aplica: la salida de arriba dice por qué.",
+      "traefik": "Verificá que el contenedor esté en ejecución y que el volumen de datos de la plantilla esté montado en /etc/traefik/dynamic.",
+      "haproxy": "Verificá que el contenedor esté en ejecución y en una red definida por el usuario. Una configuración que no valida no se aplica: la salida de arriba dice por qué."
+    }
   },
   "builds": {
     "title": "Builds",
