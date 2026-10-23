@@ -30,6 +30,7 @@ import { Button, ConfirmDialog, ShowCommand } from "../../components/ui.js";
 import { BindingsSection } from "../bindings/bindings-section.js";
 import { EnvDialog } from "../containers/env-dialog.js";
 import { ExposureDialog, type ExposureTarget } from "../containers/exposure-dialog.js";
+import { statusText } from "../containers/status-text.js";
 import type { ExportTarget } from "./export-dialog.js";
 import { LogoBadge } from "./logo-badge.js";
 import { ShortcutHints } from "./shortcut-hints.js";
@@ -160,7 +161,8 @@ function ContainerInspector({
       </div>
       <div className="text-sm">
         <span className="text-dim">{t("common.status")}: </span>
-        {t(`containers.state.${c.state}`)} · <span className="text-dim">{c.status}</span>
+        {t(`containers.state.${c.state}`)} ·{" "}
+        <span className="text-dim">{statusText(c.status, t)}</span>
       </div>
 
       {locked && (

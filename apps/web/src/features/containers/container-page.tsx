@@ -14,6 +14,7 @@ import {
   ProcessesPanel,
   StatsPanel,
 } from "./panels.js";
+import { statusText } from "./status-text.js";
 
 const TABS = [
   "overview",
@@ -58,7 +59,7 @@ export function ContainerPage() {
             {c.isSelf && <Lock size={14} className="text-amber" aria-label={t("self.badge")} />}
           </h1>
           <p className="font-mono text-xs text-dim">
-            {c.image} · {t(`containers.state.${c.state}`)} · {c.status}
+            {c.image} · {t(`containers.state.${c.state}`)} · {statusText(c.status, t)}
           </p>
         </div>
         {isAdmin && !c.isSelf && c.state === "running" && (

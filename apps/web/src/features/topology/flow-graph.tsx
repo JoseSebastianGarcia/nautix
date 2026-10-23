@@ -133,7 +133,14 @@ export const bindingEdges = (
     const to = topology.placements.find((p) => p.containerId === provider.id);
     const sides =
       from && to
-        ? sidesBetween(nodeRect(from.x, from.y), nodeRect(to.x, to.y))
+        ? sidesBetween(
+            nodeRect(from.x, from.y),
+            nodeRect(to.x, to.y),
+            // Keep the line off the other containers when another pair of sides is clear.
+            topology.placements
+              .filter((p) => p !== from && p !== to)
+              .map((p) => nodeRect(p.x, p.y)),
+          )
         : { source: "right", target: "left" };
     return [
       {

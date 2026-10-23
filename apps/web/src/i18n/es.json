@@ -209,6 +209,35 @@
       "stop": "Detener"
     }
   },
+  "status": {
+    "up": "Activo hace {{time}}",
+    "exited": "Terminó ({{code}}) hace {{time}}",
+    "restarting": "Reiniciando ({{code}}) hace {{time}}",
+    "created": "Creado",
+    "paused": "En pausa",
+    "healthy": "saludable",
+    "unhealthy": "con fallos",
+    "starting": "iniciando",
+    "time": {
+      "lessThanSecond": "menos de un segundo",
+      "aboutMinute": "cerca de un minuto",
+      "aboutHour": "cerca de una hora",
+      "second_one": "{{count}} segundo",
+      "second_other": "{{count}} segundos",
+      "minute_one": "{{count}} minuto",
+      "minute_other": "{{count}} minutos",
+      "hour_one": "{{count}} hora",
+      "hour_other": "{{count}} horas",
+      "day_one": "{{count}} día",
+      "day_other": "{{count}} días",
+      "week_one": "{{count}} semana",
+      "week_other": "{{count}} semanas",
+      "month_one": "{{count}} mes",
+      "month_other": "{{count}} meses",
+      "year_one": "{{count}} año",
+      "year_other": "{{count}} años"
+    }
+  },
   "containers": {
     "title": "Contenedores",
     "start": "Iniciar",
