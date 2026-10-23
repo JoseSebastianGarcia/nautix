@@ -10,7 +10,7 @@ RUN if [ -s /certs/extra.pem ]; then export NODE_EXTRA_CA_CERTS=/certs/extra.pem
  && pnpm --filter @nautix/api deploy --prod --legacy /out/api \
  && cp -r apps/web/dist /out/web
 
-FROM docker:27-cli AS docker-cli
+FROM docker:28-cli AS docker-cli
 
 FROM node:22-bookworm-slim
 ENV NODE_ENV=production \
