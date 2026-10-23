@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS build
+FROM node:25-bookworm-slim AS build
 RUN corepack enable
 # Optional corporate root CA: put *.crt files in ./certs and the build trusts them (see certs/README.md).
 COPY certs /certs
@@ -12,7 +12,7 @@ RUN if [ -s /certs/extra.pem ]; then export NODE_EXTRA_CA_CERTS=/certs/extra.pem
 
 FROM docker:27-cli AS docker-cli
 
-FROM node:22-bookworm-slim
+FROM node:25-bookworm-slim
 ENV NODE_ENV=production \
     NAUTIX_HOST=0.0.0.0 \
     NAUTIX_PORT=3737 \
