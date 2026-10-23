@@ -14,7 +14,7 @@
     "@nautix/compose": "workspace:*",
     "@nautix/contracts": "workspace:*",
     "@nestjs/common": "^11.1.0",
-    "@nestjs/core": "^11.1.0",
+    "@nestjs/core": "^12.2.0",
     "@nestjs/cqrs": "^11.0.0",
     "@nestjs/platform-express": "^11.1.0",
     "better-sqlite3": "^12.0.0",
