@@ -29,6 +29,9 @@ jobs:
   image:
     needs: verify
     runs-on: ubuntu-latest
+    # Create an environment called "release" in Settings → Environments and add yourself as a required reviewer:
+    # publishing then waits for your approval, so nobody who can push a tag can publish alone.
+    environment: release
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4

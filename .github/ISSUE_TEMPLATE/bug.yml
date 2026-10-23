@@ -1,0 +1,32 @@
+name: Bug
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what you saw instead.
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: Nautix version or image tag
+      placeholder: 0.4.0
+    validations: { required: true }
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you run it
+      options: [Docker Compose, docker run, From source, Other]
+    validations: { required: true }
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Docker version, plain Docker or Swarm, browser.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove tokens, passwords and addresses you do not want to share.
