@@ -170,6 +170,7 @@ function UsersSection() {
       <ConfirmDialog
         open={target !== null}
         title={t("settings.deleteUserTitle", { name: target?.username ?? "" })}
+        confirmLabel={t("common.delete")}
         body={t("settings.deleteUserBody")}
         onConfirm={() => target && remove.mutate(target.id)}
         onClose={() => setTarget(null)}
@@ -607,6 +608,7 @@ function RegistriesSection() {
       <ConfirmDialog
         open={target !== null}
         title={t("settings.registryRemoveTitle", { server: target ?? "" })}
+        confirmLabel={t("common.delete")}
         body={t("settings.registryRemoveBody")}
         onConfirm={() => target && remove.mutate(target)}
         onClose={() => setTarget(null)}

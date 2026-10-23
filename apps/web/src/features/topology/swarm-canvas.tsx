@@ -822,6 +822,7 @@ function OverlayInspector({
       <ConfirmDialog
         open={confirm}
         title={t("topology.removeNetworkTitle", { name: n.name })}
+        confirmLabel={t("common.delete")}
         body={t("topology.removeNetworkBody")}
         command={cli.removeNetwork(n.name)}
         onConfirm={() => remove.mutate(undefined, { onSuccess: onGone })}

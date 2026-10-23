@@ -22,4 +22,19 @@ describe("sidesBetween", () => {
     // Far sideways but very wide boxes: still stacked.
     expect(sidesBetween(box(0, 0, 1000, 100), box(300, 200, 1000, 100)).source).toBe("bottom");
   });
+
+  it("takes the other axis when the natural line would run through a box", () => {
+    // postgres sits to the left of redis; the app is up and to the right. Sideways would cross redis.
+    const app = box(600, 0);
+    const postgres = box(0, 300);
+    const redis = box(230, 300);
+    expect(sidesBetween(app, postgres).source).toBe("left");
+    expect(sidesBetween(app, postgres, [redis])).toEqual({ source: "bottom", target: "top" });
+  });
+
+  it("keeps the natural sides when both ways are blocked or nothing is in the way", () => {
+    const a = box(0, 0);
+    const b = box(400, 0);
+    expect(sidesBetween(a, b, [box(0, 500)])).toEqual({ source: "right", target: "left" });
+  });
 });

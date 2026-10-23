@@ -130,9 +130,9 @@ export function ZoneNode({ data, selected }: NodeProps<ZoneFlowNode>) {
       // A double line tells an overlay (one network over several servers) from a local one at a glance.
       className={`rounded-2xl border-2 ${overlay ? "border-double" : "border-dashed"}`}
     >
-      <div className="flex items-center justify-between px-4 pt-3 text-xs">
+      <div className="flex items-center justify-between gap-3 px-4 pt-3 text-xs">
         <span
-          className="truncate font-mono uppercase tracking-wider"
+          className="min-w-0 truncate font-mono uppercase tracking-wider"
           style={{
             color: external
               ? "var(--nx-text-dim)"
@@ -155,7 +155,7 @@ export function ZoneNode({ data, selected }: NodeProps<ZoneFlowNode>) {
             </span>
           )}
         </span>
-        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap text-dim">
+        <span className="flex shrink-0 items-center gap-1 leading-none whitespace-nowrap text-dim">
           {data.label ? null : external ? (
             <>
               <Lock size={12} /> {t("topology.loopbackOnly")}

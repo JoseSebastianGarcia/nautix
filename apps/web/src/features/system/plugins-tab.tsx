@@ -131,6 +131,7 @@ export function PluginsTab() {
       <ConfirmDialog
         open={target !== null}
         title={t("plugins.removeTitle", { name: target?.name ?? "" })}
+        confirmLabel={t("common.delete")}
         body={t("plugins.removeBody")}
         onConfirm={() => target && remove.mutate(target)}
         onClose={() => setTarget(null)}

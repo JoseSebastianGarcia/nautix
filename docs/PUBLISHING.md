@@ -1,5 +1,7 @@
 # Publishing the image to Docker Hub
 
+> Guía detallada en español, paso a paso: [`PUBLISHING.es.md`](PUBLISHING.es.md).
+
 The workflow `.github/workflows/release.yml` builds a multi-arch image (amd64 + arm64, with SBOM and
 provenance) and pushes it as `<DOCKERHUB_USERNAME>/nautix`.
 

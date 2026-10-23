@@ -64,6 +64,7 @@ export function BindingsSection({
       <ConfirmDialog
         open={removing !== null}
         title={t("bindings.removeTitle")}
+        confirmLabel={t("common.delete")}
         body={
           removing
             ? t("bindings.removeBody", {

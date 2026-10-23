@@ -139,6 +139,7 @@ export function ServiceInspector({
       <ConfirmDialog
         open={confirm}
         title={t("compose.removeServiceTitle", { name: s.name })}
+        confirmLabel={t("common.delete")}
         body={t("compose.removeServiceBody")}
         onConfirm={() => {
           onEdit((d) => removeService(d, s.name));

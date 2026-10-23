@@ -1,20 +1,35 @@
 name: release
-# Publishes the image to Docker Hub when you push a tag like v0.1.0 (or run it by hand).
+# Publishes the image to Docker Hub when you push a tag like v0.4.0 (or run it by hand).
 # Needs two repository secrets: DOCKERHUB_USERNAME and DOCKERHUB_TOKEN (a Docker Hub access token
-# with Read & Write). The image is <DOCKERHUB_USERNAME>/nautix.
+# with Read & Write). The image is <DOCKERHUB_USERNAME>/nautix. See docs/PUBLISHING.es.md.
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
-        description: Tag to publish (for example 0.1.0)
+        description: Tag to publish (for example 0.4.0)
         required: true
+permissions:
+  contents: read
 jobs:
-  image:
+  verify:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm test
+  image:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
@@ -35,7 +50,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=Nautix
             org.opencontainers.image.description=Self-hosted web client to manage Docker
-            org.opencontainers.image.licenses=SSPL-1.0
+            org.opencontainers.image.licenses=Apache-2.0
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
       - uses: docker/build-push-action@v6
         with:
@@ -48,3 +63,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # The Docker Hub page shows the README.
+      - uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ secrets.DOCKERHUB_USERNAME }}/nautix
+          short-description: "Self-hosted web client to manage Docker: networks as boxes, Compose and Swarm."
+          readme-filepath: ./README.md
+  github-release:
+    needs: image
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

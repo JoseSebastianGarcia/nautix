@@ -1,5 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
-import type { CSSProperties } from "react";
+import { type CSSProperties, Fragment } from "react";
 import { SIDES, type Side } from "./edge-sides.js";
 
 const POSITION: Record<Side, Position> = {
@@ -34,7 +34,7 @@ export function SideHandles({
   return (
     <>
       {SIDES.map((side) => (
-        <span key={side}>
+        <Fragment key={side}>
           <Handle
             id={`${prefix}-${side}`}
             type="source"
@@ -52,7 +52,7 @@ export function SideHandles({
             isConnectable={false}
             style={HIDDEN}
           />
-        </span>
+        </Fragment>
       ))}
     </>
   );

@@ -168,6 +168,7 @@ export function ContainersPage() {
       <ConfirmDialog
         open={target !== null}
         title={t("topology.removeContainerTitle", { name: target?.name ?? "" })}
+        confirmLabel={t("common.delete")}
         body={t("topology.removeContainerBody", { image: target?.image ?? "" })}
         command={target ? cli.removeContainer(target.name, true) : ""}
         onConfirm={() => target && remove.mutate(target)}

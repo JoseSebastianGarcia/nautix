@@ -14,10 +14,11 @@ services:
       NAUTIX_TLS: auto
       NAUTIX_TLS_HOSTS: ${NAUTIX_TLS_HOSTS:-}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock   # root-equivalent on the host
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock   # root-equivalent on the host (rootless: see SECURITY.md)
       - nautix-data:/data
     group_add: ["${DOCKER_GID:-999}"]
     security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
     read_only: true
     tmpfs: ["/tmp"]
 volumes:

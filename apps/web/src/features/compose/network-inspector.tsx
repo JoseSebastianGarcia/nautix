@@ -68,6 +68,7 @@ export function ComposeNetworkInspector({
       <ConfirmDialog
         open={confirm}
         title={t("topology.removeNetworkTitle", { name })}
+        confirmLabel={t("common.delete")}
         body={t("compose.removeNetworkBody")}
         onConfirm={() => {
           onEdit((d) => removeNetwork(d, name));
