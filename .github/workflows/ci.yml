@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, "release/**"]
   pull_request:
+  workflow_dispatch:
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -32,7 +33,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @nautix/contracts build
+      # The API imports the workspace packages from their built output.
+      - run: pnpm --filter "./packages/*" build
       - run: pnpm test:integration
   # Builds the image exactly as the release does (without pushing) and starts it with the demo engine,
   # so a broken Dockerfile or a server that does not boot is caught before a tag is pushed.
