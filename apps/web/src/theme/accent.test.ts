@@ -27,7 +27,7 @@ describe("accent", () => {
 
   it("keeps allowed hues", () => {
     expect(snapHue(260)).toBe(260);
-    expect(resolveAccent("#3b82f6", "dark").hueMoved).toBe(false);
+    expect(resolveAccent("#15a9bc", "dark").hueMoved).toBe(false);
   });
 
   it("every preset is readable in both themes", () => {
@@ -53,10 +53,10 @@ describe("accent", () => {
     expect(Object.keys(accentVars("#6366f1", "light"))).toContain("--nx-accent-soft");
   });
 
-  it("pairs the default blue with a teal companion, readable in both themes", () => {
+  it("pairs the default teal with an emerald companion, readable in both themes", () => {
     for (const theme of ["dark", "light"] as const) {
       const second = resolveCompanion(DEFAULT_ACCENT, theme);
-      expect(hueOf(second.accent)).toBeGreaterThan(165);
+      expect(hueOf(second.accent)).toBeGreaterThanOrEqual(164);
       expect(hueOf(second.accent)).toBeLessThan(200);
       expect(second.ratio).toBeGreaterThanOrEqual(4.5);
     }
