@@ -153,6 +153,17 @@ export function Shell() {
       <main className="min-h-0 flex-1 overflow-auto">
         <Outlet />
       </main>
+      <footer className="shrink-0 px-5 py-2 text-center text-[11px] text-dim">
+        Nautix · {t("app.madeBy")} ·{" "}
+        <a
+          href="https://patterna.dev"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="underline-offset-2 hover:text-fg hover:underline"
+        >
+          patterna.dev
+        </a>
+      </footer>
     </div>
   );
 }
