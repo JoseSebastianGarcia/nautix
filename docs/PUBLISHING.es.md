@@ -71,68 +71,65 @@ docker buildx imagetools inspect TU_USUARIO/nautix:0.4.0   # debe listar linux/a
 
 ## Camino B: manual desde tu máquina
 
+Publica la imagen de **la arquitectura de tu equipo** (normalmente amd64), sin SBOM. Es el camino que funciona detrás de un
+proxy corporativo. Para amd64 y arm64 a la vez usá el camino A.
+
 ### B1. Iniciar sesión
 
 ```bash
 docker login -u TU_USUARIO         # pegá el token como contraseña
 ```
 
-### B2. Preparar un builder multiarquitectura (una sola vez)
+### B2. Construir la imagen
 
 ```bash
-docker buildx create --name nautix-builder --use
-docker run --privileged --rm tonistiigi/binfmt --install all   # emulación para construir arm64 en una máquina amd64
+docker buildx use default          # constructor del daemon: confía en los certificados de tu sistema
+docker build -t TU_USUARIO/nautix:0.4.0 -t TU_USUARIO/nautix:latest .
 ```
 
-### B3. Probar la construcción local (opcional pero recomendado)
+Cambiá `0.4.0` por la versión que publiques. Si tu empresa intercepta HTTPS, poné su certificado (`.crt`) en `certs/`
+antes de construir (ver `certs/README.md`).
+
+### B3. Probar la imagen (opcional pero recomendado)
 
 ```bash
-docker build -t nautix:test .
-DOCKER_GID=$(stat -c %g /var/run/docker.sock) docker run --rm -p 127.0.0.1:3737:3737 \
+docker run --rm -p 127.0.0.1:3737:3737 \
   -v /var/run/docker.sock:/var/run/docker.sock -v nautix-test:/data \
-  --group-add "$(stat -c %g /var/run/docker.sock)" -e NAUTIX_TLS=auto nautix:test
+  --group-add "$(stat -c %g /var/run/docker.sock)" -e NAUTIX_TLS=auto TU_USUARIO/nautix:0.4.0
 ```
 
 Abrí <https://localhost:3737>, comprobá que carga y cortá con `Ctrl+C`.
 
-### B4. Construir y publicar
-
-> **Detrás de un proxy corporativo** (error `x509: certificate signed by unknown authority` al bajar
-> `docker/buildkit-syft-scanner`): el constructor `docker-container` del paso B2 corre dentro de un contenedor y **no
-> hereda los certificados de tu equipo**. Usá el constructor por defecto y publicá solo una arquitectura (ver B4-bis).
+### B4. Publicar
 
 ```bash
-VERSION=0.4.0
-docker buildx build \
-  --platform linux/amd64,linux/arm64 \
-  --provenance=true --sbom=true \
-  -t TU_USUARIO/nautix:$VERSION \
-  -t TU_USUARIO/nautix:${VERSION%.*} \
-  -t TU_USUARIO/nautix:latest \
-  --push .
-```
-
-La primera vez tarda (compila el frontend y el backend, y emula arm64).
-
-### B4-bis. Sin multiarquitectura (proxy corporativo o prueba rápida)
-
-```bash
-docker buildx use default                      # constructor del daemon, que sí confía en los certificados del sistema
-VERSION=0.4.0
-docker build -t TU_USUARIO/nautix:$VERSION -t TU_USUARIO/nautix:latest .
-docker push TU_USUARIO/nautix:$VERSION
+docker push TU_USUARIO/nautix:0.4.0
 docker push TU_USUARIO/nautix:latest
 ```
-
-Genera solo la arquitectura de tu máquina y sin SBOM ni *provenance* (esos son los que descargan imágenes extra). Los
-certificados de tu empresa para el propio build van en `certs/` (ver `certs/README.md`). Para tener amd64 y arm64 con
-SBOM, usá GitHub Actions (camino A), que corre en la nube sin ese proxy.
 
 ### B5. Verificar
 
 ```bash
-docker buildx imagetools inspect TU_USUARIO/nautix:$VERSION
+docker pull TU_USUARIO/nautix:0.4.0
+docker image inspect TU_USUARIO/nautix:0.4.0 --format '{{.Architecture}}'
 ```
+
+Debe mostrar la arquitectura de tu equipo (por ejemplo `amd64`).
+
+### Opcional: amd64 y arm64 desde tu máquina
+
+Solo si **no** estás detrás de un proxy que reemplaza certificados:
+
+```bash
+docker buildx create --name nautix-builder --use
+docker run --privileged --rm tonistiigi/binfmt --install all   # emulación de arm64 en una máquina amd64
+VERSION=0.4.0
+docker buildx build --platform linux/amd64,linux/arm64 --provenance=true --sbom=true \
+  -t TU_USUARIO/nautix:$VERSION -t TU_USUARIO/nautix:latest --push .
+```
+
+Este constructor corre dentro de un contenedor y no hereda los certificados de tu equipo: con un proxy corporativo falla
+con `x509: certificate signed by unknown authority`. Volvé a `docker buildx use default`.
 
 ---
 
@@ -179,7 +176,7 @@ Antes, **Ajustes → Copia de seguridad** (incluye la clave de cifrado).
 | `denied: requested access to the resource is denied` | Usuario o token incorrectos, o el repositorio no existe o es de otra organización. Repetí `docker login`. |
 | El workflow falla en *login* | Los secretos `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` faltan o el token no tiene *Read & Write*. |
 | `exec format error` al correr en otra máquina | Imagen construida solo para una arquitectura. Usá `--platform linux/amd64,linux/arm64`. |
-| `failed to resolve source metadata for docker.io/docker/buildkit-syft-scanner` + `x509: certificate signed by unknown authority` | Proxy corporativo que reemplaza los certificados y un constructor `docker-container` que no los conoce. Usá B4-bis o GitHub Actions. |
+| `failed to resolve source metadata for docker.io/docker/buildkit-syft-scanner` + `x509: certificate signed by unknown authority` | Proxy corporativo que reemplaza los certificados y un constructor `docker-container` que no los conoce. Usá `docker buildx use default` y el camino B (sin multiarquitectura), o GitHub Actions. |
 | Falla el build detrás de un proxy corporativo | Poné los certificados `.crt` en `certs/` (ver `certs/README.md`). |
 | `permission denied` al abrir el socket | `DOCKER_GID` no coincide con el grupo del socket: `stat -c %g /var/run/docker.sock`. |
 | No puedo subir el tag desde el sandbox o una máquina sin permisos | Los tags se crean y suben desde tu máquina con acceso al repositorio. |
