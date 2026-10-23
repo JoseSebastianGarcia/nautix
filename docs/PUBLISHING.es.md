@@ -97,6 +97,10 @@ Abrí <https://localhost:3737>, comprobá que carga y cortá con `Ctrl+C`.
 
 ### B4. Construir y publicar
 
+> **Detrás de un proxy corporativo** (error `x509: certificate signed by unknown authority` al bajar
+> `docker/buildkit-syft-scanner`): el constructor `docker-container` del paso B2 corre dentro de un contenedor y **no
+> hereda los certificados de tu equipo**. Usá el constructor por defecto y publicá solo una arquitectura (ver B4-bis).
+
 ```bash
 VERSION=0.4.0
 docker buildx build \
@@ -109,6 +113,20 @@ docker buildx build \
 ```
 
 La primera vez tarda (compila el frontend y el backend, y emula arm64).
+
+### B4-bis. Sin multiarquitectura (proxy corporativo o prueba rápida)
+
+```bash
+docker buildx use default                      # constructor del daemon, que sí confía en los certificados del sistema
+VERSION=0.4.0
+docker build -t TU_USUARIO/nautix:$VERSION -t TU_USUARIO/nautix:latest .
+docker push TU_USUARIO/nautix:$VERSION
+docker push TU_USUARIO/nautix:latest
+```
+
+Genera solo la arquitectura de tu máquina y sin SBOM ni *provenance* (esos son los que descargan imágenes extra). Los
+certificados de tu empresa para el propio build van en `certs/` (ver `certs/README.md`). Para tener amd64 y arm64 con
+SBOM, usá GitHub Actions (camino A), que corre en la nube sin ese proxy.
 
 ### B5. Verificar
 
@@ -161,6 +179,7 @@ Antes, **Ajustes → Copia de seguridad** (incluye la clave de cifrado).
 | `denied: requested access to the resource is denied` | Usuario o token incorrectos, o el repositorio no existe o es de otra organización. Repetí `docker login`. |
 | El workflow falla en *login* | Los secretos `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` faltan o el token no tiene *Read & Write*. |
 | `exec format error` al correr en otra máquina | Imagen construida solo para una arquitectura. Usá `--platform linux/amd64,linux/arm64`. |
+| `failed to resolve source metadata for docker.io/docker/buildkit-syft-scanner` + `x509: certificate signed by unknown authority` | Proxy corporativo que reemplaza los certificados y un constructor `docker-container` que no los conoce. Usá B4-bis o GitHub Actions. |
 | Falla el build detrás de un proxy corporativo | Poné los certificados `.crt` en `certs/` (ver `certs/README.md`). |
 | `permission denied` al abrir el socket | `DOCKER_GID` no coincide con el grupo del socket: `stat -c %g /var/run/docker.sock`. |
 | No puedo subir el tag desde el sandbox o una máquina sin permisos | Los tags se crean y suben desde tu máquina con acceso al repositorio. |
