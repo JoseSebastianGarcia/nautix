@@ -166,6 +166,7 @@ export function ImagesPage() {
       <ConfirmDialog
         open={target !== null}
         title={t("images.removeTitle")}
+        confirmLabel={t("common.delete")}
         body={t("images.removeBody", { name: target ? name(target) : "" })}
         command={target ? cli.removeImage(name(target)) : ""}
         onConfirm={() => target && remove.mutate(target.id)}

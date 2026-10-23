@@ -82,6 +82,7 @@ export function ComposeProjectsPage() {
       <ConfirmDialog
         open={target !== null}
         title={t("compose.deleteTitle", { name: target ?? "" })}
+        confirmLabel={t("common.delete")}
         body={t("compose.deleteBody")}
         onConfirm={() => target && remove.mutate(target)}
         onClose={() => setTarget(null)}

@@ -98,6 +98,7 @@ export function VolumesPage() {
       <ConfirmDialog
         open={target !== null}
         title={t("volumes.removeTitle", { name: target?.name ?? "" })}
+        confirmLabel={t("common.delete")}
         body={t("volumes.removeBody")}
         command={target ? cli.removeVolume(target.name) : ""}
         onConfirm={() => target && remove.mutate(target.name)}

@@ -122,6 +122,7 @@ export function ConfirmDialog({
   body,
   command,
   danger = true,
+  confirmLabel,
   onConfirm,
   onClose,
 }: {
@@ -130,6 +131,8 @@ export function ConfirmDialog({
   body: string;
   command?: string;
   danger?: boolean;
+  /** Names the action itself (Delete) instead of the generic Confirm. */
+  confirmLabel?: string;
   onConfirm: () => void;
   onClose: () => void;
 }) {
@@ -147,7 +150,7 @@ export function ConfirmDialog({
             onClose();
           }}
         >
-          {t("common.confirm")}
+          {confirmLabel ?? t("common.confirm")}
         </Button>
       </div>
     </Dialog>
