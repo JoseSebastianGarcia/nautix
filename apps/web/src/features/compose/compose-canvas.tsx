@@ -17,7 +17,6 @@ import {
   ReactFlowProvider,
   useReactFlow,
 } from "@xyflow/react";
-import { CanvasWatermark } from "../../components/canvas-watermark.js";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -209,7 +208,6 @@ function Canvas({
           proOptions={{ hideAttribution: true }}
           deleteKeyCode={null}
         >
-          <CanvasWatermark />
           <Background variant={BackgroundVariant.Lines} gap={24} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
         </ReactFlow>

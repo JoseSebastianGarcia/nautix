@@ -21,7 +21,6 @@ import {
   ReactFlowProvider,
   useReactFlow,
 } from "@xyflow/react";
-import { CanvasWatermark } from "../../components/canvas-watermark.js";
 import "@xyflow/react/dist/style.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileDown, Hexagon, LayoutGrid, LogOut } from "lucide-react";
@@ -315,7 +314,6 @@ function Canvas() {
           proOptions={{ hideAttribution: true }}
           deleteKeyCode={null}
         >
-          <CanvasWatermark />
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color="var(--nx-grid)" />
           <Controls showInteractive={false} />
         </ReactFlow>
