@@ -1,0 +1,10 @@
+# Who must review changes to each area. With branch rules on, a change to these paths asks for their review.
+*                      @JoseSebastianGarcia
+/.github/              @JoseSebastianGarcia
+/Dockerfile            @JoseSebastianGarcia
+/compose*.yaml         @JoseSebastianGarcia
+/installer/            @JoseSebastianGarcia
+/LICENSE               @JoseSebastianGarcia
+/NOTICE                @JoseSebastianGarcia
+/SECURITY.md           @JoseSebastianGarcia
+/TRADEMARK.md          @JoseSebastianGarcia
