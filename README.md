@@ -52,6 +52,20 @@ From the published image (no build): see `compose.hub.yaml` and `docs/PUBLISHING
 
 Set `DOCKER_GID` to your docker socket's group id (`stat -c %g /var/run/docker.sock`) if it is not 999.
 
+### Docker Desktop (Windows and macOS)
+
+Run it from PowerShell (or the macOS terminal), **in one line** (`\` does not continue a line in PowerShell). If a `nautix` container already exists, remove it first:
+
+```powershell
+docker rm -f nautix
+docker run -d --name nautix --restart unless-stopped -p 127.0.0.1:3737:3737 -v /var/run/docker.sock:/var/run/docker.sock -v nautix-data:/data --group-add 0 --cap-drop ALL --security-opt no-new-privileges:true --read-only --tmpfs /tmp -e NAUTIX_TLS=auto josesebastiangarcia/nautix:latest
+docker logs nautix     # setup token
+```
+
+Open **https://localhost:3737** (HTTPS; the browser warns about the certificate the first time). Your data stays in the `nautix-data` volume.
+
+`--group-add 0` gives the container the socket's group on Docker Desktop. If Nautix shows "Engine unreachable", read the group with `docker run --rm -v /var/run/docker.sock:/var/run/docker.sock alpine stat -c %g /var/run/docker.sock` and use that number instead of `0`. In Git Bash write the socket path as `//var/run/docker.sock`. Do not run Docker commands from the internal `docker-desktop` WSL distribution; use PowerShell or a WSL distribution with Docker Desktop's WSL integration enabled. The port guards (firewall) need a Linux host and are not available on Docker Desktop.
+
 ### Updating
 
 Updates are manual. With the published image:
