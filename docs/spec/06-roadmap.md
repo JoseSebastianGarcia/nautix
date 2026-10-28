@@ -35,6 +35,7 @@ The roadmap below is the original plan. Work did not follow its milestones one b
 | Core management, auth, settings, backup, terminal | Built | `05-commands.md` |
 | Topology (networks as boxes), templates, tunnels, DNS, gateways | Built | `04-editors.md` D1 |
 | Port exposure and guards (levels 1–3) | Built | `07-port-guards.md` |
+| Folder mappings with risk consent, cloud emulators, type-the-name confirmations (v1.0) | Built | `04-editors.md` D1, `07-port-guards.md` D, `03-web.md`, ADR-058 |
 | Safe apply, bindings | Built | `08-bindings-and-safe-apply.md`, ADR-043 |
 | Zone spec (read, plan, apply, drift) | Built | `09-zone-spec.md`, ADR-044 |
 | In-app help (en/es, screenshots) | Built | ADR-045 |

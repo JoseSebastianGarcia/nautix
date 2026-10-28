@@ -133,6 +133,10 @@ Resources → **Guards** tab (next to Gateways and DNS): helper status (connecte
 
 ---
 
+## D. Host mounts (ADR-058)
+
+Mounting a host folder is the other way a container reaches the machine, so it follows the same idea as exposure: nothing risky is silent. `mountRisks(binds)` (in `@nautix/contracts`, used by the deploy dialog and by `CreateContainerHandler`) names three risks: `docker-socket` (the engine socket, root on the host), `host-root` (`/` or a drive root) and `sensitive-path` (`/etc`, `/root`, `/boot`, `/proc`, `/sys`, `/dev`, `/var/lib/docker` and anything under them). The API refuses a create request whose binds carry a risk that is not listed in `acceptRisks` (`errors.mountRisk`, which names the risk); the UI shows what the mount allows and asks for explicit consent. Mounting a folder read-only is offered. Compose projects are not checked: Compose is the person's own file.
+
 ## Cross-cutting
 
 - Every string through i18n (en + es); colors from tokens; all dialogs keyboard accessible.
