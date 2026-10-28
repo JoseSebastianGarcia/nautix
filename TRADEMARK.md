@@ -1,7 +1,7 @@
 # Trademark policy
 
-The code is under the SSPL-1.0 (see `LICENSE`): you may use, modify and self-host it. The **name and logo** are not part of
-that grant.
+The code is Apache-2.0: you may use, modify, fork and redistribute it. The **name and logo** are not part of that grant
+(Apache-2.0 section 6).
 
 "Nautix", the Nautix logo and "Patterna" belong to José Sebastián García (Patterna).
 

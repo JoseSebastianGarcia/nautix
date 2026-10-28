@@ -1,7 +1,7 @@
 # 00 — Product
 
 ## Goal
-Free, SSPL-1.0, self-hosted web UI for Docker. One command to start, browser to use. Works on Linux and on Windows 11+ (private WSL2 engine, no Docker Desktop).
+Free, Apache-2.0, self-hosted web UI for Docker. One command to start, browser to use. Works on Linux and on Windows 11+ (private WSL2 engine, no Docker Desktop).
 
 ## Positioning
 A **Docker client with steroids**: it manages the engine you already have and makes it visual and safe (changes are shown as a command first, applied with a health gate and undone when they fail). It is **not** a deployment platform: no Git builds, no domains or certificates as a service, no multi-tenant projects. Swarm is supported as an engine feature (services and replicas, one or several machines), not as an orchestrator of its own.
