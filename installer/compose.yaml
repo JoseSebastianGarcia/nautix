@@ -18,4 +18,5 @@ services:
     read_only: true
     tmpfs: ["/tmp"]
 volumes:
-  nautix-data: {}
+  nautix-data:
+    name: nautix-data
