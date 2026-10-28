@@ -1,7 +1,9 @@
 # One-command install:  docker compose -f installer/compose.yaml up -d --build
 # Then read the one-time setup token:  docker compose -f installer/compose.yaml logs nautix
+name: nautix
 services:
   nautix:
+    container_name: nautix
     build: { context: .., dockerfile: Dockerfile }
     restart: unless-stopped
     # Bound to localhost only. Put a reverse proxy with TLS in front to reach it remotely.
@@ -16,4 +18,5 @@ services:
     read_only: true
     tmpfs: ["/tmp"]
 volumes:
-  nautix-data: {}
+  nautix-data:
+    name: nautix-data
