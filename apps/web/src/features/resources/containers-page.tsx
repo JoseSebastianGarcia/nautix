@@ -7,6 +7,8 @@ import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
 import { keys, useContainers, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
+import { useListSelection } from "../../app/use-list-selection.js";
+import { BulkDeleteBar } from "../../components/bulk-delete.js";
 import { Button, ConfirmDialog, Input } from "../../components/ui.js";
 import { statusText } from "../containers/status-text.js";
 import { LogoBadge } from "../topology/logo-badge.js";
@@ -16,7 +18,7 @@ import {
   filterContainers,
   NO_FILTER,
 } from "./container-filters.js";
-import { PageHeader, Table, Td } from "./table.js";
+import { PageHeader, RowCheck, Table, Td } from "./table.js";
 
 export function ContainersPage() {
   const { t } = useTranslation();
@@ -25,6 +27,11 @@ export function ContainersPage() {
   const [target, setTarget] = useState<Container | null>(null);
   const [filter, setFilter] = useState<ContainerFilter>(NO_FILTER);
   const shown = filterContainers(data, filter);
+  const sel = useListSelection(
+    shown,
+    (c) => c.id,
+    (c) => c.isSelf !== true,
+  );
   const act = useApiMutation(
     ({ c, action }: { c: Container; action: ContainerAction }) => api.containerAction(c.id, action),
     [keys.containers],
@@ -78,7 +85,19 @@ export function ContainersPage() {
           className="w-48"
         />
       </div>
+      <BulkDeleteBar
+        items={sel.rows.map((c) => ({
+          kind: "containers" as const,
+          id: c.id,
+          name: c.name,
+          running: c.state === "running",
+        }))}
+        invalidate={[keys.containers, keys.networks]}
+        onDone={sel.clear}
+        onClear={sel.clear}
+      />
       <Table
+        selection={sel.table(t("bulk.selectAll"))}
         head={[
           t("common.name"),
           t("common.image"),
@@ -91,6 +110,12 @@ export function ContainersPage() {
       >
         {shown.map((c) => (
           <tr key={c.id}>
+            <RowCheck
+              checked={sel.has(c.id)}
+              onChange={() => sel.toggle(c.id)}
+              label={t("bulk.selectRow", { name: c.name })}
+              disabled={c.isSelf === true}
+            />
             <Td>
               <span className="flex items-center gap-2 font-medium">
                 <LogoBadge image={c.image} name={c.name} size={28} />

@@ -734,7 +734,15 @@
     "time": "Time",
     "type": "Type",
     "action": "Action",
-    "waitingEvents": "Waiting for engine events…"
+    "waitingEvents": "Waiting for engine events…",
+    "pruneMode": "How to clean",
+    "modeEverything": "Everything unused",
+    "modeOneKind": "One kind at a time",
+    "cleanupIntro": "Like docker system prune, but you choose: every unused item is listed below with its own checkbox. Nothing is removed until you confirm.",
+    "cleanupVolumes": "Also include unused volumes (they hold data)",
+    "cleanupVolumesWarn": "A volume that nothing uses may still hold data you want. Check the list before deleting.",
+    "groupToggle": "Select or clear all {{kind}}",
+    "cleanupNoCache": "The build cache that docker system prune also clears is not included here."
   },
   "gateway": {
     "title": "Gateways and proxies",
@@ -1582,5 +1590,19 @@
     },
     "riskTitle": "Risky mount",
     "accept": "I understand the risk and want to mount it anyway"
+  },
+  "bulk": {
+    "deleteSelected": "Delete selected",
+    "clear": "Clear selection",
+    "confirmBody": "This removes: {{names}}. It cannot be undone.",
+    "andMore": " and {{count}} more",
+    "forced": "{{count}} running container(s) will be stopped by force.",
+    "removing": "Deleting {{count}} items…",
+    "partial": "{{removed}} deleted, {{failed}} could not be: {{first}}",
+    "selectAll": "Select all",
+    "selectRow": "Select {{name}}",
+    "selected": "Selected: {{count}}",
+    "confirmTitle": "Delete {{count}} item(s)?",
+    "removed": "Deleted: {{count}}"
   }
 }

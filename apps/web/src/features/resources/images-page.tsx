@@ -6,6 +6,8 @@ import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
 import { keys, useImages, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
+import { useListSelection } from "../../app/use-list-selection.js";
+import { BulkDeleteBar } from "../../components/bulk-delete.js";
 import { InspectDialog } from "../../components/inspect-dialog.js";
 import { Button, ConfirmDialog, Dialog, Field, Input, ShowCommand } from "../../components/ui.js";
 import { formatBytes, formatDate } from "./format.js";
@@ -16,11 +18,12 @@ import {
   SearchDialog,
   TagDialog,
 } from "./image-dialogs.js";
-import { PageHeader, Table, Td } from "./table.js";
+import { PageHeader, RowCheck, Table, Td } from "./table.js";
 
 export function ImagesPage() {
   const { t, i18n } = useTranslation();
   const { data = [] } = useImages();
+  const sel = useListSelection(data, (i) => i.id);
   const [target, setTarget] = useState<Image | null>(null);
   const [pulling, setPulling] = useState(false);
   const [reference, setReference] = useState("");
@@ -61,7 +64,19 @@ export function ImagesPage() {
           </>
         }
       />
+      <BulkDeleteBar
+        items={sel.rows.map((i) => ({
+          kind: "images" as const,
+          id: i.id,
+          name: name(i),
+          size: i.size,
+        }))}
+        invalidate={[keys.images]}
+        onDone={sel.clear}
+        onClear={sel.clear}
+      />
       <Table
+        selection={sel.table(t("bulk.selectAll"))}
         head={[
           t("common.tags"),
           t("common.size"),
@@ -73,6 +88,11 @@ export function ImagesPage() {
       >
         {data.map((i) => (
           <tr key={i.id}>
+            <RowCheck
+              checked={sel.has(i.id)}
+              onChange={() => sel.toggle(i.id)}
+              label={t("bulk.selectRow", { name: name(i) })}
+            />
             <Td mono>
               {i.tags.length === 0 ? (
                 t("images.untagged")

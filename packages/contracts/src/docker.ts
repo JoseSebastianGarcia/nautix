@@ -382,6 +382,8 @@ export type PruneKind = z.infer<typeof PruneKind>;
 
 export const PruneItem = z.object({
   kind: PruneKind,
+  /** What the remove endpoint takes: the id (containers, images, networks) or the name (volumes). */
+  id: z.string().optional(),
   name: z.string(),
   size: z.number().optional(),
 });

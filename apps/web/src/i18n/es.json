@@ -734,7 +734,15 @@
     "time": "Hora",
     "type": "Tipo",
     "action": "Acción",
-    "waitingEvents": "Esperando eventos del motor…"
+    "waitingEvents": "Esperando eventos del motor…",
+    "pruneMode": "Cómo limpiar",
+    "modeEverything": "Todo lo que no se usa",
+    "modeOneKind": "De a un tipo",
+    "cleanupIntro": "Como docker system prune, pero eligiendo: cada elemento sin uso aparece abajo con su propia casilla. No se elimina nada hasta que confirmes.",
+    "cleanupVolumes": "Incluir también los volúmenes sin uso (guardan datos)",
+    "cleanupVolumesWarn": "Un volumen que nada usa puede guardar datos que querés conservar. Revisá la lista antes de eliminar.",
+    "groupToggle": "Seleccionar o quitar todos: {{kind}}",
+    "cleanupNoCache": "La caché de builds que docker system prune también limpia no está incluida acá."
   },
   "gateway": {
     "title": "Gateways y proxies",
@@ -1582,5 +1590,19 @@
     },
     "riskTitle": "Montaje riesgoso",
     "accept": "Entiendo el riesgo y quiero montarlo igual"
+  },
+  "bulk": {
+    "deleteSelected": "Eliminar seleccionados",
+    "clear": "Quitar selección",
+    "confirmBody": "Esto elimina: {{names}}. No se puede deshacer.",
+    "andMore": " y {{count}} más",
+    "forced": "{{count}} contenedor(es) en ejecución se detendrán por la fuerza.",
+    "removing": "Eliminando {{count}} elementos…",
+    "partial": "{{removed}} eliminados, {{failed}} no se pudieron eliminar: {{first}}",
+    "selectAll": "Seleccionar todo",
+    "selectRow": "Seleccionar {{name}}",
+    "selected": "Seleccionados: {{count}}",
+    "confirmTitle": "¿Eliminar {{count}} elemento(s)?",
+    "removed": "Eliminados: {{count}}"
   }
 }
