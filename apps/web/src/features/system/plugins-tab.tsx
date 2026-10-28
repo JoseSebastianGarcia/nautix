@@ -132,6 +132,7 @@ export function PluginsTab() {
         open={target !== null}
         title={t("plugins.removeTitle", { name: target?.name ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target?.name ?? ""}
         body={t("plugins.removeBody")}
         onConfirm={() => target && remove.mutate(target)}
         onClose={() => setTarget(null)}

@@ -167,6 +167,7 @@ export function ImagesPage() {
         open={target !== null}
         title={t("images.removeTitle")}
         confirmLabel={t("common.delete")}
+        requireText={target ? name(target) : ""}
         body={t("images.removeBody", { name: target ? name(target) : "" })}
         command={target ? cli.removeImage(name(target)) : ""}
         onConfirm={() => target && remove.mutate(target.id)}

@@ -14,6 +14,12 @@ The topology is the machine drawn as a diagram. Each **box** is a Docker network
 - **Auto layout** arranges everything again; positions you set by hand are saved.
 - **Export Compose** writes the visible containers as a Compose file.
 
+## Mounted folders and risky mounts
+The deploy dialog and the template editor have a **Mounted folders** list: a folder of this machine (`/srv/data`) mapped to a folder inside the container (`/data`), optionally **read-only**. Use absolute paths. Some mounts are risky and are never silent: the **Docker socket** (it is root on the host), the **whole disk** (`/`) and **system folders** (`/etc`, `/root`, `/boot`, `/proc`, `/sys`, `/dev` and Docker's own data). When a mount is one of those, a red notice explains what it allows and **Deploy** stays disabled until you tick that you accept it. The server enforces the same rule, so a script or an API token cannot skip it.
+
+## Delete by typing the name
+Deleting a container, image, volume, network, Compose project, swarm service, stack, node, user, saved login or plugin asks you to **type its exact name** before the red *Delete* button unlocks, like GitHub does before deleting a repository. Case matters. Cancelling or closing the dialog clears what you typed.
+
 ## Port badges
 
 Each published port shows who can reach it:

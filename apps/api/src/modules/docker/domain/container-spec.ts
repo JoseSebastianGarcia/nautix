@@ -1,4 +1,4 @@
-import type { CreateContainer } from "@nautix/contracts";
+import { bindString, type CreateContainer } from "@nautix/contracts";
 
 const LOOPBACK = "127.0.0.1";
 const PUBLIC = "0.0.0.0";
@@ -58,7 +58,7 @@ export const buildContainerSpec = (
     ...(request.command ? { cmd: request.command } : {}),
     exposedPorts,
     portBindings,
-    binds: request.volumes,
+    binds: [...request.volumes, ...request.mounts.map(bindString)],
     restartPolicy: request.restartPolicy,
     ...(request.healthcheck
       ? {

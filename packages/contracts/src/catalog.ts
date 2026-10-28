@@ -23,6 +23,14 @@ export interface TemplatePort {
   hostPort?: number;
 }
 
+export interface TemplateMount {
+  /** Absolute path on the host. */
+  source: string;
+  /** Absolute path in the container. */
+  target: string;
+  readOnly?: boolean;
+}
+
 export interface Template {
   id: string;
   name: string;
@@ -36,6 +44,8 @@ export interface Template {
   ports: TemplatePort[];
   env?: Record<string, string>;
   volumes?: string[];
+  /** Host folders the template maps. A risky one (the Docker socket) needs consent when deploying. */
+  mounts?: TemplateMount[];
   command?: string[];
   /** True for templates a user saved on this server (they can be deleted). */
   custom?: boolean;
@@ -580,8 +590,9 @@ export const TEMPLATES: readonly Template[] = [
     volumes: ["/var/lib/grafana"],
   },
   // Floci: free, MIT-licensed local emulators of public clouds (https://floci.io). They keep their state in
-  // memory by default. Services that run real containers (Lambda, databases, Kubernetes...) need the Docker
-  // socket; these templates do not mount it, so only the in-process services work until you add it yourself.
+  // memory by default. They need the Docker socket to run their container-backed services (Lambda, databases,
+  // Kubernetes, Event Hubs...), so each template carries that mount; deploying it asks for explicit consent
+  // (ADR-058) because the socket is root on the host.
   {
     id: "floci-aws",
     name: "Floci · AWS",
@@ -592,36 +603,46 @@ export const TEMPLATES: readonly Template[] = [
     icon: "amazonaws",
     color: "#FF9900",
     ports: [{ containerPort: 4566, label: "aws api", hostPort: 4566 }],
+    // Floci starts its web console as a separate container on host port 4500; do not publish it from here.
+    mounts: [{ source: "/var/run/docker.sock", target: "/var/run/docker.sock" }],
   },
   {
     id: "floci-azure",
     name: "Floci · Azure",
     category: "cloud",
     image: "floci/floci-az:latest",
-    description: "Local Azure emulator (Blob, Queue, Table and more) on one port",
+    description: "Local Azure emulator (Blob, Queue, Table, Event Hubs, Service Bus...)",
     icon: "microsoftazure",
     color: "#0078D4",
-    ports: [{ containerPort: 4577, label: "azure api", hostPort: 4577 }],
+    ports: [
+      { containerPort: 4577, label: "azure api", hostPort: 4577 },
+      { containerPort: 5672, label: "event hubs amqp", hostPort: 5672 },
+      { containerPort: 5673, label: "service bus amqp", hostPort: 5673 },
+    ],
+    mounts: [{ source: "/var/run/docker.sock", target: "/var/run/docker.sock" }],
   },
   {
     id: "floci-gcp",
     name: "Floci · Google Cloud",
     category: "cloud",
     image: "floci/floci-gcp:latest",
-    description: "Local Google Cloud emulator (Storage, Pub/Sub, Firestore and more) on one port",
+    description: "Local Google Cloud emulator (Storage, Pub/Sub, Firestore, Cloud Run...)",
     icon: "googlecloud",
     color: "#4285F4",
     ports: [{ containerPort: 4588, label: "gcp api", hostPort: 4588 }],
+    mounts: [{ source: "/var/run/docker.sock", target: "/var/run/docker.sock" }],
   },
   {
     id: "floci-oci",
     name: "Floci · Oracle Cloud",
     category: "cloud",
     image: "floci/floci-oci:latest",
-    description: "Local Oracle Cloud (OCI) emulator, unsigned requests accepted",
+    description:
+      "Local Oracle Cloud (OCI) emulator (Object Storage, Functions...), unsigned requests accepted",
     icon: "oracle",
     color: "#F80000",
     ports: [{ containerPort: 4599, label: "oci api", hostPort: 4599 }],
+    mounts: [{ source: "/var/run/docker.sock", target: "/var/run/docker.sock" }],
   },
 ] as const;
 

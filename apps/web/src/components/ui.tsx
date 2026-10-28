@@ -1,10 +1,11 @@
 import { Loader2, X } from "lucide-react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsAdmin } from "../app/queries.js";
 import { HelpButton } from "../help/help-button.js";
 import type { TopicId } from "../help/topics.js";
+import { nameMatches } from "./confirm-name.js";
 import { useToasts } from "./toast-store.js";
 
 type Variant = "primary" | "ghost" | "danger";
@@ -123,6 +124,7 @@ export function ConfirmDialog({
   command,
   danger = true,
   confirmLabel,
+  requireText,
   onConfirm,
   onClose,
 }: {
@@ -133,26 +135,64 @@ export function ConfirmDialog({
   danger?: boolean;
   /** Names the action itself (Delete) instead of the generic Confirm. */
   confirmLabel?: string;
+  /** Irreversible delete: the person must type this exact name before the button unlocks (ADR-058). */
+  requireText?: string;
   onConfirm: () => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const [typed, setTyped] = useState("");
+  const locked = requireText !== undefined && !nameMatches(typed, requireText);
   return (
-    <Dialog open={open} onClose={onClose} title={title}>
-      <p className="text-sm text-dim">{body}</p>
-      {command && <ShowCommand command={command} />}
-      <div className="flex justify-end gap-2">
-        <Button onClick={onClose}>{t("common.cancel")}</Button>
-        <Button
-          variant={danger ? "danger" : "primary"}
-          onClick={() => {
-            onConfirm();
-            onClose();
-          }}
-        >
-          {confirmLabel ?? t("common.confirm")}
-        </Button>
-      </div>
+    <Dialog
+      open={open}
+      onClose={() => {
+        setTyped("");
+        onClose();
+      }}
+      title={title}
+    >
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (locked) return;
+          onConfirm();
+          setTyped("");
+          onClose();
+        }}
+      >
+        <p className="text-sm text-dim">{body}</p>
+        {command && <ShowCommand command={command} />}
+        {requireText !== undefined && (
+          <div className="flex flex-col gap-1 text-sm">
+            <span>
+              {t("common.typeToConfirm")} <strong className="font-mono">{requireText}</strong>
+            </span>
+            <Input
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              aria-label={t("common.typeToConfirmLabel", { name: requireText })}
+              placeholder={requireText}
+            />
+          </div>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button
+            onClick={() => {
+              setTyped("");
+              onClose();
+            }}
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button variant={danger ? "danger" : "primary"} type="submit" disabled={locked}>
+            {confirmLabel ?? t("common.confirm")}
+          </Button>
+        </div>
+      </form>
     </Dialog>
   );
 }

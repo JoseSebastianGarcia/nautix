@@ -99,6 +99,7 @@ export function VolumesPage() {
         open={target !== null}
         title={t("volumes.removeTitle", { name: target?.name ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target?.name ?? ""}
         body={t("volumes.removeBody")}
         command={target ? cli.removeVolume(target.name) : ""}
         onConfirm={() => target && remove.mutate(target.name)}

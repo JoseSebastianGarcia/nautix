@@ -140,6 +140,7 @@ export function ServiceInspector({
         open={confirm}
         title={t("compose.removeServiceTitle", { name: s.name })}
         confirmLabel={t("common.delete")}
+        requireText={s.name}
         body={t("compose.removeServiceBody")}
         onConfirm={() => {
           onEdit((d) => removeService(d, s.name));

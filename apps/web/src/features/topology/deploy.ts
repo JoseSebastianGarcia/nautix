@@ -1,3 +1,11 @@
+import {
+  bindString,
+  isContainerPath,
+  isHostPath,
+  type MountRisk,
+  missingConsent,
+} from "@nautix/contracts";
+
 export const parseEnv = (text: string): Record<string, string> => {
   const env: Record<string, string> = {};
   for (const line of text.split("\n")) {
@@ -92,3 +100,36 @@ export const splitCommand = (line: string): string[] => {
   if (started || current) args.push(current);
   return args;
 };
+
+/** One row of the *Mounted folders* list: a host folder mapped into the container. */
+export interface MountRow {
+  source: string;
+  target: string;
+  readOnly: boolean;
+}
+
+export const emptyMount = (): MountRow => ({ source: "", target: "", readOnly: false });
+
+/** Which half of a row is wrong (null = fine). A row left completely empty is ignored, not wrong. */
+export const mountProblems = (row: MountRow): "source" | "target" | null => {
+  const source = row.source.trim();
+  const target = row.target.trim();
+  if (source === "" && target === "") return null;
+  if (!isHostPath(source)) return "source";
+  if (!isContainerPath(target)) return "target";
+  return null;
+};
+
+/** The binds the API receives for the rows that are complete and valid. */
+export const mountBinds = (rows: readonly MountRow[]): string[] =>
+  rows
+    .filter((r) => r.source.trim() !== "" && mountProblems(r) === null)
+    .map((r) =>
+      bindString({ source: r.source.trim(), target: r.target.trim(), readOnly: r.readOnly }),
+    );
+
+/** The risks of these rows that have not been accepted yet; while any is left, Deploy stays disabled. */
+export const deployBlockers = (
+  rows: readonly MountRow[],
+  accepted: readonly MountRisk[],
+): MountRisk[] => missingConsent(mountBinds(rows), accepted);

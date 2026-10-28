@@ -91,6 +91,7 @@ export function NetworksPage() {
         open={target !== null}
         title={t("topology.removeNetworkTitle", { name: target?.name ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target?.name ?? ""}
         body={t("topology.removeNetworkBody")}
         command={target ? cli.removeNetwork(target.name) : ""}
         onConfirm={() => target && remove.mutate(target.id)}

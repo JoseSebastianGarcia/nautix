@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isIpAddress } from "./ip.js";
+import { BindMount, isContainerPath, isHostPath, MountRisk } from "./mounts.js";
 
 export const ContainerState = z.enum([
   "created",
@@ -142,7 +143,12 @@ export const CreateContainer = z.object({
   /** `unless-stopped` suits services; one-shot images (hello-world) need `no` or they restart forever. */
   restartPolicy: RestartPolicy.default("unless-stopped"),
   command: z.array(z.string()).optional(),
+  /** Named volumes (`name:/path`). */
   volumes: z.array(z.string()).default([]),
+  /** Host folder mappings (`/host:/container`); a risky one needs its risk in `acceptRisks`. */
+  mounts: z.array(BindMount).max(32).default([]),
+  /** Risks the person accepted explicitly (the Docker socket, the host root, sensitive folders). */
+  acceptRisks: z.array(MountRisk).default([]),
   /** Optional fixed IPv4 on `networkId` (must be inside the network's subnet and unused). */
   ipAddress: z
     .string()
@@ -257,6 +263,17 @@ export const CustomTemplateInput = z.object({
   env: z.record(z.string().max(128), z.string().max(4096)).default({}),
   /** Container paths that become named volumes. */
   volumes: z.array(z.string().min(1).max(255)).max(32).default([]),
+  /** Host folder mappings the template carries. */
+  mounts: z
+    .array(
+      z.object({
+        source: z.string().min(1).max(1024).refine(isHostPath, "must be an absolute host path"),
+        target: z.string().min(1).max(1024).refine(isContainerPath, "must start with /"),
+        readOnly: z.boolean().optional(),
+      }),
+    )
+    .max(32)
+    .default([]),
   command: z.array(z.string().max(512)).max(64).optional(),
 });
 export type CustomTemplateInput = z.infer<typeof CustomTemplateInput>;

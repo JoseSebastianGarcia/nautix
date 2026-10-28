@@ -67,7 +67,17 @@ describe("mountRisks", () => {
   });
 
   it("flags sensitive host folders and anything under them", () => {
-    for (const source of ["/etc", "/etc/ssh", "/root", "/boot", "/proc", "/sys", "/dev", "/var/lib/docker", "/var/lib/docker/volumes"])
+    for (const source of [
+      "/etc",
+      "/etc/ssh",
+      "/root",
+      "/boot",
+      "/proc",
+      "/sys",
+      "/dev",
+      "/var/lib/docker",
+      "/var/lib/docker/volumes",
+    ])
       expect(mountRisks([`${source}:/x`])).toContain("sensitive-path");
   });
 

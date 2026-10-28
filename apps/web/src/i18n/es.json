@@ -47,7 +47,9 @@
     "force": "Forzar",
     "refresh": "Actualizar",
     "none": "ninguna",
-    "save": "Guardar"
+    "save": "Guardar",
+    "typeToConfirm": "Para confirmar, escribí",
+    "typeToConfirmLabel": "Escribí {{name}} para confirmar"
   },
   "theme": {
     "dark": "Oscuro",
@@ -424,7 +426,8 @@
     "overlayLocked": "El swarm está bloqueado. Desbloquealo primero en la pestaña Swarm",
     "nothingToRollBack": "No hay a qué volver: el servicio todavía no se actualizó",
     "secretNotFound": "Ese secreto no existe. Creálo antes en Swarm, Secretos",
-    "configNotFound": "Esa config no existe. Creála antes en Swarm, Configs"
+    "configNotFound": "Esa config no existe. Creála antes en Swarm, Configs",
+    "mountRisk": "Ese montaje necesita aceptación explícita."
   },
   "terminal": {
     "title": "Terminal",
@@ -1550,5 +1553,34 @@
     "keepVar": "Conservar {{name}}",
     "overlayHint": "Docker no permite editar una red en su lugar. Para cambiarla, creá otra y movés los servicios.",
     "overlayNotEmpty": "Primero mové o quitá sus servicios."
+  },
+  "mounts": {
+    "title": "Carpetas montadas",
+    "hint": "Conecta una carpeta de esta máquina con el contenedor (carpeta del host : carpeta dentro).",
+    "source": "Carpeta del host",
+    "target": "Carpeta en el contenedor",
+    "readOnly": "solo lectura",
+    "remove": "Quitar esta carpeta",
+    "add": "Agregar carpeta",
+    "invalid": {
+      "source": "Usá una ruta absoluta de esta máquina, como /srv/data.",
+      "target": "Usá una ruta absoluta dentro del contenedor, como /data."
+    },
+    "risk": {
+      "docker-socket": {
+        "name": "Socket de Docker",
+        "text": "Esto monta el socket de Docker. Lo que corra en este contenedor puede controlar Docker y, a través de él, toda la máquina: es lo mismo que darle root en el servidor."
+      },
+      "host-root": {
+        "name": "Disco completo",
+        "text": "Esto monta la raíz del disco de la máquina. El contenedor podrá leer y modificar todos los archivos del servidor."
+      },
+      "sensitive-path": {
+        "name": "Carpeta sensible",
+        "text": "Esto monta una carpeta del sistema (como /etc, /root o los datos propios de Docker). El contenedor podrá leerla y, si no es de solo lectura, modificarla."
+      }
+    },
+    "riskTitle": "Montaje riesgoso",
+    "accept": "Entiendo el riesgo y quiero montarlo igual"
   }
 }

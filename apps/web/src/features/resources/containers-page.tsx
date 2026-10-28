@@ -8,6 +8,7 @@ import { cli } from "../../app/cli.js";
 import { keys, useContainers, useIsAdmin } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { Button, ConfirmDialog, Input } from "../../components/ui.js";
+import { statusText } from "../containers/status-text.js";
 import { LogoBadge } from "../topology/logo-badge.js";
 import {
   type ContainerFilter,
@@ -100,7 +101,8 @@ export function ContainersPage() {
             </Td>
             <Td mono>{c.image}</Td>
             <Td>
-              {t(`containers.state.${c.state}`)} <span className="text-dim">· {c.status}</span>
+              {t(`containers.state.${c.state}`)}{" "}
+              <span className="text-dim">· {statusText(c.status, t)}</span>
             </Td>
             <Td mono>
               {c.ports
@@ -169,6 +171,7 @@ export function ContainersPage() {
         open={target !== null}
         title={t("topology.removeContainerTitle", { name: target?.name ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target?.name ?? ""}
         body={t("topology.removeContainerBody", { image: target?.image ?? "" })}
         command={target ? cli.removeContainer(target.name, true) : ""}
         onConfirm={() => target && remove.mutate(target)}

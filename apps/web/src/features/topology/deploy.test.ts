@@ -107,7 +107,9 @@ describe("folder mappings in the deploy dialog", () => {
   });
 
   it("blocks Deploy until every risky mount is explicitly accepted", () => {
-    const socket = [{ source: "/var/run/docker.sock", target: "/var/run/docker.sock", readOnly: false }];
+    const socket = [
+      { source: "/var/run/docker.sock", target: "/var/run/docker.sock", readOnly: false },
+    ];
     expect(deployBlockers(socket, [])).toEqual(["docker-socket"]);
     expect(deployBlockers(socket, ["docker-socket"])).toEqual([]);
     expect(deployBlockers([{ source: "/srv/a", target: "/a", readOnly: false }], [])).toEqual([]);

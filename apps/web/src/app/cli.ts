@@ -35,6 +35,8 @@ export const cli = {
       ip?: string;
       protocol?: "tcp" | "udp";
     }[];
+    /** Folder mappings as `/host:/container[:ro]`. */
+    mounts?: string[];
   }): string =>
     [
       "docker run -d",
@@ -45,6 +47,7 @@ export const cli = {
         (p) =>
           `-p ${p.ip ?? (p.pub ? "0.0.0.0" : "127.0.0.1")}:${p.host ?? ""}:${p.container}${p.protocol === "udp" ? "/udp" : ""}`,
       ),
+      ...(opts.mounts ?? []).map((m) => `-v ${m}`),
       opts.image,
     ]
       .filter(Boolean)

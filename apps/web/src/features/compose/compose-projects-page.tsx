@@ -83,6 +83,7 @@ export function ComposeProjectsPage() {
         open={target !== null}
         title={t("compose.deleteTitle", { name: target ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target ?? ""}
         body={t("compose.deleteBody")}
         onConfirm={() => target && remove.mutate(target)}
         onClose={() => setTarget(null)}

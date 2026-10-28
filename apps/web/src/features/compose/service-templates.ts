@@ -1,4 +1,4 @@
-import type { Template } from "@nautix/contracts";
+import { bindString, type Template } from "@nautix/contracts";
 
 export interface NewService {
   name: string;
@@ -31,9 +31,12 @@ export const templateToService = (
     used[protocol].add(host);
     return `127.0.0.1:${host}:${p.containerPort}${protocol === "udp" ? "/udp" : ""}`;
   });
-  const volumes = (template.volumes ?? []).map(
+  const named = (template.volumes ?? []).map(
     (path, i) => `${name}-data${i === 0 ? "" : `-${i + 1}`}:${path}`,
   );
+  // Folder mappings are binds, not named volumes: they are written in the service but never declared at the top.
+  const binds = (template.mounts ?? []).map(bindString);
+  const volumes = [...named, ...binds];
   const env = Object.fromEntries(
     Object.entries(template.env ?? {}).map(([k, v]) => [k, v === "change-me" ? opts.random() : v]),
   );
@@ -43,5 +46,5 @@ export const templateToService = (
   if (Object.keys(env).length) definition.environment = env;
   if (volumes.length) definition.volumes = volumes;
   if (opts.box) definition.networks = [opts.box];
-  return { name, definition, volumes: volumes.map((v) => v.split(":")[0] as string) };
+  return { name, definition, volumes: named.map((v) => v.split(":")[0] as string) };
 };

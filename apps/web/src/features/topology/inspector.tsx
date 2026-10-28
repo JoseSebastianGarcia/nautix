@@ -334,6 +334,7 @@ function ContainerInspector({
         open={confirmRemove}
         title={t("topology.removeContainerTitle", { name: c.name })}
         confirmLabel={t("common.delete")}
+        requireText={c.name}
         body={t("topology.removeContainerBody", { image: c.image })}
         command={cli.removeContainer(c.name, true)}
         onConfirm={() => remove.mutate(undefined, { onSuccess: onGone })}
@@ -410,6 +411,7 @@ function NetworkInspector({
         open={confirm}
         title={t("topology.removeNetworkTitle", { name: n.name })}
         confirmLabel={t("common.delete")}
+        requireText={n.name}
         body={t("topology.removeNetworkBody")}
         command={cli.removeNetwork(n.name)}
         onConfirm={() => remove.mutate(undefined, { onSuccess: onGone })}
@@ -453,6 +455,7 @@ function TunnelInspector({ tunnel, onGone }: { tunnel: TunnelInfo; onGone: () =>
         open={confirm}
         title={t("tunnel.removeTitle", { name: tunnel.name })}
         confirmLabel={t("common.delete")}
+        requireText={tunnel.name}
         body={t("tunnel.removeBody", { from: tunnel.from, to: tunnel.to })}
         command={cli.removeContainer(tunnel.name, true)}
         onConfirm={() => remove.mutate(undefined, { onSuccess: onGone })}

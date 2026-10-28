@@ -2,6 +2,7 @@ import {
   type CustomTemplateInput,
   checkFixedIp,
   isIpAddress,
+  mountRisks,
   type Network,
   type RestartPolicy,
   type Template,
@@ -14,9 +15,14 @@ import { cli } from "../../app/cli.js";
 import { keys, useContainers } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { EnvEditor, StringListEditor } from "../../components/fields.js";
+import { FolderMappings } from "../../components/folder-mappings.js";
 import { Button, Dialog, Field, Input, ShowCommand } from "../../components/ui.js";
 import {
+  deployBlockers,
   joinCommand,
+  type MountRow,
+  mountBinds,
+  mountProblems,
   namedVolumes,
   randomizeSecrets,
   randomSecret,
@@ -39,6 +45,11 @@ interface PortDraft {
   exposure: "local" | "open" | "address";
   address: string;
 }
+
+const validMounts = (rows: MountRow[]) =>
+  rows
+    .filter((m) => m.source.trim() !== "" && mountProblems(m) === null)
+    .map((m) => ({ source: m.source.trim(), target: m.target.trim(), readOnly: m.readOnly }));
 
 const validPort = (v: string): boolean => /^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 65535;
 
@@ -92,6 +103,11 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
     Object.entries(randomizeSecrets(tpl?.env ?? {}, randomSecret)),
   );
   const [volumes, setVolumes] = useState<string[]>(() => [...(tpl?.volumes ?? [])]);
+  const [mounts, setMounts] = useState<MountRow[]>(() =>
+    (tpl?.mounts ?? []).map((m) => ({ ...m, readOnly: m.readOnly ?? false })),
+  );
+  // One explicit yes covers every risk the mounts carry; it is asked again if the list changes.
+  const [accepted, setAccepted] = useState(false);
   const [command, setCommand] = useState(() => (tpl?.command ? joinCommand(tpl.command) : ""));
   const [createOnly, setCreateOnly] = useState(false);
   const [fixedIp, setFixedIp] = useState("");
@@ -117,11 +133,16 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
   const limitsValid =
     (memoryMb === "" || (Number(memoryMb) >= 6 && Number.isInteger(Number(memoryMb)))) &&
     (cpus === "" || Number(cpus) >= 0.01);
+  const risks = mountRisks(mountBinds(mounts));
+  const blockers = deployBlockers(mounts, accepted ? risks : []);
+  const mountsValid = mounts.every((m) => mountProblems(m) === null);
   const canSubmit =
     name !== "" &&
     image.trim() !== "" &&
     portsValid &&
     limitsValid &&
+    mountsValid &&
+    blockers.length === 0 &&
     ipProblem === null &&
     (!saveAs || templateName.trim() !== "");
 
@@ -141,6 +162,8 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
           ...(p.exposure === "address" ? { bindAddress: p.address.trim() } : {}),
         })),
         volumes: namedVolumes(name, volumes),
+        mounts: validMounts(mounts),
+        acceptRisks: accepted ? risks : [],
         ...(command.trim() ? { command: splitCommand(command) } : {}),
         ...(createOnly ? { start: false } : {}),
         ...(fixedIp.trim() && target.network ? { ipAddress: fixedIp.trim() } : {}),
@@ -167,6 +190,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
           })),
           env: Object.fromEntries(env.filter(([k]) => k.trim() !== "")),
           volumes,
+          mounts: validMounts(mounts),
           ...(command.trim() ? { command: splitCommand(command) } : {}),
         };
         await api.saveCustomTemplate(template);
@@ -195,6 +219,7 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
         ? { ip: p.address.trim() }
         : {}),
     })),
+    mounts: mountBinds(mounts),
   });
 
   return (
@@ -367,6 +392,36 @@ function DeployForm({ target, onClose }: { target: DeployTarget; onClose: () => 
         validate={(v) => v.startsWith("/")}
         onChange={setVolumes}
       />
+      <FolderMappings
+        rows={mounts}
+        onChange={(rows) => {
+          setMounts(rows);
+          setAccepted(false);
+        }}
+      />
+      {risks.length > 0 && (
+        <div
+          role="alert"
+          className="flex flex-col gap-2 rounded-lg border border-danger bg-danger/10 p-3 text-sm"
+        >
+          <h3 className="font-semibold text-danger">{t("mounts.riskTitle")}</h3>
+          <ul className="flex flex-col gap-1">
+            {risks.map((r) => (
+              <li key={r}>
+                <strong>{t(`mounts.risk.${r}.name`)}.</strong> {t(`mounts.risk.${r}.text`)}
+              </li>
+            ))}
+          </ul>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+            />
+            {t("mounts.accept")}
+          </label>
+        </div>
+      )}
       <Field label={t("topology.command")} hint={t("topology.commandHint")}>
         <Input
           value={command}

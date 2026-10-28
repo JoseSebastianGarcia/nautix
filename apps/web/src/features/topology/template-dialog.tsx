@@ -6,8 +6,9 @@ import { api } from "../../app/api.js";
 import { keys } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { EnvEditor, StringListEditor } from "../../components/fields.js";
+import { FolderMappings } from "../../components/folder-mappings.js";
 import { Button, Dialog, Field, Input } from "../../components/ui.js";
-import { joinCommand, splitCommand } from "./deploy.js";
+import { joinCommand, type MountRow, mountProblems, splitCommand } from "./deploy.js";
 
 interface PortDraft {
   /** Kept from the template this was copied from, so "web" does not turn into "80". */
@@ -92,6 +93,9 @@ function TemplateForm({
   );
   const [env, setEnv] = useState<[string, string][]>(() => Object.entries(template?.env ?? {}));
   const [volumes, setVolumes] = useState<string[]>(() => [...(template?.volumes ?? [])]);
+  const [mounts, setMounts] = useState<MountRow[]>(() =>
+    (template?.mounts ?? []).map((m) => ({ ...m, readOnly: m.readOnly ?? false })),
+  );
   const [command, setCommand] = useState(() =>
     template?.command ? joinCommand(template.command) : "",
   );
@@ -99,7 +103,8 @@ function TemplateForm({
   const portsValid = ports.every(
     (p) => validPort(p.containerPort) && (p.hostPort === "" || validPort(p.hostPort)),
   );
-  const canSave = name.trim() !== "" && image.trim() !== "" && portsValid;
+  const mountsValid = mounts.every((m) => mountProblems(m) === null);
+  const canSave = name.trim() !== "" && image.trim() !== "" && portsValid && mountsValid;
   const patchPort = (i: number, patch: Partial<PortDraft>) =>
     setPorts(ports.map((q, j) => (j === i ? { ...q, ...patch } : q)));
 
@@ -117,6 +122,9 @@ function TemplateForm({
         })),
         env: Object.fromEntries(env.filter(([k]) => k.trim() !== "")),
         volumes,
+        mounts: mounts
+          .filter((m) => m.source.trim() !== "")
+          .map((m) => ({ source: m.source.trim(), target: m.target.trim(), readOnly: m.readOnly })),
         ...(command.trim() ? { command: splitCommand(command) } : {}),
       };
       const saved = await api.saveCustomTemplate(input);
@@ -227,6 +235,7 @@ function TemplateForm({
         validate={(v) => v.startsWith("/")}
         onChange={setVolumes}
       />
+      <FolderMappings rows={mounts} onChange={setMounts} />
       <Field label={t("topology.command")} hint={t("topology.commandHint")}>
         <Input
           value={command}
