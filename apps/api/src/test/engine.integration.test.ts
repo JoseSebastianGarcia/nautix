@@ -38,15 +38,27 @@ const docker = (...args: string[]): string => {
   }
 };
 
+/** A connection the server closed while the test was busy (`docker exec` blocks for seconds) is reset on reuse. */
+const isConnectionReset = (error: unknown): boolean =>
+  error instanceof TypeError &&
+  (error.cause as { code?: string } | undefined)?.code === "ECONNRESET";
+
 const call = async (method: string, path: string, body?: unknown) => {
-  const res = await fetch(`${base}/api/v1${path}`, {
-    method,
-    headers: {
-      "x-nautix-csrf": "1",
-      ...(body === undefined ? {} : { "content-type": "application/json" }),
-      ...(cookie ? { cookie } : {}),
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  const send = () =>
+    fetch(`${base}/api/v1${path}`, {
+      method,
+      headers: {
+        "x-nautix-csrf": "1",
+        ...(body === undefined ? {} : { "content-type": "application/json" }),
+        ...(cookie ? { cookie } : {}),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  // The server's keep-alive timeout is shorter than some steps of these tests: the request never reached
+  // it, so sending it again on a fresh connection is safe.
+  const res = await send().catch((error: unknown) => {
+    if (isConnectionReset(error)) return send();
+    throw error;
   });
   const json = res.headers.get("content-type")?.includes("json") ? await res.json() : undefined;
   return { res, json };
