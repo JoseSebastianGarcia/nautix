@@ -3,6 +3,7 @@ import {
   siCaddy,
   siDocker,
   siElasticsearch,
+  siGooglecloud,
   siGrafana,
   siKibana,
   siKong,
@@ -72,6 +73,11 @@ const BRANDS: Brand[] = [
   },
   { match: /kibana/, path: siKibana.path, hex: "#E8478B", initials: "KB" },
   { match: /grafana/, path: siGrafana.path, hex: `#${siGrafana.hex}`, initials: "GF" },
+  // Floci cloud emulators. AWS, Azure and Oracle are not in simple-icons, so they use a tinted badge.
+  { match: /floci-gcp/, path: siGooglecloud.path, hex: `#${siGooglecloud.hex}`, initials: "GC" },
+  { match: /floci-az/, path: null, hex: "#0078D4", initials: "AZ" },
+  { match: /floci-oci/, path: null, hex: "#F80000", initials: "OC" },
+  { match: /floci\/floci:|floci\/floci$/, path: null, hex: "#FF9900", initials: "AW" },
 ];
 
 const FALLBACK_HEX = "#8b7cf6";

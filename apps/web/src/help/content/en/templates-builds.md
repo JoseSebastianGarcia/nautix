@@ -8,6 +8,7 @@ Some categories worth knowing:
 
 - **Identity**: Keycloak, Pocket ID and Casdoor.
 - **Storage**: RustFS (S3-compatible), Azurite (Azure Blob) and fake-gcs-server (Google Cloud Storage).
+- **Cloud emulators**: [Floci](https://floci.io) for AWS, Azure, Google Cloud and Oracle Cloud (OCI), free and open source. Each one answers on one port (4566, 4577, 4588 and 4599) and keeps its data in memory, so it is lost when the container restarts. The services that run real containers (Lambda, databases, Kubernetes and the like) need the Docker socket, and these templates do not mount it on purpose, because it is root-equivalent on the host; the services that run inside the emulator work without it. The images use the `latest` tag: pin a version once you depend on one.
 - **Proxies**: besides Traefik, Nginx, Caddy and HAProxy, **Caddy HTTPS (one site)** puts HTTPS in front of one service: its command is `--from localhost --to vaultwarden:80`. On your own machine `localhost` gets a local certificate (the browser warns once). On a VPS replace `localhost` by your domain: it needs a public domain pointing at the machine and ports 80 and 443 open to the internet, and then gets a real certificate.
 - **Secrets**: Vaultwarden (password manager for teams, Bitwarden-compatible), OpenBao, HashiCorp Vault and Lowkey Vault (Azure Key Vault). OpenBao and Vault have a variant with storage that can keep their data in a volume so it survives recreating the container.
 - **My images**: anything you built or pulled. **Any image** deploys an image by name.

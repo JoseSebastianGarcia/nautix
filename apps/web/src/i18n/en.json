@@ -146,6 +146,7 @@
       "broker": "Messaging",
       "identity": "Identity",
       "storage": "Storage",
+      "cloud": "Cloud emulators",
       "secrets": "Secrets",
       "observability": "Observability",
       "automation": "Automation",

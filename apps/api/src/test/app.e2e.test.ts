@@ -430,10 +430,21 @@ describe("catalog", () => {
       env?: Record<string, string>;
     }[];
 
-  it("ships SQL Server, Kafka and n8n", async () => {
+  it("ships SQL Server, Kafka, n8n and the cloud emulators", async () => {
     const ids = (await list()).map((t) => t.id);
     expect(ids).toEqual(
-      expect.arrayContaining(["mssql", "kafka", "n8n", "adguardhome", "pihole", "dnsmasq"]),
+      expect.arrayContaining([
+        "mssql",
+        "kafka",
+        "n8n",
+        "adguardhome",
+        "pihole",
+        "dnsmasq",
+        "floci-aws",
+        "floci-azure",
+        "floci-gcp",
+        "floci-oci",
+      ]),
     );
   });
 

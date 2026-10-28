@@ -10,6 +10,7 @@ export type TemplateCategory =
   | "identity"
   | "storage"
   | "secrets"
+  | "cloud"
   | "app"
   | "custom";
 
@@ -577,6 +578,50 @@ export const TEMPLATES: readonly Template[] = [
     color: "#F46800",
     ports: [{ containerPort: 3000, label: "web" }],
     volumes: ["/var/lib/grafana"],
+  },
+  // Floci: free, MIT-licensed local emulators of public clouds (https://floci.io). They keep their state in
+  // memory by default. Services that run real containers (Lambda, databases, Kubernetes...) need the Docker
+  // socket; these templates do not mount it, so only the in-process services work until you add it yourself.
+  {
+    id: "floci-aws",
+    name: "Floci · AWS",
+    category: "cloud",
+    image: "floci/floci:latest",
+    description:
+      "Local AWS emulator (S3, SQS, DynamoDB and more). Use AWS_ENDPOINT_URL with any test keys",
+    icon: "amazonaws",
+    color: "#FF9900",
+    ports: [{ containerPort: 4566, label: "aws api", hostPort: 4566 }],
+  },
+  {
+    id: "floci-azure",
+    name: "Floci · Azure",
+    category: "cloud",
+    image: "floci/floci-az:latest",
+    description: "Local Azure emulator (Blob, Queue, Table and more) on one port",
+    icon: "microsoftazure",
+    color: "#0078D4",
+    ports: [{ containerPort: 4577, label: "azure api", hostPort: 4577 }],
+  },
+  {
+    id: "floci-gcp",
+    name: "Floci · Google Cloud",
+    category: "cloud",
+    image: "floci/floci-gcp:latest",
+    description: "Local Google Cloud emulator (Storage, Pub/Sub, Firestore and more) on one port",
+    icon: "googlecloud",
+    color: "#4285F4",
+    ports: [{ containerPort: 4588, label: "gcp api", hostPort: 4588 }],
+  },
+  {
+    id: "floci-oci",
+    name: "Floci · Oracle Cloud",
+    category: "cloud",
+    image: "floci/floci-oci:latest",
+    description: "Local Oracle Cloud (OCI) emulator, unsigned requests accepted",
+    icon: "oracle",
+    color: "#F80000",
+    ports: [{ containerPort: 4599, label: "oci api", hostPort: 4599 }],
   },
 ] as const;
 

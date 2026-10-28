@@ -146,6 +146,7 @@
       "broker": "Mensajería",
       "identity": "Identidad",
       "storage": "Almacenamiento",
+      "cloud": "Emuladores de nube",
       "secrets": "Secretos",
       "observability": "Observabilidad",
       "automation": "Automatización",
