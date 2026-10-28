@@ -59,6 +59,7 @@ import {
   layoutTopology,
   NODE_H,
   NODE_W,
+  pinAutoPositions,
   type Topology,
   zoneAt,
   zoneKey,
@@ -92,7 +93,8 @@ function Canvas() {
   const flow = useReactFlow();
   const isAdmin = useIsAdmin();
 
-  const { data: savedLayout = EMPTY_LAYOUT } = useLayout();
+  const layoutQuery = useLayout();
+  const savedLayout = layoutQuery.data ?? EMPTY_LAYOUT;
   const qc = useQueryClient();
   const saveLayout = useApiMutation((layout: Layout) => api.saveLayout(layout), []);
   const persist = useCallback(
@@ -115,6 +117,22 @@ function Canvas() {
     () => layoutTopology(services, networks, savedLayout),
     [services, networks, savedLayout],
   );
+  // The first time a canvas is shown, remember where everything went (ADR-061): otherwise boxes that were
+  // never placed by hand would move whenever a container or network appeared, disappeared or was re-listed.
+  // Only once the saved layout itself has loaded, so an empty default can never overwrite a real one.
+  useEffect(() => {
+    if (!isAdmin || !layoutQuery.isSuccess || containers.length + networks.length === 0) return;
+    const pinned = pinAutoPositions(topology, savedLayout);
+    if (pinned) persist(pinned);
+  }, [
+    isAdmin,
+    layoutQuery.isSuccess,
+    containers.length,
+    networks.length,
+    topology,
+    savedLayout,
+    persist,
+  ]);
   const [nodes, setNodes] = useState<FlowNode[]>([]);
   const [selection, setSelection] = useState<Selection>(null);
   const panels = useCanvasPanels(selection !== null);

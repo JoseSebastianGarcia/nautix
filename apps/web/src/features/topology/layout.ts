@@ -41,6 +41,8 @@ export interface ZoneLayout {
 
 export interface Placement {
   containerId: string;
+  /** The container's name: the key its box-relative spot is saved under. */
+  name: string;
   zoneId: string;
   /** Absolute canvas position of the node. */
   x: number;
@@ -81,16 +83,19 @@ export const layoutTopology = <C extends Placeable>(
   networks: Network[],
   saved: Layout = NO_LAYOUT,
 ): Topology => {
-  const userNetworks = networks.filter(isZoneNetwork);
-  const byName = new Map(userNetworks.map((n) => [n.name, n]));
+  // Docker lists networks and containers in no fixed order. Sorting by name makes the automatic spots depend
+  // only on what exists, so a refresh can never shuffle boxes the person has not placed (ADR-061).
+  const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
+  const userNetworks = networks.filter(isZoneNetwork).sort(byName);
+  const networkByName = new Map(userNetworks.map((n) => [n.name, n]));
 
   const members = new Map<string, C[]>();
   const external: C[] = [];
   const links: Link[] = [];
 
-  for (const c of containers) {
+  for (const c of [...containers].sort(byName)) {
     const mine = c.networks
-      .map((name) => byName.get(name))
+      .map((name) => networkByName.get(name))
       .filter((n): n is Network => n !== undefined);
     const [primary, ...rest] = mine;
     if (!primary) {
@@ -116,19 +121,37 @@ export const layoutTopology = <C extends Placeable>(
     const origin = saved.zones[network?.name ?? EXTERNAL_ID] ?? { x, y };
     let maxRight = 0;
     let maxBottom = 0;
-    list.forEach((c, i) => {
-      const autoOffset = {
-        x: PAD + (i % auto.cols) * (NODE_W + GAP),
-        y: HEADER + PAD + Math.floor(i / auto.cols) * (NODE_H + GAP),
-      };
+    const clamp = (o: { x: number; y: number }) => ({
+      x: Math.max(MIN_OFFSET_X, o.x),
+      y: Math.max(HEADER, o.y),
+    });
+    // Spots already used by containers that were placed (by hand or pinned): new ones go around them.
+    const taken = list.flatMap((c) => {
+      const o = saved.nodes[c.name];
+      return o ? [clamp(o)] : [];
+    });
+    const freeSlot = (): { x: number; y: number } => {
+      for (let k = 0; ; k++) {
+        const slot = {
+          x: PAD + (k % auto.cols) * (NODE_W + GAP),
+          y: HEADER + PAD + Math.floor(k / auto.cols) * (NODE_H + GAP),
+        };
+        if (
+          !taken.some((t) => Math.abs(t.x - slot.x) < NODE_W && Math.abs(t.y - slot.y) < NODE_H)
+        ) {
+          taken.push(slot);
+          return slot;
+        }
+      }
+    };
+    list.forEach((c) => {
       const savedOffset = saved.nodes[c.name];
-      const offset = savedOffset
-        ? { x: Math.max(MIN_OFFSET_X, savedOffset.x), y: Math.max(HEADER, savedOffset.y) }
-        : autoOffset;
+      const offset = savedOffset ? clamp(savedOffset) : freeSlot();
       maxRight = Math.max(maxRight, offset.x + NODE_W + PAD);
       maxBottom = Math.max(maxBottom, offset.y + NODE_H + PAD);
       placements.push({
         containerId: c.id,
+        name: c.name,
         zoneId: id,
         x: origin.x + offset.x,
         y: origin.y + offset.y,
@@ -178,3 +201,29 @@ export const layoutTopology = <C extends Placeable>(
 /** Which zone contains a point (used for drag/drop). External is a normal zone. */
 export const zoneAt = (zones: ZoneLayout[], x: number, y: number): ZoneLayout | undefined =>
   zones.find((z) => x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h);
+
+/**
+ * What the layout still has no saved spot for, filled in with where the automatic layout put it, so that
+ * the first time a canvas is shown its boxes and containers stop depending on what comes later. Returns null
+ * when everything is pinned already (nothing to save). Container spots are relative to their box, like a drag.
+ */
+export const pinAutoPositions = (topology: Topology, saved: Layout): Layout | null => {
+  const zones = { ...saved.zones };
+  const nodes = { ...saved.nodes };
+  let changed = false;
+  for (const zone of topology.zones) {
+    const key = zoneKey(zone);
+    if (!zones[key]) {
+      zones[key] = { x: zone.x, y: zone.y };
+      changed = true;
+    }
+  }
+  for (const p of topology.placements) {
+    const zone = topology.zones.find((z) => z.id === p.zoneId);
+    if (!nodes[p.name] && zone) {
+      nodes[p.name] = { x: p.x - zone.x, y: p.y - zone.y };
+      changed = true;
+    }
+  }
+  return changed ? { ...saved, zones, nodes } : null;
+};
