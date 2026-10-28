@@ -4,8 +4,10 @@
 #   docker compose -f compose.hub.yaml up -d
 #   docker compose -f compose.hub.yaml logs nautix     # one-time setup token
 # Open https://localhost:3737 (see Settings → HTTPS certificate to make the browser trust it).
+name: nautix
 services:
   nautix:
+    container_name: nautix
     image: ${NAUTIX_IMAGE:?set NAUTIX_IMAGE, for example myuser/nautix}:${NAUTIX_VERSION:-latest}
     restart: unless-stopped
     # Bound to localhost only. Put a reverse proxy with TLS in front to reach it remotely.
@@ -22,4 +24,5 @@ services:
     read_only: true
     tmpfs: ["/tmp"]
 volumes:
-  nautix-data: {}
+  nautix-data:
+    name: nautix-data
