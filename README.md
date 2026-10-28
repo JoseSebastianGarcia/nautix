@@ -7,7 +7,7 @@
 
 # Nautix
 
-Self-hosted web app to manage Docker: containers, images, volumes and networks, with a visual canvas where **networks are boxes** and containers (with their logo) live inside them. SSPL-1.0 · UI in English and Spanish · dark (black, white buttons) and light (white, black buttons) themes with a configurable accent.
+Self-hosted web app to manage Docker: containers, images, volumes and networks, with a visual canvas where **networks are boxes** and containers (with their logo) live inside them. Apache-2.0 · UI in English and Spanish · dark (black, white buttons) and light (white, black buttons) themes with a configurable accent.
 
 > Nautix controls the Docker socket, which is **root-equivalent on the host**. It binds to `127.0.0.1` by default; keep it that way or put a TLS reverse proxy with auth in front.
 
@@ -127,4 +127,4 @@ pnpm test:integration   # needs a Docker daemon: runs the API against the real e
 
 ## Docs
 
-`CLAUDE.md` (rules), `docs/spec/` (product spec), `docs/DECISIONS.md` (ADRs). License: SSPL-1.0 (see `LICENSE` and `NOTICE`). Source-available, not OSI open source: you can use, modify and self-host it freely, but offering Nautix to third parties as a service requires publishing the source of the whole service stack under the SSPL. The name and logo are trademarks (`TRADEMARK.md`); contributions follow `CONTRIBUTING.md`; security notes and how to report a problem are in `SECURITY.md`.
+`CLAUDE.md` (rules), `docs/spec/` (product spec), `docs/DECISIONS.md` (ADRs). License: Apache-2.0 (see `LICENSE` and `NOTICE`). The name and logo are trademarks (`TRADEMARK.md`); contributions follow `CONTRIBUTING.md`; security notes and how to report a problem are in `SECURITY.md`.

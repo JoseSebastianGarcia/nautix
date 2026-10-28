@@ -8,6 +8,7 @@ export * from "./fixed-ip.js";
 export * from "./gateway.js";
 export * from "./guard.js";
 export * from "./ip.js";
+export * from "./mounts.js";
 export * from "./recreate.js";
 export * from "./swarm.js";
 export * from "./tls.js";

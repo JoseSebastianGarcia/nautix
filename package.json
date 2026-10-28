@@ -1,8 +1,8 @@
 {
   "name": "nautix",
   "private": true,
-  "version": "0.1.0",
-  "license": "SSPL-1.0",
+  "version": "1.0.0",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=22"

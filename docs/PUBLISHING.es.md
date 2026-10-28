@@ -17,7 +17,7 @@ pnpm install
 pnpm lint && pnpm test            # deben pasar
 ```
 
-Comprobá también `LICENSE` (SSPL-1.0), `NOTICE` y el número de versión que querés publicar.
+Comprobá también `LICENSE` (Apache-2.0), `NOTICE` y el número de versión que querés publicar.
 
 ## 1. Crear el repositorio en Docker Hub (una sola vez)
 

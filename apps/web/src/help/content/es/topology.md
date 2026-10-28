@@ -14,6 +14,12 @@ La topología es la máquina dibujada como un diagrama. Cada **caja** es una red
 - **Ordenar** vuelve a acomodar todo; las posiciones que fijaste a mano se guardan.
 - **Exportar Compose** escribe los contenedores visibles como un archivo Compose.
 
+## Carpetas montadas y montajes riesgosos
+El diálogo de despliegue y el editor de templates tienen una lista **Carpetas montadas**: una carpeta de esta máquina (`/srv/data`) conectada con una carpeta dentro del contenedor (`/data`), opcionalmente de **solo lectura**. Usá rutas absolutas. Algunos montajes son riesgosos y nunca pasan en silencio: el **socket de Docker** (es root en el servidor), el **disco completo** (`/`) y las **carpetas del sistema** (`/etc`, `/root`, `/boot`, `/proc`, `/sys`, `/dev` y los datos propios de Docker). Cuando un montaje es de esos, un aviso rojo explica qué permite y **Desplegar** queda deshabilitado hasta que marques que lo aceptás. El servidor aplica la misma regla, así que un script o un token de API no puede saltearla.
+
+## Eliminar escribiendo el nombre
+Eliminar un contenedor, imagen, volumen, red, proyecto de Compose, servicio de swarm, stack, nodo, usuario, login guardado o plugin te pide **escribir su nombre exacto** antes de que se habilite el botón rojo *Eliminar*, como hace GitHub antes de borrar un repositorio. Importan las mayúsculas. Cancelar o cerrar el diálogo borra lo que escribiste.
+
 ## Insignias de puertos
 
 Cada puerto publicado muestra quién puede llegar a él:

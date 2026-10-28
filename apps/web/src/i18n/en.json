@@ -47,7 +47,9 @@
     "force": "Force",
     "refresh": "Refresh",
     "none": "none",
-    "save": "Save"
+    "save": "Save",
+    "typeToConfirm": "To confirm, type",
+    "typeToConfirmLabel": "Type {{name}} to confirm"
   },
   "theme": {
     "dark": "Dark",
@@ -146,6 +148,7 @@
       "broker": "Messaging",
       "identity": "Identity",
       "storage": "Storage",
+      "cloud": "Cloud emulators",
       "secrets": "Secrets",
       "observability": "Observability",
       "automation": "Automation",
@@ -423,7 +426,8 @@
     "overlayLocked": "The swarm is locked. Unlock it in the Swarm tab first",
     "nothingToRollBack": "There is nothing to roll back to: the service has not been updated yet",
     "secretNotFound": "That secret does not exist. Create it in Swarm, Secrets first",
-    "configNotFound": "That config does not exist. Create it in Swarm, Configs first"
+    "configNotFound": "That config does not exist. Create it in Swarm, Configs first",
+    "mountRisk": "That mount needs explicit acceptance."
   },
   "terminal": {
     "title": "Terminal",
@@ -730,7 +734,15 @@
     "time": "Time",
     "type": "Type",
     "action": "Action",
-    "waitingEvents": "Waiting for engine events…"
+    "waitingEvents": "Waiting for engine events…",
+    "pruneMode": "How to clean",
+    "modeEverything": "Everything unused",
+    "modeOneKind": "One kind at a time",
+    "cleanupIntro": "Like docker system prune, but you choose: every unused item is listed below with its own checkbox. Nothing is removed until you confirm.",
+    "cleanupVolumes": "Also include unused volumes (they hold data)",
+    "cleanupVolumesWarn": "A volume that nothing uses may still hold data you want. Check the list before deleting.",
+    "groupToggle": "Select or clear all {{kind}}",
+    "cleanupNoCache": "The build cache that docker system prune also clears is not included here."
   },
   "gateway": {
     "title": "Gateways and proxies",
@@ -1549,5 +1561,48 @@
     "keepVar": "Keep {{name}}",
     "overlayHint": "Docker cannot edit a network in place. To change it, create another one and move the services.",
     "overlayNotEmpty": "Move or remove its services first."
+  },
+  "mounts": {
+    "title": "Mounted folders",
+    "hint": "Maps a folder of this machine into the container (host folder : folder inside).",
+    "source": "Host folder",
+    "target": "Folder in the container",
+    "readOnly": "read-only",
+    "remove": "Remove this folder",
+    "add": "Add folder",
+    "invalid": {
+      "source": "Use an absolute path on this machine, like /srv/data.",
+      "target": "Use an absolute path inside the container, like /data."
+    },
+    "risk": {
+      "docker-socket": {
+        "name": "Docker socket",
+        "text": "This mounts the Docker socket. Whatever runs in this container can control Docker and, through it, the whole machine: it is the same as giving it root on the host."
+      },
+      "host-root": {
+        "name": "Whole disk",
+        "text": "This mounts the root of the machine's disk. The container will be able to read and change every file on the host."
+      },
+      "sensitive-path": {
+        "name": "Sensitive folder",
+        "text": "This mounts a system folder (such as /etc, /root or Docker's own data). The container will be able to read it and, unless read-only, change it."
+      }
+    },
+    "riskTitle": "Risky mount",
+    "accept": "I understand the risk and want to mount it anyway"
+  },
+  "bulk": {
+    "deleteSelected": "Delete selected",
+    "clear": "Clear selection",
+    "confirmBody": "This removes: {{names}}. It cannot be undone.",
+    "andMore": " and {{count}} more",
+    "forced": "{{count}} running container(s) will be stopped by force.",
+    "removing": "Deleting {{count}} items…",
+    "partial": "{{removed}} deleted, {{failed}} could not be: {{first}}",
+    "selectAll": "Select all",
+    "selectRow": "Select {{name}}",
+    "selected": "Selected: {{count}}",
+    "confirmTitle": "Delete {{count}} item(s)?",
+    "removed": "Deleted: {{count}}"
   }
 }

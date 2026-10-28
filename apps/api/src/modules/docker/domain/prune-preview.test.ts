@@ -47,6 +47,16 @@ const inv = {
 };
 
 describe("previewPrune", () => {
+  it("names what to delete: ids for containers, images and networks, the name for a volume", () => {
+    expect(previewPrune("containers", inv, false).items[0]?.id).toBe("old");
+    expect(previewPrune("images", inv, true).items.map((i) => i.id)).toEqual([
+      "sha256:b:1-abcdefghijkl",
+      "sha256:dangling-abcdefghijkl",
+    ]);
+    expect(previewPrune("volumes", inv, false).items[0]?.id).toBe("orphan");
+    expect(previewPrune("networks", inv, false).items[0]?.id).toBe("empty");
+  });
+
   it("lists stopped containers and never offers Nautix itself", () => {
     expect(previewPrune("containers", inv, false).items.map((i) => i.name)).toEqual(["old"]);
   });

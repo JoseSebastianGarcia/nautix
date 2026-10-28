@@ -39,4 +39,16 @@ describe("cli", () => {
     );
     expect(cli.run({ ...base, restart: "no" })).toBe("docker run -d --name w nginx");
   });
+
+  it("shows folder mappings as -v flags in the docker run line", () => {
+    const line = cli.run({
+      name: "az",
+      image: "floci/floci-az:latest",
+      ports: [],
+      mounts: ["/var/run/docker.sock:/var/run/docker.sock", "/srv/site:/html:ro"],
+    });
+    expect(line).toContain("-v /var/run/docker.sock:/var/run/docker.sock");
+    expect(line).toContain("-v /srv/site:/html:ro");
+    expect(line.indexOf("-v ")).toBeLessThan(line.indexOf("floci/floci-az"));
+  });
 });

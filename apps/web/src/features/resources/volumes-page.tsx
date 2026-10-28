@@ -6,14 +6,17 @@ import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
 import { keys, useVolumes } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
+import { useListSelection } from "../../app/use-list-selection.js";
+import { BulkDeleteBar } from "../../components/bulk-delete.js";
 import { InspectDialog } from "../../components/inspect-dialog.js";
 import { Button, ConfirmDialog, Dialog, Field, Input, ShowCommand } from "../../components/ui.js";
-import { PageHeader, Table, Td } from "./table.js";
+import { PageHeader, RowCheck, Table, Td } from "./table.js";
 import { VolumeBrowser } from "./volume-browser.js";
 
 export function VolumesPage() {
   const { t } = useTranslation();
   const { data = [] } = useVolumes();
+  const sel = useListSelection(data, (v) => v.name);
   const [target, setTarget] = useState<Volume | null>(null);
   const [creating, setCreating] = useState(false);
   const [inspecting, setInspecting] = useState<{ key: string; name: string; id: string } | null>(
@@ -34,7 +37,14 @@ export function VolumesPage() {
           </Button>
         }
       />
+      <BulkDeleteBar
+        items={sel.rows.map((v) => ({ kind: "volumes" as const, id: v.name, name: v.name }))}
+        invalidate={[keys.volumes]}
+        onDone={sel.clear}
+        onClear={sel.clear}
+      />
       <Table
+        selection={sel.table(t("bulk.selectAll"))}
         head={[
           t("common.name"),
           t("common.driver"),
@@ -46,6 +56,11 @@ export function VolumesPage() {
       >
         {data.map((v) => (
           <tr key={v.name}>
+            <RowCheck
+              checked={sel.has(v.name)}
+              onChange={() => sel.toggle(v.name)}
+              label={t("bulk.selectRow", { name: v.name })}
+            />
             <Td mono>{v.name}</Td>
             <Td>{v.driver}</Td>
             <Td mono>{v.mountpoint}</Td>
@@ -99,6 +114,7 @@ export function VolumesPage() {
         open={target !== null}
         title={t("volumes.removeTitle", { name: target?.name ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target?.name ?? ""}
         body={t("volumes.removeBody")}
         command={target ? cli.removeVolume(target.name) : ""}
         onConfirm={() => target && remove.mutate(target.name)}

@@ -37,6 +37,7 @@ export const toTemplate = (input: CustomTemplateInput): Template => {
     })),
     ...(Object.keys(input.env).length ? { env: input.env } : {}),
     ...(input.volumes.length ? { volumes: input.volumes } : {}),
+    ...(input.mounts.length ? { mounts: input.mounts } : {}),
     ...(input.command?.length ? { command: input.command } : {}),
     custom: true,
   };

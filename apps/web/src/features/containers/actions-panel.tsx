@@ -276,6 +276,7 @@ export function ActionsPanel({ container: c }: { container: Container }) {
         open={confirmRemove}
         title={t("topology.removeContainerTitle", { name: c.name })}
         confirmLabel={t("common.delete")}
+        requireText={c.name}
         body={t("topology.removeContainerBody", { image: c.image })}
         command={cli.removeContainer(c.name, true)}
         onConfirm={() => remove.mutate(undefined, { onSuccess: () => navigate("/containers") })}

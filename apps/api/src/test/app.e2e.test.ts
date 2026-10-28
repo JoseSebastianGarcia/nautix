@@ -151,6 +151,49 @@ describe("docker api (fake engine)", () => {
     expect(c?.state).toBe("running");
   });
 
+  it("refuses a risky folder mount until the risk is accepted", async () => {
+    const socket = { source: "/var/run/docker.sock", target: "/var/run/docker.sock" };
+    const refused = await call("POST", "/containers", {
+      name: "needs-socket",
+      image: "alpine",
+      networkId: null,
+      mounts: [socket],
+    });
+    expect(refused.res.status).toBe(422);
+    expect(refused.json.hintKey).toBe("errors.mountRisk");
+    expect(refused.json.detail).toContain("docker-socket");
+    // The same rule covers a bind slipped into `volumes`.
+    const sneaky = await call("POST", "/containers", {
+      name: "needs-socket",
+      image: "alpine",
+      networkId: null,
+      volumes: ["/etc:/host-etc"],
+    });
+    expect(sneaky.res.status).toBe(422);
+    expect(sneaky.json.detail).toContain("sensitive-path");
+    const list = (await call("GET", "/containers")).json as { name: string }[];
+    expect(list.some((c) => c.name === "needs-socket")).toBe(false);
+
+    const accepted = await call("POST", "/containers", {
+      name: "needs-socket",
+      image: "alpine",
+      networkId: null,
+      mounts: [socket],
+      acceptRisks: ["docker-socket"],
+    });
+    expect(accepted.res.status).toBe(201);
+  });
+
+  it("lets an ordinary folder mapping through without any consent", async () => {
+    const created = await call("POST", "/containers", {
+      name: "plain-mount",
+      image: "nginx:1.27-alpine",
+      networkId: null,
+      mounts: [{ source: "/srv/site", target: "/usr/share/nginx/html", readOnly: true }],
+    });
+    expect(created.res.status).toBe(201);
+  });
+
   it("returns problem+json with a hint key for conflicts", async () => {
     const dup = await call("POST", "/containers", {
       name: "api-test",
@@ -430,10 +473,22 @@ describe("catalog", () => {
       env?: Record<string, string>;
     }[];
 
-  it("ships SQL Server, Kafka and n8n", async () => {
+  it("ships SQL Server, Kafka, n8n and the cloud emulators", async () => {
     const ids = (await list()).map((t) => t.id);
     expect(ids).toEqual(
-      expect.arrayContaining(["mssql", "kafka", "n8n", "adguardhome", "pihole", "dnsmasq"]),
+      expect.arrayContaining([
+        "mssql",
+        "kafka",
+        "n8n",
+        "adguardhome",
+        "pihole",
+        "dnsmasq",
+        "floci-aws",
+        "floci-azure",
+        "floci-gcp",
+        "floci-oci",
+        "floci-ui",
+      ]),
     );
   });
 

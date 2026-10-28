@@ -45,6 +45,11 @@ Otro contenedor o programa usa ese puerto del host. Elegí otro, o detené el ot
 
 Las reglas aplicadas en prueba se revierten solas a los 60 segundos. En el host: `docker exec nautix-guard node dist/guard-helper.js --panic` quita todas las reglas de firewall de Nautix.
 
+## Liberar espacio: limpiar y eliminar varias cosas a la vez
+- **Sistema, Asistente de limpieza, Todo lo que no se usa** es `docker system prune` pero eligiendo: los contenedores detenidos, las redes sin uso y las imágenes sin etiqueta aparecen listados con **una casilla cada uno** (quitá la de lo que querés conservar, o la de un grupo entero). Marcá *también imágenes sin uso* para `docker system prune -a`, y *también volúmenes sin uso* para `--volumes`: los volúmenes guardan datos, por eso vienen sin marcar y conviene leer la lista. El asistente muestra el comando equivalente y el espacio que libera. La caché de builds que `docker system prune` también limpia no está incluida.
+- **En las listas de Contenedores, Imágenes, Volúmenes y Redes** marcá las filas que quieras (la casilla del encabezado marca todas) y apretá **Eliminar seleccionados**. El contenedor de Nautix y las redes del sistema no se pueden marcar.
+- En ambos casos, el diálogo lista lo que se va a eliminar y te pide **escribir la cantidad de elementos** antes de habilitar el botón rojo. Se elimina de a uno, empezando por los contenedores; si uno falla (una imagen todavía en uso, por ejemplo) los demás se eliminan igual y se te dice cuál falló y por qué.
+
 ## Olvidé la contraseña
 
 Pedile a un admin que la restablezca en **Ajustes, Usuarios**.

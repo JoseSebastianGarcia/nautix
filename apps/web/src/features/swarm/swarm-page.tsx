@@ -188,6 +188,7 @@ function Services() {
         open={target !== null}
         title={t("swarm.removeServiceTitle", { name: target?.name ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target?.name ?? ""}
         body={t("swarm.removeServiceBody")}
         onConfirm={() => target && remove.mutate(target)}
         onClose={() => setTarget(null)}
@@ -420,6 +421,7 @@ function Nodes() {
         open={target !== null}
         title={t("swarm.removeNodeTitle", { name: target?.hostname ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target?.hostname ?? ""}
         body={t("swarm.removeNodeBody")}
         onConfirm={() => target && remove.mutate(target)}
         onClose={() => setTarget(null)}
@@ -533,6 +535,7 @@ function Stacks() {
         open={target !== null}
         title={t("swarm.removeStackTitle", { name: target ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target ?? ""}
         body={t("swarm.removeStackBody")}
         onConfirm={() => target && remove.mutate(target, { onSuccess: (r) => setOutput(r.output) })}
         onClose={() => setTarget(null)}
@@ -662,6 +665,7 @@ function Items({ kind }: { kind: "secret" | "config" }) {
         open={target !== null}
         title={t("swarm.removeItemTitle", { name: target?.name ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target?.name ?? ""}
         body={t("swarm.removeItemBody")}
         onConfirm={() => target && remove.mutate(target)}
         onClose={() => setTarget(null)}

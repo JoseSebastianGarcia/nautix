@@ -111,4 +111,50 @@ describe("buildContainerSpec", () => {
     expect(Object.keys(spec.portBindings).sort()).toEqual(["53/tcp", "53/udp"]);
     expect(spec.portBindings["53/udp"]?.[0]).toEqual({ HostIp: "127.0.0.1", HostPort: "53" });
   });
+
+  it("turns folder mappings into binds next to the named volumes", () => {
+    const spec = buildContainerSpec(
+      parse({
+        name: "site",
+        image: "nginx",
+        networkId: null,
+        volumes: ["site-data:/data"],
+        mounts: [
+          { source: "/srv/site", target: "/usr/share/nginx/html", readOnly: true },
+          { source: "/srv/logs", target: "/var/log/nginx" },
+        ],
+      }),
+      undefined,
+    );
+    expect(spec.binds).toEqual([
+      "site-data:/data",
+      "/srv/site:/usr/share/nginx/html:ro",
+      "/srv/logs:/var/log/nginx",
+    ]);
+  });
+
+  it("defaults to no mounts and no accepted risks", () => {
+    const request = parse({ name: "a", image: "b", networkId: null });
+    expect(request.mounts).toEqual([]);
+    expect(request.acceptRisks).toEqual([]);
+  });
+
+  it("rejects a mapping whose paths are not absolute", () => {
+    expect(() =>
+      parse({
+        name: "a",
+        image: "b",
+        networkId: null,
+        mounts: [{ source: "data", target: "/data" }],
+      }),
+    ).toThrow();
+    expect(() =>
+      parse({
+        name: "a",
+        image: "b",
+        networkId: null,
+        mounts: [{ source: "/data", target: "data" }],
+      }),
+    ).toThrow();
+  });
 });

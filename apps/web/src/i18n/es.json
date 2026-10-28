@@ -47,7 +47,9 @@
     "force": "Forzar",
     "refresh": "Actualizar",
     "none": "ninguna",
-    "save": "Guardar"
+    "save": "Guardar",
+    "typeToConfirm": "Para confirmar, escribí",
+    "typeToConfirmLabel": "Escribí {{name}} para confirmar"
   },
   "theme": {
     "dark": "Oscuro",
@@ -146,6 +148,7 @@
       "broker": "Mensajería",
       "identity": "Identidad",
       "storage": "Almacenamiento",
+      "cloud": "Emuladores de nube",
       "secrets": "Secretos",
       "observability": "Observabilidad",
       "automation": "Automatización",
@@ -423,7 +426,8 @@
     "overlayLocked": "El swarm está bloqueado. Desbloquealo primero en la pestaña Swarm",
     "nothingToRollBack": "No hay a qué volver: el servicio todavía no se actualizó",
     "secretNotFound": "Ese secreto no existe. Creálo antes en Swarm, Secretos",
-    "configNotFound": "Esa config no existe. Creála antes en Swarm, Configs"
+    "configNotFound": "Esa config no existe. Creála antes en Swarm, Configs",
+    "mountRisk": "Ese montaje necesita aceptación explícita."
   },
   "terminal": {
     "title": "Terminal",
@@ -730,7 +734,15 @@
     "time": "Hora",
     "type": "Tipo",
     "action": "Acción",
-    "waitingEvents": "Esperando eventos del motor…"
+    "waitingEvents": "Esperando eventos del motor…",
+    "pruneMode": "Cómo limpiar",
+    "modeEverything": "Todo lo que no se usa",
+    "modeOneKind": "De a un tipo",
+    "cleanupIntro": "Como docker system prune, pero eligiendo: cada elemento sin uso aparece abajo con su propia casilla. No se elimina nada hasta que confirmes.",
+    "cleanupVolumes": "Incluir también los volúmenes sin uso (guardan datos)",
+    "cleanupVolumesWarn": "Un volumen que nada usa puede guardar datos que querés conservar. Revisá la lista antes de eliminar.",
+    "groupToggle": "Seleccionar o quitar todos: {{kind}}",
+    "cleanupNoCache": "La caché de builds que docker system prune también limpia no está incluida acá."
   },
   "gateway": {
     "title": "Gateways y proxies",
@@ -1549,5 +1561,48 @@
     "keepVar": "Conservar {{name}}",
     "overlayHint": "Docker no permite editar una red en su lugar. Para cambiarla, creá otra y movés los servicios.",
     "overlayNotEmpty": "Primero mové o quitá sus servicios."
+  },
+  "mounts": {
+    "title": "Carpetas montadas",
+    "hint": "Conecta una carpeta de esta máquina con el contenedor (carpeta del host : carpeta dentro).",
+    "source": "Carpeta del host",
+    "target": "Carpeta en el contenedor",
+    "readOnly": "solo lectura",
+    "remove": "Quitar esta carpeta",
+    "add": "Agregar carpeta",
+    "invalid": {
+      "source": "Usá una ruta absoluta de esta máquina, como /srv/data.",
+      "target": "Usá una ruta absoluta dentro del contenedor, como /data."
+    },
+    "risk": {
+      "docker-socket": {
+        "name": "Socket de Docker",
+        "text": "Esto monta el socket de Docker. Lo que corra en este contenedor puede controlar Docker y, a través de él, toda la máquina: es lo mismo que darle root en el servidor."
+      },
+      "host-root": {
+        "name": "Disco completo",
+        "text": "Esto monta la raíz del disco de la máquina. El contenedor podrá leer y modificar todos los archivos del servidor."
+      },
+      "sensitive-path": {
+        "name": "Carpeta sensible",
+        "text": "Esto monta una carpeta del sistema (como /etc, /root o los datos propios de Docker). El contenedor podrá leerla y, si no es de solo lectura, modificarla."
+      }
+    },
+    "riskTitle": "Montaje riesgoso",
+    "accept": "Entiendo el riesgo y quiero montarlo igual"
+  },
+  "bulk": {
+    "deleteSelected": "Eliminar seleccionados",
+    "clear": "Quitar selección",
+    "confirmBody": "Esto elimina: {{names}}. No se puede deshacer.",
+    "andMore": " y {{count}} más",
+    "forced": "{{count}} contenedor(es) en ejecución se detendrán por la fuerza.",
+    "removing": "Eliminando {{count}} elementos…",
+    "partial": "{{removed}} eliminados, {{failed}} no se pudieron eliminar: {{first}}",
+    "selectAll": "Seleccionar todo",
+    "selectRow": "Seleccionar {{name}}",
+    "selected": "Seleccionados: {{count}}",
+    "confirmTitle": "¿Eliminar {{count}} elemento(s)?",
+    "removed": "Eliminados: {{count}}"
   }
 }

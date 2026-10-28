@@ -41,6 +41,26 @@ describe("custom templates", () => {
     expect(t.ports).toEqual([{ containerPort: 53, label: "53", protocol: "udp", hostPort: 5353 }]);
   });
 
+  it("keeps folder mappings, and refuses relative paths", () => {
+    const t = toTemplate(
+      CustomTemplateInput.parse({
+        name: "Site",
+        image: "nginx:1",
+        mounts: [{ source: "/srv/site", target: "/usr/share/nginx/html", readOnly: true }],
+      }),
+    );
+    expect(t.mounts).toEqual([
+      { source: "/srv/site", target: "/usr/share/nginx/html", readOnly: true },
+    ]);
+    expect(() =>
+      CustomTemplateInput.parse({
+        name: "x",
+        image: "y",
+        mounts: [{ source: "site", target: "/html" }],
+      }),
+    ).toThrow();
+  });
+
   it("rejects bad input", () => {
     expect(() => CustomTemplateInput.parse({ name: "", image: "x" })).toThrow();
     expect(() =>

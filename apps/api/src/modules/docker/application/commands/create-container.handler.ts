@@ -1,4 +1,4 @@
-import { checkFixedIp } from "@nautix/contracts";
+import { checkFixedIp, missingConsent } from "@nautix/contracts";
 import { Inject } from "@nestjs/common";
 import { CommandHandler, type ICommandHandler } from "@nestjs/cqrs";
 import { ConflictError, NotFoundError, ValidationError } from "../../../../shared/domain-error.js";
@@ -13,6 +13,15 @@ export class CreateContainerHandler
   constructor(@Inject(DockerEngine) private readonly engine: DockerEngine) {}
 
   async execute({ request }: CreateContainerCommand): Promise<{ id: string }> {
+    // A folder mount that reaches the host (the Docker socket, `/`, sensitive paths) is never silent: it
+    // needs the risk listed in `acceptRisks`. A bind slipped into `volumes` is checked the same way.
+    const spec = buildContainerSpec(request, undefined);
+    const unaccepted = missingConsent(spec.binds, request.acceptRisks);
+    if (unaccepted.length > 0)
+      throw new ValidationError(
+        `mount needs explicit consent: ${unaccepted.join(", ")}`,
+        "errors.mountRisk",
+      );
     let networkName: string | undefined;
     if (request.networkId) {
       const network = (await this.engine.listNetworks()).find((n) => n.id === request.networkId);

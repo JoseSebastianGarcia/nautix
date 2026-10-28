@@ -12,6 +12,7 @@ import { JsonTree } from "../containers/json-tree.js";
 import { Card } from "../containers/panels.js";
 import { formatBytes } from "../resources/format.js";
 import { PageHeader } from "../resources/table.js";
+import { CleanupAll } from "./cleanup-all.js";
 import { ExposureTab } from "./exposure-tab.js";
 import { PluginsTab } from "./plugins-tab.js";
 
@@ -128,7 +129,36 @@ function Overview() {
 
 const KINDS: PruneKind[] = ["containers", "images", "volumes", "networks"];
 
+/** Everything unused (selective `docker system prune`) or one kind at a time. */
 function PruneWizard() {
+  const { t } = useTranslation();
+  const [everything, setEverything] = useState(true);
+  return (
+    <div className="flex max-w-3xl flex-col gap-4">
+      <fieldset className="flex flex-wrap gap-2">
+        <legend className="sr-only">{t("system.pruneMode")}</legend>
+        {[true, false].map((all) => (
+          <label
+            key={String(all)}
+            className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm focus-within:outline focus-within:outline-2 focus-within:outline-accent ${everything === all ? "border-accent bg-accent-soft text-accent" : "border-line text-dim hover:text-fg"}`}
+          >
+            <input
+              type="radio"
+              name="prune-mode"
+              className="sr-only"
+              checked={everything === all}
+              onChange={() => setEverything(all)}
+            />
+            {all ? t("system.modeEverything") : t("system.modeOneKind")}
+          </label>
+        ))}
+      </fieldset>
+      {everything ? <CleanupAll /> : <PruneKindWizard />}
+    </div>
+  );
+}
+
+function PruneKindWizard() {
   const { t } = useTranslation();
   const push = useToasts((s) => s.push);
   const [kind, setKind] = useState<PruneKind>("containers");

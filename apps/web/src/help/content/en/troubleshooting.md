@@ -45,6 +45,11 @@ Another container or program uses that host port. Pick another one, or stop the 
 
 Rules applied on trial roll back by themselves after 60 seconds. On the host: `docker exec nautix-guard node dist/guard-helper.js --panic` removes all of Nautix's firewall rules.
 
+## Free disk space: clean up and delete several things at once
+- **System, Prune wizard, Everything unused** is `docker system prune` where you choose: stopped containers, unused networks and untagged images are listed with **a checkbox each** (clear the ones you want to keep, or a whole group). Tick *also unused images* for `docker system prune -a`, and *also unused volumes* for `--volumes`: volumes hold data, so they are off by default and the list is worth reading. The wizard shows the equivalent command and the space it frees. The build cache that `docker system prune` also clears is not included.
+- **In the Containers, Images, Volumes and Networks lists** tick the rows you want (the box in the header ticks all) and press **Delete selected**. Nautix's own container and the system networks cannot be ticked.
+- Either way, the dialog lists what will go and asks you to **type the number of items** before the red button unlocks. Items are removed one by one, containers first; if one fails (an image still in use, for example) the others are still removed and you are told which one failed and why.
+
 ## Forgot the password
 
 Ask an admin to reset it in **Settings, Users**.

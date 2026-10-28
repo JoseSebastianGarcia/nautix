@@ -6,14 +6,21 @@ import { api } from "../../app/api.js";
 import { cli } from "../../app/cli.js";
 import { keys, useNetworks } from "../../app/queries.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
+import { useListSelection } from "../../app/use-list-selection.js";
+import { BulkDeleteBar } from "../../components/bulk-delete.js";
 import { InspectDialog } from "../../components/inspect-dialog.js";
 import { Button, ConfirmDialog } from "../../components/ui.js";
 import { NetworkDialog } from "../topology/network-dialog.js";
-import { PageHeader, Table, Td } from "./table.js";
+import { PageHeader, RowCheck, Table, Td } from "./table.js";
 
 export function NetworksPage() {
   const { t } = useTranslation();
   const { data = [] } = useNetworks();
+  const sel = useListSelection(
+    data,
+    (n) => n.id,
+    (n) => !n.system,
+  );
   const [target, setTarget] = useState<Network | null>(null);
   const [creating, setCreating] = useState(false);
   const [inspecting, setInspecting] = useState<{ key: string; name: string; id: string } | null>(
@@ -31,7 +38,14 @@ export function NetworksPage() {
           </Button>
         }
       />
+      <BulkDeleteBar
+        items={sel.rows.map((n) => ({ kind: "networks" as const, id: n.id, name: n.name }))}
+        invalidate={[keys.networks, keys.containers]}
+        onDone={sel.clear}
+        onClear={sel.clear}
+      />
       <Table
+        selection={sel.table(t("bulk.selectAll"))}
         head={[
           t("common.name"),
           t("common.driver"),
@@ -44,6 +58,12 @@ export function NetworksPage() {
       >
         {data.map((n) => (
           <tr key={n.id}>
+            <RowCheck
+              checked={sel.has(n.id)}
+              onChange={() => sel.toggle(n.id)}
+              label={t("bulk.selectRow", { name: n.name })}
+              disabled={n.system}
+            />
             <Td mono>
               {n.name} {n.system && <span className="text-dim">({t("networks.system")})</span>}
             </Td>
@@ -91,6 +111,7 @@ export function NetworksPage() {
         open={target !== null}
         title={t("topology.removeNetworkTitle", { name: target?.name ?? "" })}
         confirmLabel={t("common.delete")}
+        requireText={target?.name ?? ""}
         body={t("topology.removeNetworkBody")}
         command={target ? cli.removeNetwork(target.name) : ""}
         onConfirm={() => target && remove.mutate(target.id)}

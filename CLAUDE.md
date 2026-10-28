@@ -2,7 +2,7 @@
 
 Nautix is a self-hosted web app to manage Docker (think Coolify/Portainer): start it with one command, open `http://localhost:3737`, manage containers, images, volumes, networks, Compose and builds. It covers **every command in `docker --help`** (visual action or web terminal) and adds visual editors for networks, Compose and Dockerfile.
 
-Product of **Patterna** · SSPL-1.0 · UI in **English + Spanish** · **dark + light** theme.
+Product of **Patterna** · Apache-2.0 · UI in **English + Spanish** · **dark + light** theme.
 
 ## Stack (fixed)
 
@@ -23,7 +23,7 @@ Product of **Patterna** · SSPL-1.0 · UI in **English + Spanish** · **dark + l
 3. **Onion layers** (see `01-architecture.md`): `domain` ← `application` ← `infrastructure` / `presentation`. Inner layers never import outer ones. Enforced by lint (`no-restricted-imports` / dependency-cruiser).
 4. `domain` and `application` import no Nest HTTP, no `node:fs/net/child_process`, no `undici`, no SQLite. They use **interfaces (ports)** implemented in `infrastructure`.
 5. Every user-visible string goes through i18n (en + es). Every color/size comes from CSS tokens (dark + light). Tests enforce both.
-6. Destructive actions (rm, rmi, prune, volume/network rm) always ask for confirmation listing what will be affected.
+6. Destructive actions (rm, rmi, prune, volume/network rm) always ask for confirmation listing what will be affected; irreversible deletes of a named object also ask to type its name. Risky host mounts (Docker socket, `/`, sensitive paths) need explicit consent.
 7. Security: auth always on, bind `127.0.0.1` by default, secrets never logged or returned, no shell string building (spawn with arg arrays).
 8. New dependency → check license (MIT/Apache/BSD/ISC/MPL ok; GPL/AGPL/SSPL/BUSL no).
 
