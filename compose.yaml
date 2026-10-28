@@ -4,8 +4,10 @@
 #
 # DOCKER_GID must be the group id of the docker socket on the host:
 #   export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
+name: nautix
 services:
   nautix:
+    container_name: nautix
     build: .
     restart: unless-stopped
     # Bound to localhost only. Put a reverse proxy with TLS in front to reach it remotely.
