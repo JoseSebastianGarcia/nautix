@@ -1,6 +1,6 @@
 import type { Container, Network } from "@nautix/contracts";
 import { describe, expect, it } from "vitest";
-import { EXTERNAL_ID, layoutTopology, zoneAt } from "./layout.js";
+import { EXTERNAL_ID, layoutTopology, NODE_H, NODE_W, pinAutoPositions, zoneAt } from "./layout.js";
 
 const net = (id: string, name: string, system = false): Network => ({
   id,
@@ -41,7 +41,8 @@ describe("layoutTopology", () => {
 
   it("always renders the external frame plus one zone per user network", () => {
     const t = layoutTopology([], networks);
-    expect(t.zones.map((z) => z.id)).toEqual([EXTERNAL_ID, "e", "k"]);
+    // Sorted by name (backend, edge), not in the order the engine happened to list them.
+    expect(t.zones.map((z) => z.id)).toEqual([EXTERNAL_ID, "k", "e"]);
   });
 
   it("keeps nodes inside their zone and zones disjoint", () => {
@@ -125,5 +126,89 @@ describe("layoutTopology with other placeable things", () => {
       ["s2", "o1"],
     ]);
     expect(t.links).toEqual([{ containerId: "s1", zoneId: "o2" }]);
+  });
+});
+
+describe("a stable canvas (ADR-061)", () => {
+  const nets = [net("e", "edge"), net("k", "backend"), net("s", "storage"), net("m", "monitoring")];
+  const ctrs = [
+    ctr("a", ["edge"]),
+    ctr("b", ["backend"]),
+    ctr("c", ["storage"]),
+    ctr("d", ["edge"]),
+  ];
+  const spots = (t: ReturnType<typeof layoutTopology>) =>
+    Object.fromEntries([
+      ...t.zones.map((z) => [`zone:${z.network?.name ?? EXTERNAL_ID}`, [z.x, z.y]]),
+      ...t.placements.map((p) => [`node:${p.name}`, [p.x, p.y]]),
+    ]);
+
+  it("lays out the same whatever order the engine lists networks and containers in", () => {
+    const first = layoutTopology(ctrs, nets);
+    const shuffled = layoutTopology([...ctrs].reverse(), [
+      nets[2],
+      nets[0],
+      nets[3],
+      nets[1],
+    ] as Network[]);
+    expect(spots(shuffled)).toEqual(spots(first));
+  });
+
+  it("pins the automatic spots of zones and containers that were never saved", () => {
+    const topology = layoutTopology(ctrs, nets);
+    const pinned = pinAutoPositions(topology, { zones: {}, nodes: {} });
+    expect(Object.keys(pinned?.zones ?? {}).sort()).toEqual(
+      ["backend", "edge", "external", "monitoring", "storage"].sort(),
+    );
+    expect(Object.keys(pinned?.nodes ?? {}).sort()).toEqual(["a", "b", "c", "d"]);
+    // Offsets are relative to the box, like the ones a drag saves.
+    const zone = topology.zones.find((z) => z.network?.name === "edge");
+    const a = topology.placements.find((p) => p.name === "a");
+    expect(pinned?.nodes.a).toEqual({
+      x: (a?.x ?? 0) - (zone?.x ?? 0),
+      y: (a?.y ?? 0) - (zone?.y ?? 0),
+    });
+  });
+
+  it("leaves what the person already placed untouched", () => {
+    const saved = { zones: { edge: { x: 1000, y: 900 } }, nodes: { a: { x: 60, y: 90 } } };
+    const pinned = pinAutoPositions(layoutTopology(ctrs, nets, saved), saved);
+    expect(pinned?.zones.edge).toEqual({ x: 1000, y: 900 });
+    expect(pinned?.nodes.a).toEqual({ x: 60, y: 90 });
+  });
+
+  it("returns null when everything is pinned already, so nothing is saved again", () => {
+    const pinned = pinAutoPositions(layoutTopology(ctrs, nets), { zones: {}, nodes: {} });
+    expect(pinned).not.toBeNull();
+    const again = pinAutoPositions(
+      layoutTopology(ctrs, nets, pinned ?? undefined),
+      pinned ?? { zones: {}, nodes: {} },
+    );
+    expect(again).toBeNull();
+  });
+
+  it("keeps every box where it was when a network or a container appears later", () => {
+    const pinned = pinAutoPositions(layoutTopology(ctrs, nets), { zones: {}, nodes: {} }) ?? {
+      zones: {},
+      nodes: {},
+    };
+    const before = spots(layoutTopology(ctrs, nets, pinned));
+    // A network that sorts first, and a container in the middle of an existing box.
+    const more = layoutTopology(
+      [...ctrs, ctr("z", ["edge"])],
+      [net("0", "alpha"), ...nets],
+      pinned,
+    );
+    const after = spots(more);
+    for (const key of Object.keys(before)) expect(after[key]).toEqual(before[key]);
+  });
+
+  it("puts a new container in a free slot, never on top of one the person moved", () => {
+    const saved = { zones: {}, nodes: { a: { x: 24, y: 76 } } }; // exactly the first automatic slot
+    const t = layoutTopology([ctr("a", ["edge"]), ctr("n", ["edge"])], nets, saved);
+    const a = t.placements.find((p) => p.name === "a");
+    const n = t.placements.find((p) => p.name === "n");
+    const overlap = a && n && Math.abs(a.x - n.x) < NODE_W && Math.abs(a.y - n.y) < NODE_H;
+    expect(overlap).toBe(false);
   });
 });
