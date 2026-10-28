@@ -48,4 +48,13 @@ describe("service templates", () => {
       "127.0.0.1:3000:3000",
     ]);
   });
+
+  it("writes a template's folder mapping as a bind and declares only the named volumes", () => {
+    const azure = findTemplate("floci-azure");
+    expect(azure).toBeDefined();
+    const svc = templateToService(azure!, "az", opts);
+    expect(svc.definition.volumes).toEqual(["/var/run/docker.sock:/var/run/docker.sock"]);
+    // A host path is not a named volume: declaring it at the top level would break the file.
+    expect(svc.volumes).toEqual([]);
+  });
 });

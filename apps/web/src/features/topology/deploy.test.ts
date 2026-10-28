@@ -1,8 +1,12 @@
-import { TEMPLATES } from "@nautix/contracts";
+import { findTemplate, TEMPLATES } from "@nautix/contracts";
 import { describe, expect, it } from "vitest";
 import {
+  deployBlockers,
+  emptyMount,
   formatEnv,
   joinCommand,
+  mountBinds,
+  mountProblems,
   namedVolumes,
   parseEnv,
   randomizeSecrets,
@@ -74,5 +78,55 @@ describe("deploy helpers", () => {
     ]);
     expect(splitCommand("")).toEqual([]);
     expect(splitCommand("sh -c ''")).toEqual(["sh", "-c", ""]);
+  });
+});
+
+describe("folder mappings in the deploy dialog", () => {
+  it("starts from the template's own mounts", () => {
+    const mounts = findTemplate("floci-aws")?.mounts ?? [];
+    expect(mounts).toEqual([{ source: "/var/run/docker.sock", target: "/var/run/docker.sock" }]);
+  });
+
+  it("turns rows into the binds the API receives, skipping empty rows", () => {
+    expect(
+      mountBinds([
+        { source: "/srv/site", target: "/html", readOnly: true },
+        { source: "/srv/logs", target: "/logs", readOnly: false },
+        emptyMount(),
+      ]),
+    ).toEqual(["/srv/site:/html:ro", "/srv/logs:/logs"]);
+  });
+
+  it("explains a row that is half filled or not absolute", () => {
+    expect(mountProblems({ source: "/srv/a", target: "", readOnly: false })).toBe("target");
+    expect(mountProblems({ source: "", target: "/a", readOnly: false })).toBe("source");
+    expect(mountProblems({ source: "data", target: "/a", readOnly: false })).toBe("source");
+    expect(mountProblems({ source: "/srv/a", target: "data", readOnly: false })).toBe("target");
+    expect(mountProblems({ source: "/srv/a", target: "/a", readOnly: false })).toBeNull();
+    expect(mountProblems(emptyMount())).toBeNull();
+  });
+
+  it("blocks Deploy until every risky mount is explicitly accepted", () => {
+    const socket = [{ source: "/var/run/docker.sock", target: "/var/run/docker.sock", readOnly: false }];
+    expect(deployBlockers(socket, [])).toEqual(["docker-socket"]);
+    expect(deployBlockers(socket, ["docker-socket"])).toEqual([]);
+    expect(deployBlockers([{ source: "/srv/a", target: "/a", readOnly: false }], [])).toEqual([]);
+  });
+
+  it("the cloud emulators carry the socket, so each one needs that consent", () => {
+    for (const id of ["floci-aws", "floci-azure", "floci-gcp", "floci-oci"]) {
+      const t = findTemplate(id);
+      expect(t?.category).toBe("cloud");
+      const rows = (t?.mounts ?? []).map((m) => ({ ...m, readOnly: m.readOnly ?? false }));
+      expect(deployBlockers(rows, [])).toEqual(["docker-socket"]);
+    }
+  });
+
+  it("publishes the Azure AMQP ports and does not publish the AWS console port", () => {
+    const azure = findTemplate("floci-azure")?.ports.map((p) => p.containerPort);
+    expect(azure).toEqual(expect.arrayContaining([4577, 5672, 5673]));
+    // Floci starts the console itself as a separate container on host port 4500.
+    const aws = findTemplate("floci-aws")?.ports.map((p) => p.containerPort);
+    expect(aws).toEqual([4566]);
   });
 });
