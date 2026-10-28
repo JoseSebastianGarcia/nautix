@@ -487,6 +487,7 @@ describe("catalog", () => {
         "floci-azure",
         "floci-gcp",
         "floci-oci",
+        "floci-ui",
       ]),
     );
   });

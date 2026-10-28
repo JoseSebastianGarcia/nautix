@@ -599,11 +599,13 @@ export const TEMPLATES: readonly Template[] = [
     category: "cloud",
     image: "floci/floci:latest",
     description:
-      "Local AWS emulator (S3, SQS, DynamoDB and more). Use AWS_ENDPOINT_URL with any test keys",
+      "Local AWS emulator (S3, SQS, DynamoDB, Lambda...). Browse it with the Floci web console template",
     icon: "amazonaws",
     color: "#FF9900",
     ports: [{ containerPort: 4566, label: "aws api", hostPort: 4566 }],
-    // Floci starts its web console as a separate container on host port 4500; do not publish it from here.
+    // The web console is its own template (Floci · Web console). Turn off the one Floci would start itself,
+    // so the two never fight for host port 4500.
+    env: { FLOCI_SERVICES_UI_ENABLED: "false" },
     mounts: [{ source: "/var/run/docker.sock", target: "/var/run/docker.sock" }],
   },
   {
@@ -643,6 +645,25 @@ export const TEMPLATES: readonly Template[] = [
     color: "#F80000",
     ports: [{ containerPort: 4599, label: "oci api", hostPort: 4599 }],
     mounts: [{ source: "/var/run/docker.sock", target: "/var/run/docker.sock" }],
+  },
+  {
+    id: "floci-ui",
+    name: "Floci · Web console",
+    category: "cloud",
+    image: "floci/floci-ui:0.7.0",
+    description:
+      "Browser console for the Floci emulators (AWS, Azure, Google Cloud, Oracle). Deploy it in the same box",
+    icon: "docker",
+    color: "#6366F1",
+    ports: [{ containerPort: 4500, label: "console", hostPort: 4500 }],
+    // The console reaches each emulator by its default container name, so put it on the same network.
+    // Change an address here if you named an emulator differently; it shows every cloud it can reach.
+    env: {
+      FLOCI_ENDPOINT: "http://floci-aws:4566",
+      FLOCI_AZURE_ENDPOINT: "http://floci-azure:4577",
+      FLOCI_GCP_ENDPOINT: "http://floci-gcp:4588",
+      FLOCI_OCI_ENDPOINT: "http://floci-oci:4599",
+    },
   },
 ] as const;
 
