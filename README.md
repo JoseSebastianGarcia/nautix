@@ -49,16 +49,6 @@ Run the `docker run` command above from PowerShell (or the macOS terminal) **in 
 - Do not run Docker commands from the internal `docker-desktop` WSL distribution. Use PowerShell, or a WSL distribution with Docker Desktop's WSL integration enabled.
 - Port guards (the host firewall) need a Linux host and are not available on Docker Desktop.
 
-### Try it without Docker
-
-Requires Node 22+ and pnpm 10+. The simulated engine needs no Docker daemon:
-
-```bash
-pnpm install && pnpm build
-pnpm demo        # simulated engine
-pnpm start       # your real Docker daemon, plain HTTP on http://127.0.0.1:3737
-```
-
 ## What it does
 
 - **Canvas.** A network is a box and a container is a node. Drag a template onto a box to deploy it there, drag a container to another box to move it, drag between boxes to open a tunnel, and drag an app onto a service to bind them (Nautix writes the connection string and applies it safely). Positions are saved. Export a box or the whole canvas as Compose.
@@ -112,8 +102,12 @@ With Compose: `docker compose -f compose.hub.yaml pull && docker compose -f comp
 
 ## Development
 
+Requires Node 22+ and pnpm 10+. Deploying and updating Nautix never needs them: use the image.
+
 ```bash
+pnpm install
 pnpm dev                # API on :3737 (tsx watch) + web on :5173 with proxy
+pnpm demo               # simulated engine, no Docker daemon needed
 pnpm lint && pnpm typecheck && pnpm test
 pnpm test:integration   # needs a Docker daemon: runs the API against the real engine
 ```
