@@ -38,5 +38,5 @@ not have (ports below 1024, some network drivers) and Swarm or overlay networks 
 
 ## Reporting a vulnerability
 
-Please do not open a public issue. Write to the maintainer through https://patterna.dev with the details and steps to
+Please do not open a public issue. Write to the maintainer through https://getnautix.com with the details and steps to
 reproduce. You will get an answer as soon as possible, and credit if you wish when the fix is published.

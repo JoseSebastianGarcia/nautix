@@ -19,7 +19,7 @@ By submitting a contribution (code, documentation, translations, images) you con
 
 1. You wrote it, or you have the right to submit it.
 2. You license it to the project under the **Apache License 2.0** (as in `LICENSE`).
-3. You also grant **Patterna** a perpetual, worldwide, non-exclusive, royalty-free, irrevocable right to use, modify,
+3. You also grant **the project owner** a perpetual, worldwide, non-exclusive, royalty-free, irrevocable right to use, modify,
    sublicense and **relicense** your contribution as part of Nautix, including in commercial or separately licensed
    editions. You keep the copyright on your contribution.
 

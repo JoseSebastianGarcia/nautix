@@ -1,8 +1,7 @@
 {
   "app": {
     "name": "Nautix",
-    "tagline": "Docker, en visual.",
-    "madeBy": "Un producto de Patterna"
+    "tagline": "Docker, en visual."
   },
   "nav": {
     "topology": "Topología",
