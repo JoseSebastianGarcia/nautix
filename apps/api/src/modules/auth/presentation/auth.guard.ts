@@ -5,9 +5,11 @@ import { QueryBus } from "@nestjs/cqrs";
 import type { Request } from "express";
 import { ForbiddenError, UnauthorizedError } from "../../../shared/domain-error.js";
 import { type Principal, setPrincipal } from "../../../shared/principal.js";
+import { sameOrigin } from "../../../shared/request-origin.js";
 import { AuthenticateTokenQuery } from "../application/queries/authenticate-token.query.js";
 import { GetSessionQuery } from "../application/queries/get-session.query.js";
 import { ADMIN_ONLY } from "./admin-only.decorator.js";
+import { LoginRateLimiter } from "./login-rate-limiter.js";
 import { IS_PUBLIC } from "./public.decorator.js";
 import { SELF_SERVICE } from "./self-service.decorator.js";
 
@@ -21,6 +23,9 @@ const SAFE = new Set(["GET", "HEAD", "OPTIONS"]);
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
+  /** Failed token guesses per address: a valid token is never held back, a guesser is. */
+  private readonly badTokens = new LoginRateLimiter(30);
+
   constructor(
     @Inject(Reflector) private readonly reflector: Reflector,
     @Inject(QueryBus) private readonly queries: QueryBus,
@@ -34,7 +39,7 @@ export class AuthGuard implements CanActivate {
       if (req.header("x-nautix-csrf") !== "1")
         throw new ForbiddenError("csrf header missing", "errors.csrf");
       const origin = req.header("origin");
-      if (origin && new URL(origin).host !== req.header("host")) {
+      if (origin !== undefined && !sameOrigin(origin, req.header("host"))) {
         throw new ForbiddenError("cross-origin request", "errors.csrf");
       }
     }
@@ -43,6 +48,7 @@ export class AuthGuard implements CanActivate {
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, targets)) return true;
 
     const principal = bearer ? await this.fromToken(bearer) : await this.fromCookie(req);
+    if (bearer && !principal) this.badTokens.check(`token:${req.ip}`);
     if (!principal) throw new UnauthorizedError("authentication required", "errors.unauthorized");
     setPrincipal(req, principal);
 

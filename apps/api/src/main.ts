@@ -10,6 +10,7 @@ import { AppModule } from "./app.module.js";
 import { applyPendingRestore } from "./modules/backup/infrastructure/apply-pending-restore.js";
 import { TlsManager } from "./modules/tls/infrastructure/tls-manager.js";
 import { loadConfig } from "./shared/config.js";
+import { HostPolicy } from "./shared/host-policy.js";
 import { ProblemFilter } from "./shared/problem.filter.js";
 
 const config = loadConfig();
@@ -22,6 +23,24 @@ const app = await NestFactory.create<NestExpressApplication>(AppModule.register(
 });
 tls?.attach(app.getHttpServer() as HttpsServer);
 
+// Only answer to the names the person reaches Nautix by (ADR-063): closes DNS rebinding.
+const hosts = new HostPolicy(() => [...config.allowedHosts, ...(tls?.status().hosts ?? [])]);
+const refuseHost =
+  "HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\nhost not allowed: add its name to NAUTIX_ALLOWED_HOSTS";
+(app.getHttpServer() as HttpsServer).prependListener("upgrade", (req, socket) => {
+  if (hosts.allows(req.headers.host)) return;
+  socket.end(refuseHost);
+});
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (hosts.allows(req.headers.host)) return next();
+  res.status(403).type("application/problem+json").send({
+    type: "about:blank#forbidden",
+    title: "forbidden",
+    status: 403,
+    code: "forbidden",
+    detail: "host not allowed: add its name to NAUTIX_ALLOWED_HOSTS",
+  });
+});
 app.use(cookieParser());
 app.use((_req: express.Request, res: express.Response, next: express.NextFunction) => {
   res.setHeader("X-Content-Type-Options", "nosniff");

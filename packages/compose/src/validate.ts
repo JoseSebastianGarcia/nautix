@@ -1,3 +1,4 @@
+import { mountRisks } from "@nautix/contracts";
 import type { Document } from "yaml";
 import { type ComposeModel, readCompose } from "./model.js";
 import { isPublic, parsePort } from "./ports.js";
@@ -66,6 +67,15 @@ export const validateModel = (model: ComposeModel): Issue[] => {
       if (/^\.{1,2}\//.test(v)) add("warning", "relativeBind", s.name, { volume: v });
       if (SOCKET.test(v)) add("risk", "dockerSocket", s.name);
     }
+    // The same host-reaching mounts the container form asks consent for (ADR-063).
+    const mounted = mountRisks(s.volumes);
+    if (mounted.includes("docker-socket") && !s.volumes.some((v) => SOCKET.test(v)))
+      add("risk", "dockerSocket", s.name);
+    if (mounted.includes("host-root")) add("risk", "hostRoot", s.name);
+    if (mounted.includes("sensitive-path")) add("risk", "sensitiveMount", s.name);
+    if (s.ipc === "host") add("risk", "hostIpc", s.name);
+    if (s.securityOpt.some((o) => /unconfined/i.test(o))) add("risk", "unconfined", s.name);
+    if (s.devices.length > 0) add("risk", "hostDevices", s.name);
     if (s.privileged) add("risk", "privileged", s.name);
     if (s.networkMode === "host") add("risk", "hostNetwork", s.name);
     if (s.pid === "host") add("risk", "hostPid", s.name);

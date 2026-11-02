@@ -1,12 +1,14 @@
+import { hasRisks, parse, validateCompose } from "@nautix/compose";
 import type { SwarmItem, SwarmNode, SwarmService } from "@nautix/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, api } from "../../app/api.js";
 import { useApiMutation } from "../../app/use-api-mutation.js";
 import { EnvEditor } from "../../components/fields.js";
 import { Button, ConfirmDialog, Dialog, Field, Input } from "../../components/ui.js";
+import { IssuesPanel } from "../compose/issues-panel.js";
 import { PageHeader, Table, Td } from "../resources/table.js";
 import { LeaveSwarmDialog } from "./leave-dialog.js";
 import { SwarmConnect } from "./swarm-connect.js";
@@ -444,8 +446,13 @@ function Stacks() {
   });
   const [output, setOutput] = useState("");
   const [target, setTarget] = useState<string | null>(null);
+  const [ackRisks, setAckRisks] = useState(false);
+  const risks = useMemo(
+    () => validateCompose(parse(form.yaml)).filter((i) => i.level === "risk"),
+    [form.yaml],
+  );
   const deploy = useApiMutation(
-    () => api.swarmDeployStack(form.name, form.yaml),
+    () => api.swarmDeployStack(form.name, form.yaml, ackRisks),
     [["swarm-stacks"], ["swarm-services"]],
   );
   const remove = useApiMutation(
@@ -518,6 +525,20 @@ function Stacks() {
               required
             />
           </Field>
+          {hasRisks(risks) && (
+            <>
+              <IssuesPanel issues={risks} onSelect={() => undefined} />
+              <div className="flex items-center gap-2 text-sm">
+                <input
+                  id="stack-risk-ack"
+                  type="checkbox"
+                  checked={ackRisks}
+                  onChange={(e) => setAckRisks(e.target.checked)}
+                />
+                <label htmlFor="stack-risk-ack">{t("compose.riskAck")}</label>
+              </div>
+            </>
+          )}
           {output && (
             <pre className="max-h-32 overflow-auto rounded-lg border border-line bg-bg0 p-2 font-mono text-xs whitespace-pre-wrap">
               {output}
@@ -525,7 +546,11 @@ function Stacks() {
           )}
           <div className="flex justify-end gap-2">
             <Button onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
-            <Button variant="primary" type="submit" disabled={deploy.isPending}>
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={deploy.isPending || (hasRisks(risks) && !ackRisks)}
+            >
               {t("common.deploy")}
             </Button>
           </div>

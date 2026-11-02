@@ -267,6 +267,46 @@ describe("validation", () => {
     expect(hasRisks(issues)).toBe(true);
     expect(hasRisks(validateCompose(parse(SAMPLE)))).toBe(false);
   });
+
+  const riskCodes = (yaml: string): string[] =>
+    validateCompose(parse(yaml))
+      .filter((i) => i.level === "risk")
+      .map((i) => i.code)
+      .sort();
+
+  it("flags mounts that reach the host, in both the short and the long syntax (ADR-063)", () => {
+    expect(riskCodes("services:\n  a:\n    image: x\n    volumes: ['/:/host']\n")).toEqual([
+      "dockerSocket",
+      "hostRoot",
+    ]);
+    expect(riskCodes("services:\n  a:\n    image: x\n    volumes: ['/home:/h']\n")).toEqual([
+      "sensitiveMount",
+    ]);
+    expect(
+      riskCodes(
+        "services:\n  a:\n    image: x\n    volumes:\n      - type: bind\n        source: /usr\n        target: /h\n",
+      ),
+    ).toEqual(["sensitiveMount"]);
+    expect(
+      riskCodes(
+        "services:\n  a:\n    image: x\n    volumes: ['/var/run/../run//docker.sock:/s']\n",
+      ),
+    ).toEqual(["dockerSocket"]);
+  });
+
+  it("flags host IPC, unconfined profiles and devices", () => {
+    expect(
+      riskCodes(
+        "services:\n  a:\n    image: x\n    ipc: host\n    security_opt: ['seccomp=unconfined']\n    devices: ['/dev/sda:/dev/sda']\n",
+      ),
+    ).toEqual(["hostDevices", "hostIpc", "unconfined"]);
+  });
+
+  it("leaves named volumes and ordinary folders alone", () => {
+    expect(
+      riskCodes("services:\n  a:\n    image: x\n    volumes: ['data:/d', '/srv/app/conf:/c:ro']\n"),
+    ).toEqual([]);
+  });
 });
 
 describe("style of generated YAML", () => {

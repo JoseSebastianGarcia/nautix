@@ -18,6 +18,9 @@ export interface ServiceModel {
   /** Raw extras used by risk checks. */
   capAdd: string[];
   pid?: string;
+  ipc?: string;
+  securityOpt: string[];
+  devices: string[];
 }
 
 export interface NetworkModel {
@@ -91,6 +94,10 @@ export const readCompose = (doc: Document): ComposeModel => {
       dependsOn: names(s.depends_on),
       privileged: s.privileged === true,
       capAdd: strList(s.cap_add),
+      securityOpt: strList(s.security_opt),
+      devices: (Array.isArray(s.devices) ? s.devices : [])
+        .map((d) => str(d) ?? str(obj(d).source))
+        .filter((d): d is string => d !== undefined),
     };
     const image = str(s.image);
     if (image) model.image = image;
@@ -102,6 +109,8 @@ export const readCompose = (doc: Document): ComposeModel => {
     if (networkMode) model.networkMode = networkMode;
     const pid = str(s.pid);
     if (pid) model.pid = pid;
+    const ipc = str(s.ipc);
+    if (ipc) model.ipc = ipc;
     return model;
   });
   const networks = Object.entries(obj(root.networks)).map(([name, raw]): NetworkModel => {

@@ -588,6 +588,11 @@
       "hostNetwork": "Usa la red del host",
       "hostPid": "Comparte el espacio de procesos del host",
       "dangerousCap": "Agrega capacidades de Linux poderosas",
+      "hostRoot": "Monta la carpeta raíz del host",
+      "sensitiveMount": "Monta una carpeta del sistema o de credenciales del host",
+      "hostIpc": "Comparte el IPC del host",
+      "unconfined": "Desactiva el perfil de seguridad del contenedor",
+      "hostDevices": "Da acceso a dispositivos del host",
       "yaml": "Error de sintaxis YAML: {{message}}"
     },
     "ps": "Estado",

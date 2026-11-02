@@ -93,6 +93,7 @@ beforeAll(async () => {
     dockerSocket: process.env.NAUTIX_DOCKER_SOCKET ?? "/var/run/docker.sock",
     webDist: "",
     secureCookies: false,
+    allowedHosts: [],
     tls: { mode: "off" },
   };
   const logs: string[] = [];

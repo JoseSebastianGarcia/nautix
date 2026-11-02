@@ -53,11 +53,44 @@ const normalize = (path: string): string => {
   return `/${parts.join("/")}`;
 };
 
-const SENSITIVE = ["/etc", "/root", "/boot", "/proc", "/sys", "/dev", "/var/lib/docker"];
+/** Folders where a writable mount hands over the host: the folder itself and everything under it. */
+const SENSITIVE = [
+  "/etc",
+  "/root",
+  "/boot",
+  "/proc",
+  "/sys",
+  "/dev",
+  "/usr",
+  "/bin",
+  "/sbin",
+  "/lib",
+  "/lib32",
+  "/lib64",
+  "/libx32",
+  "/var/lib/docker",
+  "/var/lib/containerd",
+  "/var/lib/kubelet",
+];
+/** Whole top-level folders (all the users, all the disks): risky as a whole, ordinary subfolders are not. */
+const WHOLE_FOLDERS = ["/home", "/Users", "/mnt", "/media", "/Volumes", "/opt", "/srv"];
+/** Where a person keeps credentials: risky under any path. */
+const CREDENTIAL_DIRS = new Set([
+  ".ssh",
+  ".aws",
+  ".gnupg",
+  ".kube",
+  ".docker",
+  ".gcloud",
+  ".azure",
+]);
 const SOCKET_DIRS = ["/var/run", "/run"];
 
 const isUnder = (path: string, root: string): boolean =>
   path === root || path.startsWith(`${root}/`);
+
+/** Hosts such as macOS and Windows compare paths ignoring case, so `/ETC` is `/etc` there. */
+const lower = (path: string): string => path.toLowerCase();
 
 const risksOf = (source: string): MountRisk[] => {
   if (PIPE.test(source)) return source.toLowerCase().includes("docker") ? ["docker-socket"] : [];
@@ -69,12 +102,17 @@ const risksOf = (source: string): MountRisk[] => {
   // The socket itself, or a folder that contains it (/var/run, /run, /var, ...).
   if (
     path === "/" ||
-    path.endsWith("/docker.sock") ||
-    SOCKET_DIRS.some((dir) => isUnder(dir, path))
+    lower(path).endsWith("/docker.sock") ||
+    SOCKET_DIRS.some((dir) => isUnder(dir, lower(path)))
   )
     found.push("docker-socket");
   // A parent of a sensitive folder exposes it too (/var/lib contains /var/lib/docker).
-  if (SENSITIVE.some((root) => isUnder(path, root) || isUnder(root, path)))
+  const folded = lower(path);
+  if (
+    SENSITIVE.some((root) => isUnder(folded, root) || isUnder(root, folded)) ||
+    WHOLE_FOLDERS.some((root) => folded === lower(root)) ||
+    folded.split("/").some((part) => CREDENTIAL_DIRS.has(part))
+  )
     found.push("sensitive-path");
   return found;
 };

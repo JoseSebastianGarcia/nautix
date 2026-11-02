@@ -272,6 +272,8 @@ export type CreateSwarmSecret = z.infer<typeof CreateSwarmSecret>;
 export const DeployStack = z.object({
   name: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,62}$/),
   yaml: z.string().min(1).max(500_000),
+  /** Needed when the file mounts host folders, uses privileged mode, the Docker socket, etc. */
+  acknowledgeRisks: z.boolean().default(false),
 });
 export type DeployStack = z.infer<typeof DeployStack>;
 

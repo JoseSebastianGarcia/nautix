@@ -17,16 +17,20 @@ Nautix covers containers, images, volumes, networks, Compose, builds and Swarm, 
 
 ## Quick start
 
+On a Linux host:
+
 ```bash
 docker run -d --name nautix --restart unless-stopped \
   -p 127.0.0.1:3737:3737 \
   -v /var/run/docker.sock:/var/run/docker.sock -v nautix-data:/data \
-  --group-add 0 --cap-drop ALL --security-opt no-new-privileges:true \
+  --group-add $(stat -c %g /var/run/docker.sock) --cap-drop ALL --security-opt no-new-privileges:true \
   --read-only --tmpfs /tmp -e NAUTIX_TLS=auto \
   josesebastiangarcia/nautix:latest
 
 docker logs nautix     # one-time setup token
 ```
+
+`--group-add` gives the container's unprivileged user (it does not run as root) the group of the Docker socket. On Docker Desktop (Windows, macOS) see [below](#docker-desktop-windows-and-macos).
 
 Open **https://localhost:3737**, paste the token and create the admin account. The browser warns about the certificate the first time (see [HTTPS](#https)). Your data lives in the `nautix-data` volume.
 
@@ -42,9 +46,13 @@ To use the published image instead of building, see `compose.hub.yaml`.
 
 ### Docker Desktop (Windows and macOS)
 
-Run the `docker run` command above from PowerShell (or the macOS terminal) **in one line**: `\` does not continue a line in PowerShell. If a `nautix` container already exists, run `docker rm -f nautix` first.
+Run it from PowerShell (or the macOS terminal) **in one line** (`\` does not continue a line in PowerShell), with `--group-add 0`, because on Docker Desktop the socket belongs to root. If a `nautix` container already exists, run `docker rm -f nautix` first:
 
-- `--group-add 0` gives the container the socket's group on Docker Desktop. If Nautix says "Engine unreachable", read the group with `docker run --rm -v /var/run/docker.sock:/var/run/docker.sock alpine stat -c %g /var/run/docker.sock` and use that number instead of `0`.
+```powershell
+docker run -d --name nautix --restart unless-stopped -p 127.0.0.1:3737:3737 -v /var/run/docker.sock:/var/run/docker.sock -v nautix-data:/data --group-add 0 --cap-drop ALL --security-opt no-new-privileges:true --read-only --tmpfs /tmp -e NAUTIX_TLS=auto josesebastiangarcia/nautix:latest
+```
+
+- If Nautix says "Engine unreachable", read the group with `docker run --rm -v /var/run/docker.sock:/var/run/docker.sock alpine stat -c %g /var/run/docker.sock` and use that number instead of `0`.
 - In Git Bash write the socket path as `//var/run/docker.sock`.
 - Do not run Docker commands from the internal `docker-desktop` WSL distribution. Use PowerShell, or a WSL distribution with Docker Desktop's WSL integration enabled.
 - Port guards (the host firewall) need a Linux host and are not available on Docker Desktop.
@@ -64,6 +72,8 @@ Run the `docker run` command above from PowerShell (or the macOS terminal) **in 
 
 Nautix protects itself: its own container cannot be stopped, removed or edited from the UI or the API.
 
+Anything that would reach the host, such as mounting the Docker socket, `/`, `/etc`, `/usr`, `/home` as a whole or a credentials folder, needs explicit consent. The server enforces it for single containers, Compose projects and Swarm stacks, so a direct API call cannot skip it. Typing a name to confirm a delete is a safeguard of the interface; the API trusts the admin who calls it.
+
 ## Configuration
 
 | Variable | Purpose |
@@ -72,7 +82,8 @@ Nautix protects itself: its own container cannot be stopped, removed or edited f
 | `NAUTIX_DOCKER_SOCKET` | Docker socket path |
 | `NAUTIX_DATA` | Data directory (`/data` in the image) |
 | `NAUTIX_TLS=auto` | HTTPS with a certificate Nautix creates; remove it for plain HTTP behind your own proxy |
-| `NAUTIX_TLS_HOSTS` | Extra names or IPs for the certificate |
+| `NAUTIX_TLS_HOSTS` | Extra names or IPs for the certificate (they are also accepted as `Host`) |
+| `NAUTIX_ALLOWED_HOSTS` | Extra names Nautix answers to, for example the one your reverse proxy uses. Any other name gets 403 (this stops DNS rebinding). `*` turns the check off. `localhost` and IP addresses always work |
 | `NAUTIX_TLS_CERT`, `NAUTIX_TLS_KEY` | PEM paths for a certificate you manage yourself |
 
 Everything is stored in the data directory: `nautix.db` (SQLite: users, sessions, tokens, canvas layout, templates, projects, routes, logins and the audit log), `.key` (the encryption key) and `tls/`. Back them up together (Settings → Backup).

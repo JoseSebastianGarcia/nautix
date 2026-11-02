@@ -86,6 +86,42 @@ describe("mountRisks", () => {
     expect(mountRisks(["/var:/x"])).toContain("sensitive-path");
   });
 
+  it("flags the folders that run the system and the whole of the users or disks", () => {
+    for (const source of [
+      "/usr",
+      "/usr/bin",
+      "/bin",
+      "/sbin",
+      "/lib",
+      "/lib64",
+      "/lib/modules",
+      "/var/lib/containerd",
+      "/home",
+      "/mnt",
+      "/media",
+      "/opt",
+      "/srv",
+      "/Users",
+    ])
+      expect(mountRisks([`${source}:/x`])).toContain("sensitive-path");
+  });
+
+  it("flags credential folders wherever they are", () => {
+    for (const source of ["/home/ana/.ssh", "/srv/backup/.aws", "/data/u/.kube/config"])
+      expect(mountRisks([`${source}:/x`])).toContain("sensitive-path");
+  });
+
+  it("ignores the case of the path, as macOS and Windows hosts do", () => {
+    expect(mountRisks(["/ETC:/x"])).toContain("sensitive-path");
+    expect(mountRisks(["/Var/Run/Docker.sock:/x"])).toContain("docker-socket");
+  });
+
+  it("leaves ordinary subfolders of those top-level folders alone", () => {
+    expect(mountRisks(["/home/ana/site:/x"])).toEqual([]);
+    expect(mountRisks(["/opt/app/data:/x"])).toEqual([]);
+    expect(mountRisks(["/mnt/disk1/media:/x"])).toEqual([]);
+  });
+
   it("does not mistake look-alike names for sensitive ones", () => {
     expect(mountRisks(["/etcetera/data:/x"])).toEqual([]);
     expect(mountRisks(["/srv/etc:/x"])).toEqual([]);

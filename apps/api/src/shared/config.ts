@@ -9,6 +9,8 @@ export interface AppConfig {
   dockerSocket: string;
   webDist: string;
   secureCookies: boolean;
+  /** `Host` names Nautix answers to besides the machine itself and IP addresses (ADR-063). */
+  allowedHosts: string[];
   tls: TlsConfig;
 }
 
@@ -46,6 +48,10 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AppConfig => {
     webDist: resolve(
       env.NAUTIX_WEB_DIST ?? fileURLToPath(new URL("../../../web/dist", import.meta.url)),
     ),
+    allowedHosts: (env.NAUTIX_ALLOWED_HOSTS ?? "")
+      .split(",")
+      .map((h) => h.trim())
+      .filter((h) => h !== ""),
     secureCookies: env.NAUTIX_SECURE_COOKIES === "true" || tls.mode !== "off",
     tls,
   };
