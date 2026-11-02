@@ -17,7 +17,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "yaml": "^2.8.0"
+    "yaml": "^2.8.0",
+    "@nautix/contracts": "workspace:*"
   },
   "devDependencies": {
     "vitest": "^3.2.0"

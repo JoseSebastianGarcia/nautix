@@ -10,7 +10,7 @@ RUN if [ -s /certs/extra.pem ]; then export NODE_EXTRA_CA_CERTS=/certs/extra.pem
  && pnpm --filter @nautix/api deploy --prod --legacy /out/api \
  && cp -r apps/web/dist /out/web
 
-FROM docker:27-cli AS docker-cli
+FROM docker:28-cli AS docker-cli
 
 FROM node:22-bookworm-slim
 ENV NODE_ENV=production \
@@ -25,8 +25,13 @@ COPY --from=docker-cli /usr/local/libexec/docker/cli-plugins/docker-compose /usr
 # Port guards: the optional firewall helper is this same image run as root on the host network
 # (`node dist/guard-helper.js`), so it needs the firewall tools. Nautix itself never uses them.
 RUN apt-get update \
+ && apt-get -y upgrade \
  && apt-get install -y --no-install-recommends iptables nftables \
  && rm -rf /var/lib/apt/lists/*
+# Nautix runs `node dist/main.js` and never npm, npx, corepack or yarn: leaving them out removes their
+# bundled packages (and the CVEs those carry) from the image.
+RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+    /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app/api
 COPY --from=build /out/api /app/api
 COPY --from=build /out/web /app/web

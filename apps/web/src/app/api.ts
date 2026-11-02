@@ -259,8 +259,8 @@ export const api = {
     request<void>("POST", "/swarm/configs", { name, value }),
   swarmRemoveConfig: (id: string) => request<void>("DELETE", `/swarm/configs/${id}`),
   swarmStacks: () => request<StackInfo[]>("GET", "/swarm/stacks"),
-  swarmDeployStack: (name: string, yaml: string) =>
-    request<ComposeRunResult>("POST", "/swarm/stacks", { name, yaml }),
+  swarmDeployStack: (name: string, yaml: string, acknowledgeRisks = false) =>
+    request<ComposeRunResult>("POST", "/swarm/stacks", { name, yaml, acknowledgeRisks }),
   swarmRemoveStack: (name: string) => request<ComposeRunResult>("DELETE", `/swarm/stacks/${name}`),
   tls: () => request<TlsStatus>("GET", "/settings/tls"),
   setTlsHosts: (hosts: string[]) => request<TlsStatus>("PUT", "/settings/tls/hosts", { hosts }),

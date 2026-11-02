@@ -588,6 +588,11 @@
       "hostNetwork": "Uses the host network",
       "hostPid": "Shares the host process namespace",
       "dangerousCap": "Adds powerful Linux capabilities",
+      "hostRoot": "Mounts the host's root folder",
+      "sensitiveMount": "Mounts a system or credentials folder of the host",
+      "hostIpc": "Shares the host's IPC",
+      "unconfined": "Turns off the container's security profile",
+      "hostDevices": "Gives access to host devices",
       "yaml": "YAML syntax error: {{message}}"
     },
     "ps": "Status",

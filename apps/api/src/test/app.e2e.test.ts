@@ -47,6 +47,7 @@ beforeAll(async () => {
     dockerSocket: "",
     webDist: "",
     secureCookies: false,
+    allowedHosts: [],
     tls: { mode: "off" },
   };
   const logs: string[] = [];
@@ -299,6 +300,29 @@ describe("terminal websocket", () => {
     const host = new URL(base).host;
     expect((await open("abc", { origin: `http://${host}` })).error).toBe("401");
     expect((await open("abc", { origin: "http://evil.example", cookie })).error).toBe("403");
+  });
+
+  it("answers an Origin that is not a URL with 403 and keeps running (ADR-063)", async () => {
+    expect((await open("abc", { origin: "null" })).error).toBe("403");
+    expect((await open("abc", { origin: "null", cookie })).error).toBe("403");
+    expect((await open("abc", { origin: "", cookie })).error).toBe("403");
+    // The server is still up for the next person.
+    const { res } = await call("GET", "/auth/session");
+    expect(res.status).toBe(200);
+  });
+
+  it("answers a state change that sends Origin: null with 403, not a crash", async () => {
+    const res = await fetch(`${base}/api/v1/networks`, {
+      method: "POST",
+      headers: {
+        "x-nautix-csrf": "1",
+        "content-type": "application/json",
+        origin: "null",
+        cookie,
+      },
+      body: JSON.stringify({ name: "from-null" }),
+    });
+    expect(res.status).toBe(403);
   });
 
   it("bridges a shell session for an authenticated same-origin client", async () => {
@@ -2352,5 +2376,24 @@ describe("gateways and proxies of every supported type", () => {
     expect((await call("POST", "/networks", { ...overlay, name: "ov-late" })).res.status).toBe(409);
     for (const n of nets.filter((x) => x.name.startsWith("ov-")))
       await call("DELETE", `/networks/${n.id}`);
+  });
+});
+
+// Last on purpose: it uses up the failed-token allowance of this address.
+describe("guessing API tokens", () => {
+  it("is slowed down after too many wrong tokens", async () => {
+    const codes: number[] = [];
+    for (let i = 0; i < 40; i++) {
+      const res = await fetch(`${base}/api/v1/containers`, {
+        headers: { authorization: `Bearer nx_wrong${i}` },
+      });
+      codes.push(res.status);
+    }
+    const firstLimited = codes.indexOf(429);
+    // Earlier tests already spent some of the allowance, so only the shape is fixed: 401s, then 429s.
+    expect(firstLimited).toBeGreaterThan(0);
+    expect(firstLimited).toBeLessThanOrEqual(30);
+    expect(codes.slice(0, firstLimited).every((c) => c === 401)).toBe(true);
+    expect(codes.slice(firstLimited).every((c) => c === 429)).toBe(true);
   });
 });

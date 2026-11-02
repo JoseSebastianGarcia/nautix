@@ -294,7 +294,7 @@ export class SwarmController {
   @Post("stacks")
   deploy(@Body() body: unknown) {
     const b = parse(DeployStack, body);
-    return this.commands.execute(new DeployStackCommand(b.name, b.yaml));
+    return this.commands.execute(new DeployStackCommand(b.name, b.yaml, b.acknowledgeRisks));
   }
 
   @Delete("stacks/:name")
