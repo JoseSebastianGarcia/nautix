@@ -7,7 +7,7 @@ One container with the Docker socket and a data volume:
 # installer/compose.yaml
 services:
   nautix:
-    image: ghcr.io/patterna-dev/nautix:latest      # placeholder, confirm registry in ADR
+    image: josesebastiangarcia/nautix:latest      # placeholder, confirm registry in ADR
     restart: unless-stopped
     ports: ["127.0.0.1:3737:3737"]
     volumes:

@@ -24,7 +24,7 @@ Comprobá también `LICENSE` (Apache-2.0), `NOTICE` y el número de versión que
 1. Entrá a <https://hub.docker.com> → **Repositories** → **Create repository**.
 2. Nombre: `nautix`. Visibilidad: **Public**.
 3. En *Description* poné una línea: `Self-hosted web client to manage Docker: visual networks, Compose and Swarm.`
-4. Quedará como `TU_USUARIO/nautix` (por ejemplo `patterna/nautix`; si querés un nombre de organización, creá la
+4. Quedará como `TU_USUARIO/nautix` (por ejemplo `miusuario/nautix`; si querés un nombre de organización, creá la
    organización primero en Docker Hub y creá el repositorio dentro de ella).
 
 ## 2. Crear un token de acceso (una sola vez)

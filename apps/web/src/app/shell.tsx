@@ -154,14 +154,13 @@ export function Shell() {
         <Outlet />
       </main>
       <footer className="shrink-0 px-5 py-2 text-center text-[11px] text-dim">
-        Nautix · {t("app.madeBy")} ·{" "}
         <a
-          href="https://patterna.dev"
+          href="https://getnautix.com"
           target="_blank"
           rel="noreferrer noopener"
           className="underline-offset-2 hover:text-fg hover:underline"
         >
-          patterna.dev
+          getnautix.com
         </a>
       </footer>
     </div>
